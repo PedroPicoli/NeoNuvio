@@ -1,0 +1,33 @@
+package com.nuvio.tv.domain.model
+
+private val supporterThemes = linkedMapOf(
+    AppTheme.GOLD to CosmeticEntitlement.GOLD_THEME,
+    AppTheme.JADE to CosmeticEntitlement.JADE_THEME,
+    AppTheme.ROSE_GOLD to CosmeticEntitlement.ROSE_GOLD_THEME,
+    AppTheme.ARCTIC_BLUE to CosmeticEntitlement.ARCTIC_BLUE_THEME,
+    AppTheme.GRAPHITE to CosmeticEntitlement.GRAPHITE_THEME
+)
+
+private val standardThemes = listOf(AppTheme.WHITE) + AppTheme.entries.filterNot {
+    it == AppTheme.WHITE || it == AppTheme.CUSTOM || it == AppTheme.IMMERSIVE || it in supporterThemes
+}
+
+fun availableAppThemes(entitlements: CosmeticEntitlements = CosmeticEntitlements.None): List<AppTheme> {
+    return listOf(AppTheme.IMMERSIVE) + supporterThemes.keys.toList() + AppTheme.CUSTOM + standardThemes
+}
+
+fun resolveAppTheme(
+    selectedTheme: AppTheme?,
+    entitlements: CosmeticEntitlements = CosmeticEntitlements.None
+): AppTheme {
+    if (selectedTheme == null) {
+        return AppTheme.WHITE
+    }
+    return if (selectedTheme in availableAppThemes(entitlements)) {
+        selectedTheme
+    } else {
+        AppTheme.WHITE
+    }
+}
+
+fun resolveCustomThemeColors(colors: CustomThemeColors, memberTier: MemberTier? = null): CustomThemeColors = colors
