@@ -1,0 +1,16 @@
+<resources>
+    <string name="autosync_setting_title">Sincronização automática de legendas</string>
+    <string name="autosync_setting_description">Ajusta o tempo da legenda do complemento para coincidir com as legendas embutidas no vídeo.</string>
+    <string name="autosync_tolerance_title">Tolerância da sincronização</string>
+    <string name="autosync_tolerance_description">Mantém a temporização original quando o ajuste necessário for menor ou igual a este valor.</string>
+    <string name="autosync_tolerance_off">Desativado</string>
+    <string name="autosync_tolerance_value">%1$d ms</string>
+    <string name="autosync_thorough_title">Busca aprofundada de sincronização</string>
+    <string name="autosync_thorough_description">Continua comparando outras legendas e faixas embutidas em busca de uma correspondência mais precisa antes de sincronizar.</string>
+    <string name="autosync_fps_drift_title">Compensação de taxa FPS (Deriva)</string>
+    <string name="autosync_fps_drift_description">Compensa a diferença entre 23.976 e 25 FPS do Better-Nuvio ao sincronizar falas.</string>
+    <string name="autosync_toast_failed">Falha na sincronização: não foi possível sincronizar esta legenda com o vídeo.</string>
+    <string name="autosync_toast_failed_no_reference">Falha na sincronização: este vídeo não possui legendas embutidas para comparação.</string>
+    <string name="autosync_toast_failed_unsupported">Falha na sincronização: formato de legenda não suportado pelo Auto Sync.</string>
+    <string name="autosync_label_synced">Sincronizado automaticamente</string>
+</resources>
