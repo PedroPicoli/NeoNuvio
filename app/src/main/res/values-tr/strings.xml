@@ -3195,4 +3195,28 @@
     <string name="stream_test_video_bitrate">Ortalama Video Bitrate: %1$s</string>
     <string name="stream_test_error_connection">Bağlantı başarısız. Son oynatılan video linkinin süresi dolmuş veya sunucuya erişilemiyor olabilir. Lütfen videoyu tekrar oynatıp testi yeniden deneyin.</string>
 
+
+    <string name="about_update_auto_install_title">Güncellemeleri otomatik yükle</string>
+    <string name="about_update_auto_install_subtitle">Yeni sürümleri arka planda indirin ve cihaz boştayken yükleyin</string>
+    <string name="about_update_auto_install_notice_title">Otomatik güncellemelerden sonra bildir</string>
+    <string name="about_update_auto_install_notice_subtitle">Uygulama güncellendikten sonraki ilk açılışta bir bildirim göster</string>
+    <string name="update_installed_automatically">Cihaz boştayken otomatik olarak güncellendi</string>
+    <string name="player_engine_switch_title">%1$s oynatıcısına geçilsin mi?</string>
+    <string name="player_engine_switch_message">Video kaldığınız yerden yeniden yüklenecektir.</string>
+    <string name="settings_stream_badges_in_player_title">Oynatıcıda göster</string>
+    <string name="settings_stream_badges_in_player_description">Oynatıcı başlığının altında oynatılan video ve ses rozetlerini göster.</string>
+    <string name="settings_stream_player_badges_title">Oynatıcı rozetleri</string>
+    <string name="settings_stream_player_badges_description">Oynatıcının kullanacağı rozet paketini seçin.</string>
+    <string name="settings_stream_player_badges_same">Akış rozetleriyle aynı</string>
+    <string name="sub_hdr_style">Ayrı HDR / Dolby Vision stili</string>
+    <string name="sub_hdr_style_sub">HDR ve Dolby Vision videolarda altyazılar için farklı bir metin rengi ve daha loş parlaklık kullan</string>
+    <string name="sub_hdr_brightness">HDR Altyazı Parlaklığı</string>
+    <string name="sub_hdr_text_color">HDR Metin Rengi</string>
+    <string name="sub_libass_render_scale">Altyazı İşleme Çözünürlüğü</string>
+    <string name="sub_libass_render_scale_sub">Daha düşük çözünürlük netlik pahasına yoğun altyazılarda performansı artırır</string>
+    <string name="subtitle_style_brightness_hdr">Parlaklık (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">Metin Rengi (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">Metin Opaklığı (HDR)</string>
+    <string name="action_add_to_list">Listeye ekle</string>
+    <string name="action_remove_from_list">Listeden kaldır</string>
 </resources>

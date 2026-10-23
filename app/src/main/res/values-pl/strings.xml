@@ -3483,5 +3483,11 @@
     <string name="subtitle_style_brightness_hdr">Jasność (HDR)</string>
     <string name="subtitle_style_text_color_hdr">Kolor tekstu (HDR)</string>
     <string name="subtitle_style_text_opacity_hdr">Przezroczystość tekstu (HDR)</string>
+
+    <string name="settings_stream_player_badges_title">Odznaki odtwarzacza</string>
+    <string name="settings_stream_player_badges_description">Wybierz pakiet odznak używany przez odtwarzacz.</string>
+    <string name="settings_stream_player_badges_same">Takie same jak odznaki strumienia</string>
+    <string name="action_add_to_list">Dodaj do listy</string>
+    <string name="action_remove_from_list">Usuń z listy</string>
 </resources>
 

@@ -13,9 +13,17 @@ private const val MPV_RESUME_SEEK_TOLERANCE_MS = 1500L
 
 internal fun PlayerRuntimeController.attachMpvView(view: NuvioMpvSurfaceView?) {
     if (mpvView === view) return
+    val oldView = mpvView
+    if (oldView != null && oldView !== view) {
+        unregisterMpvEventRelay()
+    }
     mpvView = view
 
-    if (view == null) return
+    if (view == null) {
+        unregisterMpvEventRelay()
+        return
+    }
+    registerMpvEventRelay(view)
     if (!isUsingMpvEngine()) return
     if (currentStreamUrl.isBlank()) return
     if (!mpvMediaLoadPrepared) return
@@ -107,6 +115,7 @@ internal fun PlayerRuntimeController.initializeMpvPlayer(
         }
         return
     }
+    registerMpvEventRelay(view)
 
     runCatching {
         setLoadingStatus(
@@ -194,6 +203,7 @@ internal fun PlayerRuntimeController.initializeMpvPlayer(
 }
 
 internal fun PlayerRuntimeController.releaseMpvPlayer() {
+    unregisterMpvEventRelay()
     runCatching { mpvView?.releasePlayer() }
 }
 
@@ -288,12 +298,12 @@ internal fun PlayerRuntimeController.markMpvTracksStale() {
  */
 internal fun PlayerRuntimeController.updateMpvTracksOnTick() {
     updateMpvHdrVideoState()
-    if (mpvTrackRefreshGate.isStale) {
+    val state = _uiState.value
+    if (mpvTrackRefreshGate.isStale || (state.audioTracks.isEmpty() && mpvView?.isPlayingNow() == true)) {
         updateMpvAvailableTracks()
         return
     }
     if (!isUsingMpvEngine() || mpvTrackRefreshInProgress || mpvView == null) return
-    val state = _uiState.value
     markMpvTextTracksScannedIfReady(hasInternalSubtitleTracks = state.subtitleTracks.isNotEmpty())
     maybeRestorePendingAudioSelectionAfterSubtitleRefresh(state.audioTracks)
     applyPersistedTrackPreference(
@@ -473,6 +483,7 @@ private fun PlayerRuntimeController.applyMpvTrackSnapshot(snapshot: MpvTrackSnap
         audioTracks = audioTracks,
         subtitleTracks = internalSubtitleTracks
     )
+    updateAudioControlAvailability(audioTracks, selectedAudioIndex)
     logSwitchTrace(
         stage = "mpv-snapshot-after-restore",
         message = "uiAudioIndex=${_uiState.value.selectedAudioTrackIndex} " +

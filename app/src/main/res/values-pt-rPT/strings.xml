@@ -2689,4 +2689,29 @@
 
     <!-- Series Custom Settings -->
     <string name="series_custom_settings_source_auto_sub">Reproduzir automaticamente usando a configuração global do NeoNuvio</string>
+
+    <string name="about_update_auto_install_title">Instalar atualizações automaticamente</string>
+    <string name="about_update_auto_install_subtitle">Transferir novas versões em segundo plano e instalá-las enquanto o dispositivo estiver inativo</string>
+    <string name="about_update_auto_install_notice_title">Notificar após atualizações automáticas</string>
+    <string name="about_update_auto_install_notice_subtitle">Mostrar um aviso na próxima inicialização após a aplicação ser atualizada</string>
+    <string name="update_installed_automatically">Atualizado automaticamente enquanto o dispositivo estava inativo</string>
+    <string name="player_engine_switch_title">Mudar para %1$s?</string>
+    <string name="player_engine_switch_message">O vídeo será recarregado a partir de onde parou.</string>
+    <string name="settings_stream_badges_in_player_title">Mostrar no reprodutor</string>
+    <string name="settings_stream_badges_in_player_description">Mostrar emblemas para o vídeo e áudio em reprodução sob o título do reprodutor. Requer um pacote de emblemas correspondente a texto simples, como 2160p ou Atmos.</string>
+    <string name="settings_stream_player_badges_title">Emblemas do reprodutor</string>
+    <string name="settings_stream_player_badges_description">Escolha o pacote de emblemas utilizado pelo reprodutor.</string>
+    <string name="settings_stream_player_badges_same">Igual aos emblemas de transmissão</string>
+    <string name="stream_test_error_connection">Falha na ligação. A última ligação de transmissão reproduzida pode ter expirado ou estar inacessível. Reproduza o vídeo novamente e tente de novo.</string>
+    <string name="sub_hdr_style">Estilo HDR / Dolby Vision separado</string>
+    <string name="sub_hdr_style_sub">Usar uma cor de texto diferente e menor brilho para legendas em vídeos HDR e Dolby Vision</string>
+    <string name="sub_hdr_brightness">Brilho das legendas HDR</string>
+    <string name="sub_hdr_text_color">Cor do texto HDR</string>
+    <string name="sub_libass_render_scale">Resolução de renderização de legendas</string>
+    <string name="sub_libass_render_scale_sub">Uma resolução mais baixa melhora o desempenho em legendas pesadas à custa da nitidez</string>
+    <string name="subtitle_style_brightness_hdr">Brilho (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">Cor do texto (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">Opacidade do texto (HDR)</string>
+    <string name="action_add_to_list">Adicionar à lista</string>
+    <string name="action_remove_from_list">Remover da lista</string>
 </resources>

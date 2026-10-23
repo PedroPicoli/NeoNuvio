@@ -2172,4 +2172,29 @@
     <string name="trakt_comments_error_request_failed">Zahteva za komentarje Trakt ni uspela</string>
     <string name="trakt_library_error_fetch_list_items">Pridobivanje elementov seznama ni uspelo</string>
 
+
+    <string name="about_update_auto_install_title">Samodejno namesti posodobitve</string>
+    <string name="about_update_auto_install_subtitle">Prenesi nove različice v ozadju in jih namesti, ko je naprava nedejavna</string>
+    <string name="about_update_auto_install_notice_title">Obvesti po samodejnih posodobitvah</string>
+    <string name="about_update_auto_install_notice_subtitle">Prikaži obvestilo ob naslednjem zagonu po posodobitvi</string>
+    <string name="update_installed_automatically">Samodejno posodobljeno med nedejavnostjo naprave</string>
+    <string name="player_engine_switch_title">Preklopi na %1$s?</string>
+    <string name="player_engine_switch_message">Video se bo znova naložil od trenutnega mesta.</string>
+    <string name="settings_stream_badges_in_player_title">Prikaži v predvajalniku</string>
+    <string name="settings_stream_badges_in_player_description">Prikaži značke za video in zvok pod naslovom predvajalnika.</string>
+    <string name="settings_stream_player_badges_title">Značke predvajalnika</string>
+    <string name="settings_stream_player_badges_description">Izberite paket značk za predvajalnik.</string>
+    <string name="settings_stream_player_badges_same">Enako kot značke pretoka</string>
+    <string name="stream_test_error_connection">Povezava ni uspela. Povezava je morda potekla. Znova predvajajte video.</string>
+    <string name="sub_hdr_style">Ločen slog za HDR / Dolby Vision</string>
+    <string name="sub_hdr_style_sub">Uporabi drugo barvo besedila in manjšo svetlost za podnapise pri HDR in Dolby Vision</string>
+    <string name="sub_hdr_brightness">Svetlost HDR podnapisov</string>
+    <string name="sub_hdr_text_color">Barva besedila HDR podnapisov</string>
+    <string name="sub_libass_render_scale">Ločljivost izrisa podnapisov</string>
+    <string name="sub_libass_render_scale_sub">Nižja ločljivost izboljša delovanje pri zahtevnih podnapisih</string>
+    <string name="subtitle_style_brightness_hdr">Svetlost (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">Barva besedila (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">Prekrivnost besedila (HDR)</string>
+    <string name="action_add_to_list">Dodaj na seznam</string>
+    <string name="action_remove_from_list">Odstrani s seznama</string>
 </resources>

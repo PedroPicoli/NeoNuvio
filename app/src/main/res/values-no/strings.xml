@@ -1120,4 +1120,29 @@
     <string name="watchlist_removed">Fjernet fra ønskelisten</string>
     <string name="playback_player_auto">Automatisk (Best for innhold)</string>
     <string name="playback_player_auto_desc">ExoPlayer for filmer og serier · MPV for anime</string>
+
+    <string name="about_update_auto_install_title">Installer oppdateringer automatisk</string>
+    <string name="about_update_auto_install_subtitle">Last ned nye versjoner i bakgrunnen og installer dem når enheten er inaktiv</string>
+    <string name="about_update_auto_install_notice_title">Varsle etter automatiske oppdateringer</string>
+    <string name="about_update_auto_install_notice_subtitle">Vis et banner ved neste oppstart etter at appen er oppdatert</string>
+    <string name="update_installed_automatically">Oppdatert automatisk mens enheten var inaktiv</string>
+    <string name="player_engine_switch_title">Bytt til %1$s?</string>
+    <string name="player_engine_switch_message">Videoen lastes inn på nytt der du slapp.</string>
+    <string name="settings_stream_badges_in_player_title">Vis i avspiller</string>
+    <string name="settings_stream_badges_in_player_description">Vis merker for video og lyd under avspillertittelen.</string>
+    <string name="settings_stream_player_badges_title">Avspillermerker</string>
+    <string name="settings_stream_player_badges_description">Velg merkepakken avspilleren bruker.</string>
+    <string name="settings_stream_player_badges_same">Samme som strømmemerker</string>
+    <string name="stream_test_error_connection">Tilkobling mislyktes. Strømmelenken kan være utløpt. Spill av videoen på nytt og prøv igjen.</string>
+    <string name="sub_hdr_style">Separat HDR / Dolby Vision-stil</string>
+    <string name="sub_hdr_style_sub">Bruk en annen tekstfarge og lavere lysstyrke for undertekster på HDR og Dolby Vision</string>
+    <string name="sub_hdr_brightness">Lysstyrke for HDR-undertekster</string>
+    <string name="sub_hdr_text_color">HDR-tekstfarge</string>
+    <string name="sub_libass_render_scale">Gjengivelsesoppløsning for undertekster</string>
+    <string name="sub_libass_render_scale_sub">Lavere oppløsning forbedrer ytelsen på tunge undertekster på bekostning av skarphet</string>
+    <string name="subtitle_style_brightness_hdr">Lysstyrke (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">Tekstfarge (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">Tekstugjennomsiktighet (HDR)</string>
+    <string name="action_add_to_list">Legg til i liste</string>
+    <string name="action_remove_from_list">Fjern fra liste</string>
 </resources>

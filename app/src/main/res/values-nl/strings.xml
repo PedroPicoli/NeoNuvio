@@ -3142,4 +3142,28 @@
     <string name="stream_test_video_bitrate">Gemiddelde videobitrate: %1$s</string>
     <string name="stream_test_error_connection">Verbinding mislukt. De link van de laatst afgespeelde stream is mogelijk verlopen of onbereikbaar. Speel de video opnieuw af en probeer het nogmaals.</string>
 
+
+    <string name="about_update_auto_install_title">Updates automatisch installeren</string>
+    <string name="about_update_auto_install_subtitle">Nieuwe versies op de achtergrond downloaden en installeren wanneer het apparaat inactief is</string>
+    <string name="about_update_auto_install_notice_title">Melden na automatische updates</string>
+    <string name="about_update_auto_install_notice_subtitle">Toon een melding bij de volgende start nadat de app is bijgewerkt</string>
+    <string name="update_installed_automatically">Automatisch bijgewerkt terwijl het apparaat inactief was</string>
+    <string name="player_engine_switch_title">Overschakelen naar %1$s?</string>
+    <string name="player_engine_switch_message">De video wordt opnieuw geladen vanaf waar u was gebleven.</string>
+    <string name="settings_stream_badges_in_player_title">Tonen in speler</string>
+    <string name="settings_stream_badges_in_player_description">Badges voor afgespeelde video en audio onder de titel van de speler tonen.</string>
+    <string name="settings_stream_player_badges_title">Spelerbadges</string>
+    <string name="settings_stream_player_badges_description">Kies het badgepakket dat de speler gebruikt.</string>
+    <string name="settings_stream_player_badges_same">Hetzelfde als streambadges</string>
+    <string name="sub_hdr_style">Aparte HDR / Dolby Vision-stijl</string>
+    <string name="sub_hdr_style_sub">Gebruik een andere tekstkleur en lagere helderheid voor ondertitels bij HDR- en Dolby Vision-video</string>
+    <string name="sub_hdr_brightness">HDR-ondertitelhelderheid</string>
+    <string name="sub_hdr_text_color">HDR-tekstkleur</string>
+    <string name="sub_libass_render_scale">Ondertitelweergave-resolutie</string>
+    <string name="sub_libass_render_scale_sub">Lagere resolutie verbetert prestaties bij zware ondertitels ten koste van scherpte</string>
+    <string name="subtitle_style_brightness_hdr">Helderheid (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">Tekstkleur (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">Tekstdekking (HDR)</string>
+    <string name="action_add_to_list">Aan lijst toevoegen</string>
+    <string name="action_remove_from_list">Uit lijst verwijderen</string>
 </resources>

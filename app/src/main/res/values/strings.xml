@@ -3580,4 +3580,8 @@
 
     <string name="stream_resume_from_time">Resume from %1$s</string>
     <string name="stream_resume_from_percent">Resume from %1$d%%</string>
+
+    <string name="action_add_to_list">Add to list</string>
+    <string name="action_remove_from_list">Remove from list</string>
 </resources>
+

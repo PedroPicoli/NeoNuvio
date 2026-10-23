@@ -999,4 +999,29 @@ Klaida: Bandomoji simuliuojama klaida — tai nėra tikras gedimas. Šaltinis gr
     <string name="watchlist_removed">Pašalinta iš žiūrėjimo sąrašo</string>
     <string name="playback_player_auto">Automatiškai (Geriausia turiniui)</string>
     <string name="playback_player_auto_desc">ExoPlayer filmams ir serialams · MPV animėms</string>
+
+    <string name="about_update_auto_install_title">Diegti naujinimus automatiškai</string>
+    <string name="about_update_auto_install_subtitle">Atsisiųsti naujas versijas fone ir įdiegti jas, kai įrenginys nenaudojamas</string>
+    <string name="about_update_auto_install_notice_title">Pranešti po automatinių naujinimų</string>
+    <string name="about_update_auto_install_notice_subtitle">Rodyti pranešimą kitą kartą paleidus programėlę po atnaujinimo</string>
+    <string name="update_installed_automatically">Atnaujinta automatiškai, kol įrenginys buvo nenaudojamas</string>
+    <string name="player_engine_switch_title">Perjungti į %1$s?</string>
+    <string name="player_engine_switch_message">Vaizdo įrašas bus įkeltas iš naujo nuo dabartinės vietos.</string>
+    <string name="settings_stream_badges_in_player_title">Rodyti grotuve</string>
+    <string name="settings_stream_badges_in_player_description">Rodyti vaizdo ir garso ženklelius po grotuvo pavadinimu.</string>
+    <string name="settings_stream_player_badges_title">Grotuvo ženkleliai</string>
+    <string name="settings_stream_player_badges_description">Pasirinkite grotuvo naudojamą ženklelių paketą.</string>
+    <string name="settings_stream_player_badges_same">Tokie patys kaip srauto ženkleliai</string>
+    <string name="stream_test_error_connection">Ryšys nepavyko. Srauto nuoroda galėjo pasibaigti. Paleiskite vaizdo įrašą iš naujo.</string>
+    <string name="sub_hdr_style">Atskiras HDR / Dolby Vision stilius</string>
+    <string name="sub_hdr_style_sub">Naudoti kitą teksto spalvą ir mažesnį subtitrų ryškumą HDR ir Dolby Vision vaizdo įrašuose</string>
+    <string name="sub_hdr_brightness">HDR subtitrų ryškumas</string>
+    <string name="sub_hdr_text_color">HDR teksto spalva</string>
+    <string name="sub_libass_render_scale">Subtitrų atvaizdavimo raiška</string>
+    <string name="sub_libass_render_scale_sub">Mažesnė raiška pagerina našumą sudėtinguose subtitruose ryškumo sąskaita</string>
+    <string name="subtitle_style_brightness_hdr">Ryškumas (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">Teksto spalva (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">Teksto nepermatomumas (HDR)</string>
+    <string name="action_add_to_list">Pridėti į sąrašą</string>
+    <string name="action_remove_from_list">Pašalinti iš sąrašo</string>
 </resources>

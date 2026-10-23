@@ -827,4 +827,29 @@
     <string name="update_ignore">Ignoră</string>
       <string name="playback_player_auto">Automat (Cel mai bun pentru conținut)</string>
     <string name="playback_player_auto_desc">ExoPlayer pentru Filme și Seriale · MPV pentru Anime</string>
+
+    <string name="about_update_auto_install_title">Instalează actualizările automat</string>
+    <string name="about_update_auto_install_subtitle">Descărcați versiuni noi în fundal și instalați-le când dispozitivul este inactiv</string>
+    <string name="about_update_auto_install_notice_title">Notificare după actualizări automate</string>
+    <string name="about_update_auto_install_notice_subtitle">Afișează un banner la următoarea pornire după actualizarea aplicației</string>
+    <string name="update_installed_automatically">Actualizat automat în timp ce dispozitivul era inactiv</string>
+    <string name="player_engine_switch_title">Comutați la %1$s?</string>
+    <string name="player_engine_switch_message">Videoclipul se va reîncărca de unde ați rămas.</string>
+    <string name="settings_stream_badges_in_player_title">Afișează în player</string>
+    <string name="settings_stream_badges_in_player_description">Afișează insigne pentru video și audio sub titlul playerului.</string>
+    <string name="settings_stream_player_badges_title">Insigne player</string>
+    <string name="settings_stream_player_badges_description">Alegeți pachetul de insigne utilizat de player.</string>
+    <string name="settings_stream_player_badges_same">La fel ca insignele de stream</string>
+    <string name="stream_test_error_connection">Conexiunea a eșuat. Linkul streamului poate fi expirat sau inaccesibil. Vă rugăm să redați din nou videoclipul.</string>
+    <string name="sub_hdr_style">Stil separat HDR / Dolby Vision</string>
+    <string name="sub_hdr_style_sub">Utilizați o culoare diferită și luminozitate redusă pentru subtitrări în videoclipuri HDR și Dolby Vision</string>
+    <string name="sub_hdr_brightness">Luminozitate subtitrări HDR</string>
+    <string name="sub_hdr_text_color">Culoare text HDR</string>
+    <string name="sub_libass_render_scale">Rezoluție randare subtitrări</string>
+    <string name="sub_libass_render_scale_sub">O rezoluție mai mică îmbunătățește performanța subtitrărilor complexe</string>
+    <string name="subtitle_style_brightness_hdr">Luminozitate (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">Culoare text (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">Opacitate text (HDR)</string>
+    <string name="action_add_to_list">Adaugă la listă</string>
+    <string name="action_remove_from_list">Elimină din listă</string>
 </resources>

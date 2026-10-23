@@ -3401,4 +3401,9 @@
     <string name="autosync_label_synced">Đã tự động đồng bộ</string>
     <string name="stream_resume_from_time">Xem tiếp từ %1$s</string>
     <string name="stream_resume_from_percent">Xem tiếp từ %1$d%%</string>
+
+    <string name="sub_libass_render_scale">Độ phân giải hiển thị phụ đề</string>
+    <string name="sub_libass_render_scale_sub">Độ phân giải thấp hơn giúp tăng hiệu năng với các phụ đề phức tạp nhưng giảm độ sắc nét</string>
+    <string name="action_add_to_list">Thêm vào danh sách</string>
+    <string name="action_remove_from_list">Xóa khỏi danh sách</string>
 </resources>

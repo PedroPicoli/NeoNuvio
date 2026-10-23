@@ -2893,4 +2893,28 @@
     <string name="stream_test_error_prefix">Gabim: %1$s</string>
     <string name="stream_test_video_bitrate">Bitrate mesatar i videos: %1$s</string>
     <string name="stream_test_error_connection">Lidhja dështoi. Lidhja e transmetimit të luajtur së fundi mund të ketë skaduar ose të jetë e paarritshme. Ju lutemi luajeni videon përsëri dhe provoni sërish.</string>
+
+    <string name="about_update_auto_install_title">Instalo përditësimet automatikisht</string>
+    <string name="about_update_auto_install_subtitle">Shkarko versionet e reja në sfond dhe instalo kur pajisja është joaktive</string>
+    <string name="about_update_auto_install_notice_title">Njofto pas përditësimeve automatike</string>
+    <string name="about_update_auto_install_notice_subtitle">Shfaq një njoftim në hapjen tjetër pas përditësimit</string>
+    <string name="update_installed_automatically">U përditësua automatikisht ndërsa pajisja ishte joaktive</string>
+    <string name="player_engine_switch_title">Kalo te %1$s?</string>
+    <string name="player_engine_switch_message">Videoja do të ringarkohet nga pozicioni aktual.</string>
+    <string name="settings_stream_badges_in_player_title">Shfaq në luajtës</string>
+    <string name="settings_stream_badges_in_player_description">Shfaq distinktivët e videos dhe audios poshtë titullit të luajtësit.</string>
+    <string name="settings_stream_player_badges_title">Distinktivët e luajtësit</string>
+    <string name="settings_stream_player_badges_description">Zgjidhni paketën e distinktivëve për luajtësin.</string>
+    <string name="settings_stream_player_badges_same">Njësoj si distinktivët e transmetimit</string>
+    <string name="sub_hdr_style">Stil i veçantë HDR / Dolby Vision</string>
+    <string name="sub_hdr_style_sub">Përdorni ngjyrë tjetër teksti dhe ndriçim më të ulët për titrat në video HDR dhe Dolby Vision</string>
+    <string name="sub_hdr_brightness">Ndriçimi i titrave HDR</string>
+    <string name="sub_hdr_text_color">Ngjyra e tekstit HDR</string>
+    <string name="sub_libass_render_scale">Rezolucioni i shfaqjes së titrave</string>
+    <string name="sub_libass_render_scale_sub">Rezolucioni më i ulët përmirëson performancën në titra kompleksë</string>
+    <string name="subtitle_style_brightness_hdr">Ndriçimi (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">Ngjyra e tekstit (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">Opaciteti i tekstit (HDR)</string>
+    <string name="action_add_to_list">Shto në listë</string>
+    <string name="action_remove_from_list">Hiq nga lista</string>
 </resources>

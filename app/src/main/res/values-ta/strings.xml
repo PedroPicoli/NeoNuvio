@@ -2257,4 +2257,29 @@
     <string name="trakt_comments_error_request_failed">ட்ராக்ட் கருத்துகள் கோரிக்கை தோல்வியடைந்தது</string>
     <string name="trakt_library_error_fetch_list_items">பட்டியல் உருப்படிகளைப் பெற முடியவில்லை</string>
 
+
+    <string name="about_update_auto_install_title">புதுப்பிப்புகளை தானாக நிறுவு</string>
+    <string name="about_update_auto_install_subtitle">பின்னணியில் பதிவிறக்கி சாதனம் பயன்பாட்டில் இல்லாத போது நிறுவவும்</string>
+    <string name="about_update_auto_install_notice_title">தானியங்கு புதுப்பிப்புக்குப் பின் அறிவிக்கவும்</string>
+    <string name="about_update_auto_install_notice_subtitle">புதுப்பிக்கப்பட்ட பிறகு அடுத்த துவக்கத்தில் பேனரைக் காட்டவும்</string>
+    <string name="update_installed_automatically">சாதனம் செயலற்ற நிலையில் தானாக புதுப்பிக்கப்பட்டது</string>
+    <string name="player_engine_switch_title">%1$s-க்கு மாற்றவா?</string>
+    <string name="player_engine_switch_message">வீடியோ நீங்கள் விட்ட இடத்திலிருந்து மீண்டும் தொடங்கும்.</string>
+    <string name="settings_stream_badges_in_player_title">பிளேயரில் காட்டு</string>
+    <string name="settings_stream_badges_in_player_description">பிளேயர் தலைப்பின் கீழ் வீடியோ மற்றும் ஆடியோ பேட்ஜ்களைக் காட்டு.</string>
+    <string name="settings_stream_player_badges_title">பிளேயர் பேட்ஜ்கள்</string>
+    <string name="settings_stream_player_badges_description">பிளேயர் பயன்படுத்தும் பேட்ஜ் தொகுப்பைத் தேர்ந்தெடுக்கவும்.</string>
+    <string name="settings_stream_player_badges_same">ஸ்ட்ரீம் பேட்ஜ்களைப் போன்றது</string>
+    <string name="stream_test_error_connection">இணைப்பு தோல்வியடைந்தது. ஸ்ட்ரீம் இணைப்பு காலாவதியாகியிருக்கலாம். தயவுசெய்து வீடியோவை மீண்டும் இயக்கவும்.</string>
+    <string name="sub_hdr_style">தனி HDR / Dolby Vision பாணி</string>
+    <string name="sub_hdr_style_sub">HDR மற்றும் Dolby Vision வீடியோக்களில் வசனங்களுக்கு வேறு உரை நிறம் மற்றும் குறைந்த பிரகாசத்தைப் பயன்படுத்தவும்</string>
+    <string name="sub_hdr_brightness">HDR வசன பிரகாசம்</string>
+    <string name="sub_hdr_text_color">HDR உரை நிறம்</string>
+    <string name="sub_libass_render_scale">வசன ரெண்டர் தெளிவுத்திறன்</string>
+    <string name="sub_libass_render_scale_sub">குறைந்த தெளிவுத்திறன் செயல்திறனை மேம்படுத்துகிறது</string>
+    <string name="subtitle_style_brightness_hdr">பிரகாசம் (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">உரை நிறம் (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">உரை ஒளிபுகாமை (HDR)</string>
+    <string name="action_add_to_list">பட்டியலில் சேர்</string>
+    <string name="action_remove_from_list">பட்டியலிலிருந்து நீக்கு</string>
 </resources>

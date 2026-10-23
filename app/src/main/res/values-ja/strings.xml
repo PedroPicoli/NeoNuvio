@@ -2699,4 +2699,29 @@
     <string name="profile_default_name">プロフィール%1$d</string>
     <string name="detail_tmdb_fallback_title">TMDB %1$d</string>
     <string name="collections_editor_tmdb_collection_fallback">TMDBコレクション%1$d</string>
+
+    <string name="about_update_auto_install_title">アップデートを自動的にインストール</string>
+    <string name="about_update_auto_install_subtitle">バックグラウンドで新しいバージョンをダウンロードし、端末がアイドル状態のときにインストールします</string>
+    <string name="about_update_auto_install_notice_title">自動アップデート後に通知</string>
+    <string name="about_update_auto_install_notice_subtitle">アプリ更新後の次回起動時にバナーを表示します</string>
+    <string name="update_installed_automatically">端末のアイドル中に自動更新されました</string>
+    <string name="player_engine_switch_title">%1$s に切り替えますか？</string>
+    <string name="player_engine_switch_message">動画は現在の位置から再読み込みされます。</string>
+    <string name="settings_stream_badges_in_player_title">プレイヤーで表示</string>
+    <string name="settings_stream_badges_in_player_description">プレイヤータイトルの下に再生中のビデオとオーディオのバッジを表示します。</string>
+    <string name="settings_stream_player_badges_title">プレイヤーバッジ</string>
+    <string name="settings_stream_player_badges_description">プレイヤーが使用するバッジパックを選択します。</string>
+    <string name="settings_stream_player_badges_same">配信バッジと同じ</string>
+    <string name="stream_test_error_connection">接続に失敗しました。前回のストリームリンクの有効期限が切れたか、アクセスできません。動画をもう一度再生してお試しください。</string>
+    <string name="sub_hdr_style">個別 HDR / Dolby Vision スタイル</string>
+    <string name="sub_hdr_style_sub">HDRおよびDolby Visionの動画で字幕に異なる文字色と控えめな明るさを使用します</string>
+    <string name="sub_hdr_brightness">HDR 字幕の明るさ</string>
+    <string name="sub_hdr_text_color">HDR 字幕の文字色</string>
+    <string name="sub_libass_render_scale">字幕レンダリング解像度</string>
+    <string name="sub_libass_render_scale_sub">解像度を下げると鮮明さは低下しますが、複雑な字幕のパフォーマンスが向上します</string>
+    <string name="subtitle_style_brightness_hdr">明るさ (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">文字色 (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">文字の不透明度 (HDR)</string>
+    <string name="action_add_to_list">リストに追加</string>
+    <string name="action_remove_from_list">リストから削除</string>
 </resources>

@@ -3231,4 +3231,28 @@
     <string name="stream_test_video_bitrate">平均视频比特率：%1$s</string>
     <string name="stream_test_error_connection">连接失败。上次播放的流链接可能已过期或无法访问。请重新播放视频并重试。</string>
 
+
+    <string name="about_update_auto_install_title">自动安装更新</string>
+    <string name="about_update_auto_install_subtitle">在后台下载新版本并在设备空闲时自动安装</string>
+    <string name="about_update_auto_install_notice_title">自动更新后通知</string>
+    <string name="about_update_auto_install_notice_subtitle">在应用自动更新后的下次启动时显示提示横幅</string>
+    <string name="update_installed_automatically">已在设备空闲时自动更新</string>
+    <string name="player_engine_switch_title">切换到 %1$s？</string>
+    <string name="player_engine_switch_message">视频将从当前播放位置重新加载。</string>
+    <string name="settings_stream_badges_in_player_title">在播放器中显示</string>
+    <string name="settings_stream_badges_in_player_description">在播放器标题下方显示正在播放的音视频徽章。</string>
+    <string name="settings_stream_player_badges_title">播放器徽章</string>
+    <string name="settings_stream_player_badges_description">选择播放器使用的徽章包。</string>
+    <string name="settings_stream_player_badges_same">与流媒体徽章相同</string>
+    <string name="sub_hdr_style">独立 HDR / Dolby Vision 样式</string>
+    <string name="sub_hdr_style_sub">在 HDR 和 Dolby Vision 视频中对字幕使用不同的文字颜色和较低的亮度</string>
+    <string name="sub_hdr_brightness">HDR 字幕亮度</string>
+    <string name="sub_hdr_text_color">HDR 字幕文字颜色</string>
+    <string name="sub_libass_render_scale">字幕渲染分辨率</string>
+    <string name="sub_libass_render_scale_sub">降低分辨率可提升复杂排版字幕的性能，但会轻微降低清晰度</string>
+    <string name="subtitle_style_brightness_hdr">亮度 (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">文字颜色 (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">文字不透明度 (HDR)</string>
+    <string name="action_add_to_list">添加到列表</string>
+    <string name="action_remove_from_list">从列表移除</string>
 </resources>

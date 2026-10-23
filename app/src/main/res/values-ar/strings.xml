@@ -3032,4 +3032,28 @@
     <string name="web_stream_badge_imported">استُورد رابط الشارة.</string>
     <string name="web_stream_badge_importing">جارٍ الاستيراد\u2026</string>
     <string name="web_stream_badge_load_error">تعذر تحميل إعدادات شارات البث</string>
+
+    <string name="about_update_auto_install_title">تثبيت التحديثات تلقائيًا</string>
+    <string name="about_update_auto_install_subtitle">تنزيل الإصدارات الجديدة في الخلفية وتثبيتها عندما يكون الجهاز في وضع الخمول</string>
+    <string name="about_update_auto_install_notice_title">إشعار بعد التحديثات التلقائية</string>
+    <string name="about_update_auto_install_notice_subtitle">إظهار إشعار عند التشغيل التالي بعد تحديث التطبيق لنفسه</string>
+    <string name="update_installed_automatically">تم التحديث تلقائيًا أثناء خمول الجهاز</string>
+    <string name="player_engine_switch_title">التبديل إلى %1$s؟</string>
+    <string name="player_engine_switch_message">سيتم إعادة تحميل الفيديو من النقطة الحالية.</string>
+    <string name="settings_stream_badges_in_player_title">إظهار في المشغل</string>
+    <string name="settings_stream_badges_in_player_description">إظهار شارات الفيديو والصوت قيد التشغيل أسفل عنوان المشغل.</string>
+    <string name="settings_stream_player_badges_title">شارات المشغل</string>
+    <string name="settings_stream_player_badges_description">اختر حزمة الشارات التي يستخدمها المشغل.</string>
+    <string name="settings_stream_player_badges_same">مطابق لشارات البث</string>
+    <string name="sub_hdr_style">نمط مخصص لـ HDR / Dolby Vision</string>
+    <string name="sub_hdr_style_sub">استخدام لون نص مختلف وسطوع أقل للترجمات في فيديوهات HDR وDolby Vision</string>
+    <string name="sub_hdr_brightness">سطوع ترجمات HDR</string>
+    <string name="sub_hdr_text_color">لون نص HDR</string>
+    <string name="sub_libass_render_scale">دقة تصيير الترجمة</string>
+    <string name="sub_libass_render_scale_sub">الدقة الأقل تحسن الأداء في الترجمات المعقدة على حساب الوضوح</string>
+    <string name="subtitle_style_brightness_hdr">السطوع (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">لون النص (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">شفافية النص (HDR)</string>
+    <string name="action_add_to_list">إضافة إلى القائمة</string>
+    <string name="action_remove_from_list">إزالة من القائمة</string>
 </resources>

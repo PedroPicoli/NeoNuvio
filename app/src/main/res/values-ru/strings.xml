@@ -3117,4 +3117,28 @@
     <string name="stream_test_video_bitrate">Средний битрейт видео: %1$s</string>
     <string name="stream_test_error_connection">Ошибка соединения. Возможно, ссылка на последний воспроизведённый поток устарела или недоступна. Воспроизведите видео заново и повторите попытку.</string>
 
+
+    <string name="about_update_auto_install_title">Устанавливать обновления автоматически</string>
+    <string name="about_update_auto_install_subtitle">Загружать новые версии в фоновом режиме и устанавливать их во время простоя устройства</string>
+    <string name="about_update_auto_install_notice_title">Уведомлять после автообновлений</string>
+    <string name="about_update_auto_install_notice_subtitle">Показывать баннер при следующем запуске после обновления приложения</string>
+    <string name="update_installed_automatically">Обновлено автоматически во время простоя устройства</string>
+    <string name="player_engine_switch_title">Переключить на %1$s?</string>
+    <string name="player_engine_switch_message">Видео перезагрузится с текущего момента.</string>
+    <string name="settings_stream_badges_in_player_title">Показывать в плеере</string>
+    <string name="settings_stream_badges_in_player_description">Показывать значки видео и аудио под названием в плеере.</string>
+    <string name="settings_stream_player_badges_title">Значки плеера</string>
+    <string name="settings_stream_player_badges_description">Выберите набор значков для плеера.</string>
+    <string name="settings_stream_player_badges_same">Как для потоков</string>
+    <string name="sub_hdr_style">Отдельный стиль HDR / Dolby Vision</string>
+    <string name="sub_hdr_style_sub">Использовать другой цвет текста и меньшую яркость субтитров для видео HDR и Dolby Vision</string>
+    <string name="sub_hdr_brightness">Яркость субтитров HDR</string>
+    <string name="sub_hdr_text_color">Цвет текста HDR</string>
+    <string name="sub_libass_render_scale">Разрешение рендеринга субтитров</string>
+    <string name="sub_libass_render_scale_sub">Снижение разрешения ускоряет сложные субтитры за счет четкости</string>
+    <string name="subtitle_style_brightness_hdr">Яркость (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">Цвет текста (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">Непрозрачность текста (HDR)</string>
+    <string name="action_add_to_list">Добавить в список</string>
+    <string name="action_remove_from_list">Удалить из списка</string>
 </resources>
