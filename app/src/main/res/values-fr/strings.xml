@@ -3372,5 +3372,29 @@
     <string name="autosync_toast_failed_no_reference">Échec de la synchronisation&#160;: cette vidéo ne contient aucun sous-titre intégré à comparer.</string>
     <string name="autosync_toast_failed_unsupported">Échec de la synchronisation&#160;: la synchronisation automatique ne prend pas en charge ce format de sous-titres.</string>
     <string name="autosync_label_synced">Synchronisé automatiquement</string>
+
+    <string name="about_update_auto_install_title">Installer les mises à jour automatiquement</string>
+    <string name="about_update_auto_install_subtitle">Télécharger les nouvelles versions en arrière-plan et les installer lorsque l\'appareil est inactif</string>
+    <string name="about_update_auto_install_notice_title">Notifier après les mises à jour automatiques</string>
+    <string name="about_update_auto_install_notice_subtitle">Afficher une bannière au prochain démarrage après la mise à jour de l\'application</string>
+    <string name="update_installed_automatically">Mis à jour automatiquement pendant que l\'appareil était inactif</string>
+    <string name="player_engine_switch_title">Passer à %1$s ?</string>
+    <string name="player_engine_switch_message">La vidéo se rechargera là où vous vous êtes arrêté.</string>
+    <string name="settings_stream_badges_in_player_title">Afficher dans le lecteur</string>
+    <string name="settings_stream_badges_in_player_description">Afficher les badges vidéo et audio en cours de lecture sous le titre du lecteur.</string>
+    <string name="settings_stream_player_badges_title">Badges du lecteur</string>
+    <string name="settings_stream_player_badges_description">Choisir le pack de badges utilisé par le lecteur.</string>
+    <string name="settings_stream_player_badges_same">Identique aux badges de flux</string>
+    <string name="sub_hdr_style">Style séparé HDR / Dolby Vision</string>
+    <string name="sub_hdr_style_sub">Utiliser une couleur de texte différente et une luminosité plus faible pour les sous-titres en HDR et Dolby Vision</string>
+    <string name="sub_hdr_brightness">Luminosité des sous-titres HDR</string>
+    <string name="sub_hdr_text_color">Couleur du texte HDR</string>
+    <string name="sub_libass_render_scale">Résolution de rendu des sous-titres</string>
+    <string name="sub_libass_render_scale_sub">Une résolution inférieure améliore les performances sur les sous-titres complexes au détriment de la netteté</string>
+    <string name="subtitle_style_brightness_hdr">Luminosité (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">Couleur du texte (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">Opacité du texte (HDR)</string>
+    <string name="action_add_to_list">Ajouter à la liste</string>
+    <string name="action_remove_from_list">Retirer de la liste</string>
 </resources>
 

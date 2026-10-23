@@ -3280,4 +3280,28 @@
   <string name="autosync_toast_failed_no_reference">Ο συγχρονισμός απέτυχε: αυτό το βίντεο δεν έχει ενσωματωμένους υπότιτλους για σύγκριση.</string>
   <string name="autosync_toast_failed_unsupported">Ο συγχρονισμός απέτυχε: ο αυτόματος συγχρονισμός δεν υποστηρίζει αυτή τη μορφή υποτίτλων.</string>
   <string name="autosync_label_synced">Αυτόματα συγχρονισμένος</string>
+
+    <string name="about_update_auto_install_title">Αυτόματη εγκατάσταση ενημερώσεων</string>
+    <string name="about_update_auto_install_subtitle">Λήψη νέων εκδόσεων στο παρασκήνιο και εγκατάσταση όταν η συσκευή είναι σε αδράνεια</string>
+    <string name="about_update_auto_install_notice_title">Ειδοποίηση μετά από αυτόματες ενημερώσεις</string>
+    <string name="about_update_auto_install_notice_subtitle">Εμφάνιση ειδοποίησης στην επόμενη εκκίνηση μετά την ενημέρωση της εφαρμογής</string>
+    <string name="update_installed_automatically">Ενημερώθηκε αυτόματα ενώ η συσκευή ήταν σε αδράνεια</string>
+    <string name="player_engine_switch_title">Αλλαγή σε %1$s;</string>
+    <string name="player_engine_switch_message">Το βίντεο θα επαναφορτωθεί από το σημείο που βρίσκεστε.</string>
+    <string name="settings_stream_badges_in_player_title">Εμφάνιση στο πρόγραμμα αναπαραγωγής</string>
+    <string name="settings_stream_badges_in_player_description">Εμφάνιση σημάτων για το βίντεο και τον ήχο κάτω από τον τίτλο.</string>
+    <string name="settings_stream_player_badges_title">Σήματα προγράμματος αναπαραγωγής</string>
+    <string name="settings_stream_player_badges_description">Επιλέξτε το πακέτο σημάτων του προγράμματος αναπαραγωγής.</string>
+    <string name="settings_stream_player_badges_same">Ίδιο με τα σήματα ροής</string>
+    <string name="sub_hdr_style">Ξεχωριστό στυλ HDR / Dolby Vision</string>
+    <string name="sub_hdr_style_sub">Χρήση διαφορετικού χρώματος κειμένου και χαμηλότερης φωτεινότητας για υπότιτλους σε HDR και Dolby Vision</string>
+    <string name="sub_hdr_brightness">Φωτεινότητα υποτίτλων HDR</string>
+    <string name="sub_hdr_text_color">Χρώμα κειμένου HDR</string>
+    <string name="sub_libass_render_scale">Ανάλυση απόδοσης υποτίτλων</string>
+    <string name="sub_libass_render_scale_sub">Η χαμηλότερη ανάλυση βελτιώνει την απόδοση σε απαιτητικούς υπότιτλους</string>
+    <string name="subtitle_style_brightness_hdr">Φωτεινότητα (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">Χρώμα κειμένου (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">Αδιαφάνεια κειμένου (HDR)</string>
+    <string name="action_add_to_list">Προσθήκη στη λίστα</string>
+    <string name="action_remove_from_list">Αφαίρεση από τη λίστα</string>
 </resources>

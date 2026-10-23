@@ -3410,5 +3410,13 @@
     <string name="player_chapter_remaining">Zostáva %1$s</string>
     <string name="stream_resume_from_time">Pokračovať od %1$s</string>
     <string name="stream_resume_from_percent">Pokračovať od %1$d%%</string>
+
+    <string name="settings_stream_player_badges_title">Odznaky prehrávača</string>
+    <string name="settings_stream_player_badges_description">Vyberte balík odznakov, ktorý prehrávač používa.</string>
+    <string name="settings_stream_player_badges_same">Rovnaké ako odznaky streamu</string>
+    <string name="sub_libass_render_scale">Rozlíšenie vykresľovania titulkov</string>
+    <string name="sub_libass_render_scale_sub">Nižšie rozlíšenie zlepšuje výkon pri náročných titulkoch na úkor ostrosti</string>
+    <string name="action_add_to_list">Pridať do zoznamu</string>
+    <string name="action_remove_from_list">Odstrániť zo zoznamu</string>
 </resources>
 

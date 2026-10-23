@@ -2732,4 +2732,29 @@
     <string name="profile_default_name">Профіль %1$d</string>
     <string name="detail_tmdb_fallback_title">TMDB %1$d</string>
     <string name="collections_editor_tmdb_collection_fallback">Колекція TMDB %1$d</string>
+
+    <string name="about_update_auto_install_title">Встановлювати оновлення автоматично</string>
+    <string name="about_update_auto_install_subtitle">Завантажувати нові версії у фоновому режимі та встановлювати їх під час простою пристрою</string>
+    <string name="about_update_auto_install_notice_title">Сповіщати після автооновлень</string>
+    <string name="about_update_auto_install_notice_subtitle">Показувати банер під час наступного запуску після оновлення програми</string>
+    <string name="update_installed_automatically">Оновлено автоматично під час простою пристрою</string>
+    <string name="player_engine_switch_title">Перемкнути на %1$s?</string>
+    <string name="player_engine_switch_message">Відео перезавантажиться з поточного моменту.</string>
+    <string name="settings_stream_badges_in_player_title">Показувати у плеєрі</string>
+    <string name="settings_stream_badges_in_player_description">Показувати значки відео та аудіо під назвою у плеєрі.</string>
+    <string name="settings_stream_player_badges_title">Значки плеєра</string>
+    <string name="settings_stream_player_badges_description">Оберіть набір значків для плеєра.</string>
+    <string name="settings_stream_player_badges_same">Як для потоків</string>
+    <string name="stream_test_error_connection">Помилка підключення. Посилання на потік застаріло або недоступне. Запустіть відео знову та повторіть спробу.</string>
+    <string name="sub_hdr_style">Окремий стиль HDR / Dolby Vision</string>
+    <string name="sub_hdr_style_sub">Використовувати інший колір тексту та меншу яскравість субтитрів для HDR і Dolby Vision</string>
+    <string name="sub_hdr_brightness">Яскравість субтитрів HDR</string>
+    <string name="sub_hdr_text_color">Колір тексту HDR</string>
+    <string name="sub_libass_render_scale">Роздільна здатність рендерингу субтитрів</string>
+    <string name="sub_libass_render_scale_sub">Зниження роздільної здатності прискорює складні субтитри за рахунок чіткості</string>
+    <string name="subtitle_style_brightness_hdr">Яскравість (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">Колір тексту (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">Непрозорість тексту (HDR)</string>
+    <string name="action_add_to_list">Додати до списку</string>
+    <string name="action_remove_from_list">Вилучити зі списку</string>
 </resources>

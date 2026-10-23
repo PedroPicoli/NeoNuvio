@@ -3367,4 +3367,28 @@
     <string name="autosync_label_synced">Sincronizzato automaticamente</string>
     <string name="stream_resume_from_time">Riprendi da %1$s</string>
     <string name="stream_resume_from_percent">Riprendi dal %1$d%%</string>
+
+    <string name="about_update_auto_install_title">Installa aggiornamenti automaticamente</string>
+    <string name="about_update_auto_install_subtitle">Scarica le nuove versioni in background e le installa quando il dispositivo è inattivo</string>
+    <string name="about_update_auto_install_notice_title">Notifica dopo gli aggiornamenti automatici</string>
+    <string name="about_update_auto_install_notice_subtitle">Mostra un avviso al prossimo avvio dopo l\'aggiornamento</string>
+    <string name="update_installed_automatically">Aggiornato automaticamente mentre il dispositivo era inattivo</string>
+    <string name="player_engine_switch_title">Passare a %1$s?</string>
+    <string name="player_engine_switch_message">Il video verrà ricaricato da dove eri rimasto.</string>
+    <string name="settings_stream_badges_in_player_title">Mostra nel lettore</string>
+    <string name="settings_stream_badges_in_player_description">Mostra badge video e audio sotto il titolo del lettore.</string>
+    <string name="settings_stream_player_badges_title">Badge del lettore</string>
+    <string name="settings_stream_player_badges_description">Scegli il pacchetto di badge usato dal lettore.</string>
+    <string name="settings_stream_player_badges_same">Uguale ai badge dello streaming</string>
+    <string name="sub_hdr_style">Stile HDR / Dolby Vision separato</string>
+    <string name="sub_hdr_style_sub">Usa un colore diverso e luminosità ridotta per i sottotitoli in HDR e Dolby Vision</string>
+    <string name="sub_hdr_brightness">Luminosità sottotitoli HDR</string>
+    <string name="sub_hdr_text_color">Colore testo HDR</string>
+    <string name="sub_libass_render_scale">Risoluzione rendering sottotitoli</string>
+    <string name="sub_libass_render_scale_sub">Una risoluzione inferiore migliora le prestazioni con sottotitoli complessi a scapito della nitidezza</string>
+    <string name="subtitle_style_brightness_hdr">Luminosità (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">Colore testo (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">Opacità testo (HDR)</string>
+    <string name="action_add_to_list">Aggiungi alla lista</string>
+    <string name="action_remove_from_list">Rimuovi dalla lista</string>
 </resources>

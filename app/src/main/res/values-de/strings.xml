@@ -2270,4 +2270,29 @@
     <string name="trakt_comments_error_request_failed">Trakt comments request failed</string>
     <string name="trakt_library_error_fetch_list_items">Failed to fetch list items</string>
 
+
+    <string name="about_update_auto_install_title">Updates automatisch installieren</string>
+    <string name="about_update_auto_install_subtitle">Neue Versionen im Hintergrund herunterladen und installieren, wenn das Gerät inaktiv ist</string>
+    <string name="about_update_auto_install_notice_title">Nach automatischen Updates benachrichtigen</string>
+    <string name="about_update_auto_install_notice_subtitle">Beim nächsten Start nach der Aktualisierung ein Banner anzeigen</string>
+    <string name="update_installed_automatically">Automatisch aktualisiert, während das Gerät inaktiv war</string>
+    <string name="player_engine_switch_title">Zu %1$s wechseln?</string>
+    <string name="player_engine_switch_message">Das Video wird an der aktuellen Position neu geladen.</string>
+    <string name="settings_stream_badges_in_player_title">Im Player anzeigen</string>
+    <string name="settings_stream_badges_in_player_description">Badges für wiedergegebenes Video und Audio unter dem Player-Titel anzeigen. Benötigt ein Badge-Paket für Klartext.</string>
+    <string name="settings_stream_player_badges_title">Player-Badges</string>
+    <string name="settings_stream_player_badges_description">Wählen Sie das Badge-Paket für den Player.</string>
+    <string name="settings_stream_player_badges_same">Wie Stream-Badges</string>
+    <string name="stream_test_error_connection">Verbindung fehlgeschlagen. Der Stream-Link ist möglicherweise abgelaufen oder unerreichbar. Bitte erneut abspielen.</string>
+    <string name="sub_hdr_style">Separater HDR / Dolby Vision-Stil</string>
+    <string name="sub_hdr_style_sub">Andere Textfarbe und geringere Helligkeit für Untertitel bei HDR und Dolby Vision verwenden</string>
+    <string name="sub_hdr_brightness">HDR-Untertitel-Helligkeit</string>
+    <string name="sub_hdr_text_color">HDR-Textfarbe</string>
+    <string name="sub_libass_render_scale">Untertitel-Renderauflösung</string>
+    <string name="sub_libass_render_scale_sub">Niedrigere Auflösung verbessert Leistung bei aufwendigen Untertiteln auf Kosten der Schärfe</string>
+    <string name="subtitle_style_brightness_hdr">Helligkeit (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">Textfarbe (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">Textdeckkraft (HDR)</string>
+    <string name="action_add_to_list">Zur Liste hinzufügen</string>
+    <string name="action_remove_from_list">Aus Liste entfernen</string>
 </resources>

@@ -458,7 +458,7 @@ fun HomeScreen(
             title = item.name,
             isInLibrary = uiState.posterLibraryMembership[statusKey] == true,
             isLibraryPending = statusKey in uiState.posterLibraryPending,
-            showManageLists = uiState.librarySourceMode != LibrarySourceMode.LOCAL,
+            showManageLists = false,
             isMovie = isMovie,
             isSeries = isSeries,
             isWatched = movieWatchedStatus[statusKey] == true,
@@ -469,11 +469,7 @@ fun HomeScreen(
                 posterOptionsTarget = null
             },
             onToggleLibrary = {
-                if (uiState.librarySourceMode != LibrarySourceMode.LOCAL) {
-                    viewModel.openPosterListPicker(item, selectedPoster.addonBaseUrl)
-                } else {
-                    viewModel.togglePosterLibrary(item, selectedPoster.addonBaseUrl)
-                }
+                viewModel.togglePosterLibrary(item, selectedPoster.addonBaseUrl)
                 posterOptionsTarget = null
             },
             onToggleWatched = {
@@ -761,14 +757,10 @@ private fun HomePosterOptionsDialog(
             )
         ) {
             Text(
-                if (showManageLists) {
-                    stringResource(R.string.library_manage_lists)
+                if (isInLibrary) {
+                    stringResource(R.string.action_remove_from_list)
                 } else {
-                    if (isInLibrary) {
-                        stringResource(R.string.hero_remove_from_library)
-                    } else {
-                        stringResource(R.string.hero_add_to_library)
-                    }
+                    stringResource(R.string.action_add_to_list)
                 }
             )
         }

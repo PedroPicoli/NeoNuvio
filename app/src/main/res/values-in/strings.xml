@@ -2445,4 +2445,29 @@
     <string name="trakt_comments_error_request_failed">Permintaan komentar Trakt gagal</string>
     <string name="trakt_library_error_fetch_list_items">Gagal mengambil item daftar</string>
 
+
+    <string name="about_update_auto_install_title">Pasang pembaruan otomatis</string>
+    <string name="about_update_auto_install_subtitle">Unduh versi baru di latar belakang dan pasang saat perangkat tidak digunakan</string>
+    <string name="about_update_auto_install_notice_title">Beri tahu setelah pembaruan otomatis</string>
+    <string name="about_update_auto_install_notice_subtitle">Tampilkan banner pada peluncuran berikutnya setelah aplikasi diperbarui</string>
+    <string name="update_installed_automatically">Diperbarui otomatis saat perangkat tidak digunakan</string>
+    <string name="player_engine_switch_title">Beralih ke %1$s?</string>
+    <string name="player_engine_switch_message">Video akan dimuat ulang dari posisi saat ini.</string>
+    <string name="settings_stream_badges_in_player_title">Tampilkan di pemutar</string>
+    <string name="settings_stream_badges_in_player_description">Tampilkan lencana video dan audio di bawah judul pemutar.</string>
+    <string name="settings_stream_player_badges_title">Lencana pemutar</string>
+    <string name="settings_stream_player_badges_description">Pilih paket lencana yang digunakan pemutar.</string>
+    <string name="settings_stream_player_badges_same">Sama dengan lencana stream</string>
+    <string name="stream_test_error_connection">Koneksi gagal. Tautan stream mungkin telah kedaluwarsa. Silakan putar video lagi.</string>
+    <string name="sub_hdr_style">Gaya terpisah HDR / Dolby Vision</string>
+    <string name="sub_hdr_style_sub">Gunakan warna teks berbeda dan kecerahan lebih redup untuk subtitle pada video HDR dan Dolby Vision</string>
+    <string name="sub_hdr_brightness">Kecerahan Subtitle HDR</string>
+    <string name="sub_hdr_text_color">Warna Teks HDR</string>
+    <string name="sub_libass_render_scale">Resolusi Render Subtitle</string>
+    <string name="sub_libass_render_scale_sub">Resolusi lebih rendah meningkatkan kinerja subtitle yang rumit</string>
+    <string name="subtitle_style_brightness_hdr">Kecerahan (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">Warna Teks (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">Opasitas Teks (HDR)</string>
+    <string name="action_add_to_list">Tambahkan ke daftar</string>
+    <string name="action_remove_from_list">Hapus dari daftar</string>
 </resources>

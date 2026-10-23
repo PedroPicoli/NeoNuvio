@@ -2685,5 +2685,30 @@
     <string name="profile_default_name">Профил %1$d</string>
     <string name="detail_tmdb_fallback_title">TMDB %1$d</string>
     <string name="collections_editor_tmdb_collection_fallback">TMDB колекция %1$d</string>
+
+    <string name="about_update_auto_install_title">Автоматично инсталиране на актуализации</string>
+    <string name="about_update_auto_install_subtitle">Изтегляне на нови версии във фонов режим и инсталиране, когато устройството е неактивно</string>
+    <string name="about_update_auto_install_notice_title">Известие след автоматични актуализации</string>
+    <string name="about_update_auto_install_notice_subtitle">Показване на банер при следващото стартиране след актуализация</string>
+    <string name="update_installed_automatically">Актуализирано автоматично, докато устройството беше неактивно</string>
+    <string name="player_engine_switch_title">Превключване към %1$s?</string>
+    <string name="player_engine_switch_message">Видеото ще се презареди от текущата позиция.</string>
+    <string name="settings_stream_badges_in_player_title">Показване в плейъра</string>
+    <string name="settings_stream_badges_in_player_description">Показване на значки за видео и аудио под заглавието на плейъра.</string>
+    <string name="settings_stream_player_badges_title">Значки на плейъра</string>
+    <string name="settings_stream_player_badges_description">Изберете пакет значки за плейъра.</string>
+    <string name="settings_stream_player_badges_same">Същото като значките за стрийм</string>
+    <string name="stream_test_error_connection">Връзката е неуспешна. Връзката към стрийма може да е изтекла. Моля, пуснете видеото отново.</string>
+    <string name="sub_hdr_style">Отделен стил за HDR / Dolby Vision</string>
+    <string name="sub_hdr_style_sub">Използване на различен цвят и по-ниска яркост за субтитри при HDR и Dolby Vision</string>
+    <string name="sub_hdr_brightness">Яркост на HDR субтитри</string>
+    <string name="sub_hdr_text_color">Цвят на текста при HDR</string>
+    <string name="sub_libass_render_scale">Резолюция на рендиране на субтитри</string>
+    <string name="sub_libass_render_scale_sub">По-ниската резолюция подобрява производителността при тежки субтитри за сметка на остротата</string>
+    <string name="subtitle_style_brightness_hdr">Яркост (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">Цвят на текста (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">Непрозрачност на текста (HDR)</string>
+    <string name="action_add_to_list">Добавяне към списъка</string>
+    <string name="action_remove_from_list">Премахване от списъка</string>
 </resources>
 

@@ -2835,4 +2835,28 @@
     <string name="stream_test_video_bitrate">Průměrný datový tok videa: %1$s</string>
     <string name="stream_test_error_connection">Připojení selhalo. Platnost posledního přehraného odkazu na stream mohla vypršet, nebo je nedostupný. Přehrajte prosím video znovu a zkuste to opět.</string>
 
+
+    <string name="about_update_auto_install_title">Instalovat aktualizace automaticky</string>
+    <string name="about_update_auto_install_subtitle">Stahovat nové verze na pozadí a instalovat je, když je zařízení nečinné</string>
+    <string name="about_update_auto_install_notice_title">Upozornit po automatických aktualizacích</string>
+    <string name="about_update_auto_install_notice_subtitle">Zobrazit banner při příštím spuštění po aktualizaci aplikace</string>
+    <string name="update_installed_automatically">Automaticky aktualizováno při nečinnosti zařízení</string>
+    <string name="player_engine_switch_title">Přepnout na %1$s?</string>
+    <string name="player_engine_switch_message">Video se znovu načte od místa, kde jste skončili.</string>
+    <string name="settings_stream_badges_in_player_title">Zobrazit v přehrávači</string>
+    <string name="settings_stream_badges_in_player_description">Zobrazit odznaky videa a zvuku pod názvem přehrávače.</string>
+    <string name="settings_stream_player_badges_title">Odznaky přehrávače</string>
+    <string name="settings_stream_player_badges_description">Vyberte sadu odznaků, kterou přehrávač používá.</string>
+    <string name="settings_stream_player_badges_same">Stejné jako odznaky streamu</string>
+    <string name="sub_hdr_style">Samostatný styl HDR / Dolby Vision</string>
+    <string name="sub_hdr_style_sub">Použít jinou barvu textu a nižší jas pro titulky u videí HDR a Dolby Vision</string>
+    <string name="sub_hdr_brightness">Jas titulků HDR</string>
+    <string name="sub_hdr_text_color">Barva textu HDR</string>
+    <string name="sub_libass_render_scale">Rozlišení vykreslování titulků</string>
+    <string name="sub_libass_render_scale_sub">Nižší rozlišení zlepšuje výkon u náročných titulků na úkor ostrosti</string>
+    <string name="subtitle_style_brightness_hdr">Jas (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">Barva textu (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">Průhlednost textu (HDR)</string>
+    <string name="action_add_to_list">Přidat do seznamu</string>
+    <string name="action_remove_from_list">Odebrat ze seznamu</string>
 </resources>

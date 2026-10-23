@@ -995,4 +995,29 @@
     <string name="update_ignore">नज़रअंदाज़ करें</string>
     <string name="playback_player_auto">ऑटो (सामग्री के लिए सर्वश्रेष्ठ)</string>
     <string name="playback_player_auto_desc">ExoPlayer मूवीज़ और टीवी शोज़ के लिए · MPV एनीमे के लिए</string>
+
+    <string name="about_update_auto_install_title">अपडेट अपने आप इंस्टॉल करें</string>
+    <string name="about_update_auto_install_subtitle">पृष्ठभूमि में नए संस्करण डाउनलोड करें और डिवाइस निष्क्रिय होने पर इंस्टॉल करें</string>
+    <string name="about_update_auto_install_notice_title">ऑटो अपडेट के बाद सूचित करें</string>
+    <string name="about_update_auto_install_notice_subtitle">ऐप अपडेट होने के बाद अगले लॉन्च पर बैनर दिखाएं</string>
+    <string name="update_installed_automatically">डिवाइस निष्क्रिय रहने के दौरान अपने आप अपडेट हो गया</string>
+    <string name="player_engine_switch_title">%1$s पर स्विच करें?</string>
+    <string name="player_engine_switch_message">वीडियो वहीं से दोबारा लोड होगा जहां आप थे।</string>
+    <string name="settings_stream_badges_in_player_title">प्लेयर में दिखाएं</string>
+    <string name="settings_stream_badges_in_player_description">प्लेयर शीर्षक के नीचे चल रहे वीडियो और ऑडियो के बैज दिखाएं।</string>
+    <string name="settings_stream_player_badges_title">प्लेयर बैज</string>
+    <string name="settings_stream_player_badges_description">प्लेयर द्वारा उपयोग किए जाने वाले बैज पैक चुनें।</string>
+    <string name="settings_stream_player_badges_same">स्ट्रीम बैज के समान</string>
+    <string name="stream_test_error_connection">कनेक्शन विफल रहा। स्ट्रीम लिंक समाप्त हो गया हो सकता है। कृपया वीडियो दोबारा चलाएं।</string>
+    <string name="sub_hdr_style">अलग HDR / Dolby Vision शैली</string>
+    <string name="sub_hdr_style_sub">HDR और Dolby Vision वीडियो पर उपशीर्षक के लिए अलग रंग और कम चमक का उपयोग करें</string>
+    <string name="sub_hdr_brightness">HDR उपशीर्षक चमक</string>
+    <string name="sub_hdr_text_color">HDR टेक्स्ट रंग</string>
+    <string name="sub_libass_render_scale">उपशीर्षक रेंडर रिज़ॉल्यूशन</string>
+    <string name="sub_libass_render_scale_sub">कम रिज़ॉल्यूशन भारी उपशीर्षक पर प्रदर्शन में सुधार करता है</string>
+    <string name="subtitle_style_brightness_hdr">चमक (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">टेक्स्ट रंग (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">टेक्स्ट अपारदर्शिता (HDR)</string>
+    <string name="action_add_to_list">सूची में जोड़ें</string>
+    <string name="action_remove_from_list">सूची से हटाएं</string>
 </resources>

@@ -89,12 +89,10 @@ fun PosterOptionsDialog(
             )
         ) {
             Text(
-                when {
-                    showManageLists -> stringResource(R.string.library_manage_lists)
-                    isSimklSource && isInWatchlist -> stringResource(R.string.simkl_remove_from_my_list)
-                    isSimklSource && !isInWatchlist -> stringResource(R.string.simkl_add_to_my_list)
-                    isInLibrary -> stringResource(R.string.hero_remove_from_library)
-                    else -> stringResource(R.string.hero_add_to_library)
+                if (isInLibrary) {
+                    stringResource(R.string.action_remove_from_list)
+                } else {
+                    stringResource(R.string.action_add_to_list)
                 }
             )
         }
@@ -229,13 +227,13 @@ fun PosterOptionsHost(
             target.apiType.equals("tv", ignoreCase = true) ||
             target.apiType.equals("anime", ignoreCase = true)
         val isSimklSource = state.librarySourceMode == LibrarySourceMode.SIMKL
-        val showManageLists = state.librarySourceMode != LibrarySourceMode.LOCAL && !isSimklSource
+        val inList = if (isSimklSource) state.isInWatchlist else (state.isInLibrary || state.isInWatchlist)
         PosterOptionsDialog(
             title = target.name,
-            isInLibrary = state.isInLibrary,
+            isInLibrary = inList,
             isInWatchlist = state.isInWatchlist,
             isLibraryPending = state.isLibraryPending,
-            showManageLists = showManageLists,
+            showManageLists = false,
             isSimklSource = isSimklSource,
             isMovie = isMovie,
             isSeries = isSeries,
@@ -248,12 +246,8 @@ fun PosterOptionsHost(
                 controller.dismiss()
             },
             onToggleLibrary = {
-                if (showManageLists) {
-                    controller.openListPicker()
-                } else {
-                    controller.toggleLibrary()
-                    controller.dismiss()
-                }
+                controller.toggleLibrary()
+                controller.dismiss()
             },
             onToggleWatched = {
                 if (isMovie) {

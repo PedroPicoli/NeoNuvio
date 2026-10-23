@@ -3378,4 +3378,28 @@
     <string name="autosync_toast_failed_no_reference">הסנכרון נכשל: אין בסרטון הזה כתוביות מוטמעות להשוואה.</string>
     <string name="autosync_toast_failed_unsupported">הסנכרון נכשל: הסנכרון האוטומטי לא תומך בפורמט הכתוביות הזה.</string>
     <string name="autosync_label_synced">מסונכרן אוטומטית</string>
+
+    <string name="about_update_auto_install_title">התקן עדכונים באופן אוטומטי</string>
+    <string name="about_update_auto_install_subtitle">הורד גרסאות חדשות ברקע והתקן אותן כאשר המכשיר אינו בשימוש</string>
+    <string name="about_update_auto_install_notice_title">הודע לאחר עדכונים אוטומטיים</string>
+    <string name="about_update_auto_install_notice_subtitle">הצג באנר בהפעלה הבאה לאחר שהאפליקציה מתעדכנת</string>
+    <string name="update_installed_automatically">עודכן אוטומטית בזמן שהמכשיר היה במצב לא פעיל</string>
+    <string name="player_engine_switch_title">לעבור אל %1$s?</string>
+    <string name="player_engine_switch_message">הווידאו ייטען מחדש מהנקודה שבה עצרת.</string>
+    <string name="settings_stream_badges_in_player_title">הצג בנגן</string>
+    <string name="settings_stream_badges_in_player_description">הצג תגים עבור הווידאו והשמע המושמעים מתחת לכותרת הנגן.</string>
+    <string name="settings_stream_player_badges_title">תגי נגן</string>
+    <string name="settings_stream_player_badges_description">בחר את חבילת התגים שבה משתמש הנגן.</string>
+    <string name="settings_stream_player_badges_same">זהה לתגי הזרמה</string>
+    <string name="sub_hdr_style">סגנון HDR / Dolby Vision נפרד</string>
+    <string name="sub_hdr_style_sub">השתמש בצבע טקסט שונה ובבהירות נמוכה יותר לכתוביות בווידאו HDR ו-Dolby Vision</string>
+    <string name="sub_hdr_brightness">בהירות כתוביות HDR</string>
+    <string name="sub_hdr_text_color">צבע טקסט HDR</string>
+    <string name="sub_libass_render_scale">רזולוציית רינדור כתוביות</string>
+    <string name="sub_libass_render_scale_sub">רזולוציה נמוכה יותר משפרת ביצועים בכתוביות מורכבות על חשבון חדות</string>
+    <string name="subtitle_style_brightness_hdr">בהירות (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">צבע טקסט (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">אטימות טקסט (HDR)</string>
+    <string name="action_add_to_list">הוסף לרשימה</string>
+    <string name="action_remove_from_list">הסר מהרשימה</string>
 </resources>

@@ -3299,4 +3299,28 @@
     <string name="shuffle_save_failed">Nije moguće ažurirati nasumičnu reprodukciju. Pokušaj ponovno.</string>
     <string name="shuffle_change_selection">Odaberi epizode</string>
     <string name="shuffle_badge">Nasumična reprodukcija epizoda uključena</string>
+
+    <string name="about_update_auto_install_title">Automatski instaliraj ažuriranja</string>
+    <string name="about_update_auto_install_subtitle">Preuzmi nove verzije u pozadini i instaliraj ih dok uređaj miruje</string>
+    <string name="about_update_auto_install_notice_title">Obavijesti nakon automatskih ažuriranja</string>
+    <string name="about_update_auto_install_notice_subtitle">Prikaži obavijest pri sljedećem pokretanju nakon ažuriranja</string>
+    <string name="update_installed_automatically">Automatski ažurirano dok je uređaj mirovao</string>
+    <string name="player_engine_switch_title">Prebaci na %1$s?</string>
+    <string name="player_engine_switch_message">Videozapis će se ponovno učitati od trenutnog mjesta.</string>
+    <string name="settings_stream_badges_in_player_title">Prikaži u playeru</string>
+    <string name="settings_stream_badges_in_player_description">Prikaži oznake za video i audio ispod naslova playera.</string>
+    <string name="settings_stream_player_badges_title">Oznake playera</string>
+    <string name="settings_stream_player_badges_description">Odaberite paket oznaka za player.</string>
+    <string name="settings_stream_player_badges_same">Isto kao oznake prijenosa</string>
+    <string name="sub_hdr_style">Zaseban HDR / Dolby Vision stil</string>
+    <string name="sub_hdr_style_sub">Koristi drugu boju teksta i manju svjetlinu za titlove na HDR i Dolby Vision videozapisima</string>
+    <string name="sub_hdr_brightness">Svjetlina HDR titlova</string>
+    <string name="sub_hdr_text_color">Boja teksta HDR titlova</string>
+    <string name="sub_libass_render_scale">Razlučivost iscrtavanja titlova</string>
+    <string name="sub_libass_render_scale_sub">Niža razlučivost poboljšava performanse kod zahtjevnih titlova</string>
+    <string name="subtitle_style_brightness_hdr">Svjetlina (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">Boja teksta (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">Neprozirnost teksta (HDR)</string>
+    <string name="action_add_to_list">Dodaj na popis</string>
+    <string name="action_remove_from_list">Ukloni s popisa</string>
 </resources>

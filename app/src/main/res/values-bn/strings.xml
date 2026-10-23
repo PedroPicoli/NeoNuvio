@@ -3117,4 +3117,28 @@
         <item quantity="one">%dটি নির্বাচিত</item>
         <item quantity="other">%dটি নির্বাচিত</item>
     </plurals>
-    </resources>
+    
+    <string name="about_update_auto_install_title">স্বয়ংক্রিয়ভাবে আপডেট ইনস্টল করুন</string>
+    <string name="about_update_auto_install_subtitle">পটভূমিতে নতুন সংস্করণ ডাউনলোড করুন এবং ডিভাইস নিষ্ক্রিয় থাকলে ইনস্টল করুন</string>
+    <string name="about_update_auto_install_notice_title">স্বয়ংক্রিয় আপডেটের পরে জানান</string>
+    <string name="about_update_auto_install_notice_subtitle">অ্যাপ আপডেট হওয়ার পর পরবর্তী শুরুতে ব্যানার দেখান</string>
+    <string name="update_installed_automatically">ডিভাইস নিষ্ক্রিয় থাকার সময় স্বয়ংক্রিয়ভাবে আপডেট হয়েছে</string>
+    <string name="player_engine_switch_title">%1$s-এ পরিবর্তন করবেন?</string>
+    <string name="player_engine_switch_message">ভিডিওটি যেখান থেকে বন্ধ হয়েছিল সেখান থেকে পুনরায় লোড হবে।</string>
+    <string name="settings_stream_badges_in_player_title">প্লেয়ারে দেখান</string>
+    <string name="settings_stream_badges_in_player_description">প্লেয়ার শিরোনামের নিচে ভিডিও এবং অডিও ব্যাজ দেখান।</string>
+    <string name="settings_stream_player_badges_title">প্লেয়ার ব্যাজ</string>
+    <string name="settings_stream_player_badges_description">প্লেয়ারের ব্যাজ প্যাক নির্বাচন করুন।</string>
+    <string name="settings_stream_player_badges_same">স্ট্রিম ব্যাজের মতোই</string>
+    <string name="sub_hdr_style">পৃথক HDR / Dolby Vision শৈলী</string>
+    <string name="sub_hdr_style_sub">HDR এবং Dolby Vision ভিডিওতে সাবটাইটেলের জন্য আলাদা রঙ ও কম উজ্জ্বলতা ব্যবহার করুন</string>
+    <string name="sub_hdr_brightness">HDR সাবটাইটেল উজ্জ্বলতা</string>
+    <string name="sub_hdr_text_color">HDR টেক্সট রঙ</string>
+    <string name="sub_libass_render_scale">সাবটাইটেল রেন্ডার রেজোলিউশন</string>
+    <string name="sub_libass_render_scale_sub">কম রেজোলিউশন জটিল সাবটাইটেলে কর্মক্ষমতা উন্নত করে</string>
+    <string name="subtitle_style_brightness_hdr">উজ্জ্বলতা (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">টেক্সট রঙ (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">টেক্সট অস্বচ্ছতা (HDR)</string>
+    <string name="action_add_to_list">তালিকায় যোগ করুন</string>
+    <string name="action_remove_from_list">তালিকা থেকে সরান</string>
+</resources>

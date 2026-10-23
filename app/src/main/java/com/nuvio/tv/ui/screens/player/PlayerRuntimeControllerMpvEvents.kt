@@ -102,6 +102,7 @@ internal class MpvEventRelay(
         if (property != MPV_TRACK_LIST_PROPERTY) return
         if (!active.get() || epoch != controller.mpvEventRelayEpoch) return
         controller.markMpvTracksStale()
+        controller.updateMpvAvailableTracks()
     }
 
     override fun eventProperty(property: String, value: Long) = Unit
@@ -142,6 +143,11 @@ internal fun PlayerRuntimeController.onMpvEvent(eventId: Int, data: MPVNode) {
         MPV.mpvEvent.MPV_EVENT_START_FILE -> onMpvStartFile(data)
         MPV.mpvEvent.MPV_EVENT_END_FILE -> onMpvEndFile(data)
         MPV.mpvEvent.MPV_EVENT_SHUTDOWN -> onMpvCoreShutdown()
+        MPV.mpvEvent.MPV_EVENT_FILE_LOADED,
+        MPV.mpvEvent.MPV_EVENT_PLAYBACK_RESTART -> {
+            markMpvTracksStale()
+            updateMpvAvailableTracks()
+        }
         else -> Unit
     }
 }

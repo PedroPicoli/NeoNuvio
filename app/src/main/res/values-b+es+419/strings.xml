@@ -3372,5 +3372,29 @@
     <string name="autosync_toast_failed_no_reference">Error de sincronización: este video no tiene subtítulos integrados para comparar.</string>
     <string name="autosync_toast_failed_unsupported">Error de sincronización: la sincronización automática no admite este formato de subtítulos.</string>
     <string name="autosync_label_synced">Sincronizado automáticamente</string>
-    </resources>
+    
+    <string name="about_update_auto_install_title">Instalar actualizaciones automáticamente</string>
+    <string name="about_update_auto_install_subtitle">Descargar nuevas versiones en segundo plano e instalarlas mientras el dispositivo esté inactivo</string>
+    <string name="about_update_auto_install_notice_title">Notificar tras actualizaciones automáticas</string>
+    <string name="about_update_auto_install_notice_subtitle">Mostrar un aviso en el siguiente inicio después de que la aplicación se actualice</string>
+    <string name="update_installed_automatically">Actualizado automáticamente mientras el dispositivo estaba inactivo</string>
+    <string name="player_engine_switch_title">¿Cambiar a %1$s?</string>
+    <string name="player_engine_switch_message">El video se recargará desde donde estabas.</string>
+    <string name="settings_stream_badges_in_player_title">Mostrar en el reproductor</string>
+    <string name="settings_stream_badges_in_player_description">Muestra distintivos para el video y audio en reproducción debajo del título del reproductor.</string>
+    <string name="settings_stream_player_badges_title">Distintivos del reproductor</string>
+    <string name="settings_stream_player_badges_description">Elige el paquete de distintivos que usa el reproductor.</string>
+    <string name="settings_stream_player_badges_same">Igual que los distintivos de transmisión</string>
+    <string name="sub_hdr_style">Estilo independiente para HDR / Dolby Vision</string>
+    <string name="sub_hdr_style_sub">Usa un color de texto diferente y un brillo más tenue para los subtítulos en videos con HDR y Dolby Vision</string>
+    <string name="sub_hdr_brightness">Brillo de subtítulos en HDR</string>
+    <string name="sub_hdr_text_color">Color de texto en HDR</string>
+    <string name="sub_libass_render_scale">Resolución de renderizado de subtítulos</string>
+    <string name="sub_libass_render_scale_sub">Una menor resolución mejora el rendimiento con subtítulos complejos a expensas de la nitidez</string>
+    <string name="subtitle_style_brightness_hdr">Brillo (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">Color del texto (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">Opacidad del texto (HDR)</string>
+    <string name="action_add_to_list">Añadir a la lista</string>
+    <string name="action_remove_from_list">Quitar de la lista</string>
+</resources>
 

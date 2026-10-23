@@ -1610,4 +1610,29 @@
     <string name="collections_card_subtitle">Gruppera kataloger i mappar på din hemskärm</string>
     <string name="collections_tab_all">Alla</string>
     <string name="collections_tab_combined">Kombinerat</string>
+
+    <string name="about_update_auto_install_title">Installera uppdateringar automatiskt</string>
+    <string name="about_update_auto_install_subtitle">Ladda ned nya versioner i bakgrunden och installera dem när enheten är inaktiv</string>
+    <string name="about_update_auto_install_notice_title">Meddela efter automatiska uppdateringar</string>
+    <string name="about_update_auto_install_notice_subtitle">Visa en banderoll vid nästa start efter att appen uppdaterats</string>
+    <string name="update_installed_automatically">Uppdaterades automatiskt medan enheten var inaktiv</string>
+    <string name="player_engine_switch_title">Växla till %1$s?</string>
+    <string name="player_engine_switch_message">Videon laddas om från där du slutade.</string>
+    <string name="settings_stream_badges_in_player_title">Visa i spelaren</string>
+    <string name="settings_stream_badges_in_player_description">Visa märken för video och ljud under spelartiteln.</string>
+    <string name="settings_stream_player_badges_title">Spelarmärken</string>
+    <string name="settings_stream_player_badges_description">Välj det märkespaket som spelaren använder.</string>
+    <string name="settings_stream_player_badges_same">Samma som strömningsmärken</string>
+    <string name="stream_test_error_connection">Anslutningen misslyckades. Strömlänken kan ha gått ut. Spela upp videon igen och försök på nytt.</string>
+    <string name="sub_hdr_style">Separat HDR / Dolby Vision-stil</string>
+    <string name="sub_hdr_style_sub">Använd annan textfärg och lägre ljusstyrka för undertexter på HDR och Dolby Vision</string>
+    <string name="sub_hdr_brightness">Ljusstyrka för HDR-undertexter</string>
+    <string name="sub_hdr_text_color">HDR-textfärg</string>
+    <string name="sub_libass_render_scale">Renderingsupplösning för undertexter</string>
+    <string name="sub_libass_render_scale_sub">Lägre upplösning förbättrar prestandan vid tunga undertexter på bekostnad av skärpa</string>
+    <string name="subtitle_style_brightness_hdr">Ljusstyrka (HDR)</string>
+    <string name="subtitle_style_text_color_hdr">Textfärg (HDR)</string>
+    <string name="subtitle_style_text_opacity_hdr">Textogenomskinlighet (HDR)</string>
+    <string name="action_add_to_list">Lägg till i lista</string>
+    <string name="action_remove_from_list">Ta bort från lista</string>
 </resources>

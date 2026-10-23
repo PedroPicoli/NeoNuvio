@@ -3372,5 +3372,10 @@
     <string name="stream_resume_from_time">Folytatás innen: %1$s</string>
     <string name="stream_resume_from_percent">Folytatás innen: %1$d%%</string>
 
+
+    <string name="sub_libass_render_scale">Felirat renderelési felbontás</string>
+    <string name="sub_libass_render_scale_sub">Az alacsonyabb felbontás javítja a teljesítményt az összetett feliratoknál az élesség rovására</string>
+    <string name="action_add_to_list">Hozzáadás a listához</string>
+    <string name="action_remove_from_list">Eltávolítás a listáról</string>
 </resources>
 

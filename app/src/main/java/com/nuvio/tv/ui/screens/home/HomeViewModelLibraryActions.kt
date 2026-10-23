@@ -80,11 +80,14 @@ fun HomeViewModel.refreshPosterLibraryStatus(item: MetaPreview) {
     val statusKey = homeItemStatusKey(item.id, item.apiType)
     viewModelScope.launch {
         runCatching {
+            val isSimkl = _uiState.value.librarySourceMode == LibrarySourceMode.SIMKL
+            val isInWatchlist = libraryRepository.isInWatchlist(item.id, item.apiType).first()
             val isInLibrary = libraryRepository.isInLibrary(item.id, item.apiType).first()
+            val inList = if (isSimkl) isInWatchlist else (isInLibrary || isInWatchlist)
             _uiState.update { state ->
-                if (state.posterLibraryMembership[statusKey] == isInLibrary) state
+                if (state.posterLibraryMembership[statusKey] == inList) state
                 else state.copy(
-                    posterLibraryMembership = state.posterLibraryMembership + (statusKey to isInLibrary)
+                    posterLibraryMembership = state.posterLibraryMembership + (statusKey to inList)
                 )
             }
         }
@@ -106,10 +109,13 @@ fun HomeViewModel.togglePosterLibrary(item: MetaPreview, addonBaseUrl: String?) 
             Log.w(HomeViewModel.TAG, "Failed to toggle poster library for ${item.id}: ${error.message}")
         }
         runCatching {
+            val isSimkl = _uiState.value.librarySourceMode == LibrarySourceMode.SIMKL
+            val isNowInWatchlist = libraryRepository.isInWatchlist(item.id, item.apiType).first()
             val isNowInLibrary = libraryRepository.isInLibrary(item.id, item.apiType).first()
+            val inList = if (isSimkl) isNowInWatchlist else (isNowInLibrary || isNowInWatchlist)
             _uiState.update { state ->
                 state.copy(
-                    posterLibraryMembership = state.posterLibraryMembership + (statusKey to isNowInLibrary)
+                    posterLibraryMembership = state.posterLibraryMembership + (statusKey to inList)
                 )
             }
         }
