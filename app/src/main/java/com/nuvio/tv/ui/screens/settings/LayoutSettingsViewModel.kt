@@ -574,6 +574,14 @@ class LayoutSettingsViewModel @Inject constructor(
         viewModelScope.launch { streamBadgeSettingsDataStore.setShowAddonLogo(enabled) }
     }
 
+    fun setShowBadgesInPlayer(enabled: Boolean) {
+        viewModelScope.launch { streamBadgeSettingsDataStore.setShowInPlayer(enabled) }
+    }
+
+    fun setPlayerBadgeSource(source: String) {
+        viewModelScope.launch { streamBadgeSettingsDataStore.setPlayerBadgeSource(source) }
+    }
+
     fun setStreamBadgePlacement(placement: StreamBadgePlacement) {
         viewModelScope.launch { streamBadgeSettingsDataStore.setStreamBadgePlacement(placement) }
     }
@@ -1047,7 +1055,7 @@ class LayoutSettingsViewModel @Inject constructor(
                 val catalogs = addons.flatMap { addon ->
                     addon.catalogs
                         .filter { catalog ->
-                            !catalog.extra.any { it.name.equals("search", ignoreCase = true) && it.isRequired }
+                            !catalog.isSearchOnlyCatalog()
                         }
                         .map { catalog ->
                             CatalogInfo(
@@ -1084,6 +1092,12 @@ data class StreamBadgeSettingsUiState(
 
     val showAddonLogo: Boolean
         get() = settings.showAddonLogo
+
+    val showInPlayer: Boolean
+        get() = settings.showInPlayer
+
+    val playerBadgeSource: String
+        get() = settings.playerBadgeSource
 
     val badgePlacement: StreamBadgePlacement
         get() = settings.badgePlacement

@@ -173,6 +173,7 @@ class MetaDetailsViewModel @Inject constructor(
         observeTraktCommentsAvailability()
         observeLibraryState()
         observeWatchProgress()
+        observeMovieResumeProgress()
         observeWatchedEpisodes()
         observeMovieWatched()
         observeSeriesWatched()
@@ -588,6 +589,17 @@ class MetaDetailsViewModel @Inject constructor(
                 reevaluateSeriesWatchedBadge()
                 calculateNextToWatch()
             }
+        }
+    }
+
+    private fun observeMovieResumeProgress() {
+        if (!itemType.equals("movie", ignoreCase = true)) return
+
+        viewModelScope.launch {
+            _effectiveContentId
+                .flatMapLatest { contentId -> watchProgressRepository.getProgress(contentId) }
+                .distinctUntilChanged()
+                .collectLatest { calculateNextToWatch() }
         }
     }
 
@@ -1234,6 +1246,13 @@ class MetaDetailsViewModel @Inject constructor(
 
         val contentId = _effectiveContentId.value
 
+        // Ratings don't depend on watch progress, so start them before the remote
+        // progress wait below, which can take long or never finish if the sync keeps failing.
+        if (!isServerItem) {
+            loadEpisodeRatingsAsync(enriched)
+            viewModelScope.launch { loadMDBListRatings(enriched) }
+        }
+
         // Wait for remote progress provider (Simkl/Trakt) to finish initial load.
         watchProgressRepository.observeRemoteProgressLoaded().first { it }
 
@@ -1253,10 +1272,6 @@ class MetaDetailsViewModel @Inject constructor(
         val watchedEpisodes = watchedDeferred.await()
         val precomputedNextToWatch = computeNextToWatch(enriched, progressMap, watchedEpisodes)
         updateNextToWatch(precomputedNextToWatch)
-
-        if (isServerItem) return
-        loadEpisodeRatingsAsync(enriched)
-        viewModelScope.launch { loadMDBListRatings(enriched) }
     }
 
     private fun NextToWatch.resolveForMeta(meta: Meta): NextToWatch? {
@@ -2071,11 +2086,13 @@ class MetaDetailsViewModel @Inject constructor(
         val meta = _uiState.value.meta ?: return
         val progressMap = _uiState.value.episodeProgressMap
         val watchedEpisodes = _uiState.value.watchedEpisodes
+        val isSeries = meta.apiType.equals("series", ignoreCase = true) ||
+            meta.apiType.equals("tv", ignoreCase = true)
 
         // Don't override an existing nextToWatch with a computation from empty progress data.
         // The inline computation in applyMetaWithEnrichment reads directly from the repo
         // and may have better data than the UI state observer at this point.
-        if (progressMap.isEmpty() && watchedEpisodes.isEmpty() && _uiState.value.nextToWatch != null) {
+        if (isSeries && progressMap.isEmpty() && watchedEpisodes.isEmpty() && _uiState.value.nextToWatch != null) {
             return
         }
 

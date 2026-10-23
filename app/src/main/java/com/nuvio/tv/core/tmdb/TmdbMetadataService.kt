@@ -102,6 +102,12 @@ class TmdbMetadataService(
         }
     }
 
+    /** The original title from an enrichment that is already in memory; TMDB is not asked. */
+    fun cachedOriginalTitle(tmdbId: String, contentType: ContentType): String? {
+        val prefix = "$tmdbId:${contentType.name}:"
+        return enrichmentCache.entries.firstOrNull { it.key.startsWith(prefix) }?.value?.originalTitle
+    }
+
     suspend fun fetchEnrichment(
         tmdbId: String,
         contentType: ContentType,
