@@ -3396,5 +3396,23 @@
     <string name="subtitle_style_text_opacity_hdr">Opacité du texte (HDR)</string>
     <string name="action_add_to_list">Ajouter à la liste</string>
     <string name="action_remove_from_list">Retirer de la liste</string>
-</resources>
 
+    <!-- Force Dubbing (Experimental) -->
+    <string name="force_dub_title">Forcer le doublage (Expérimental)</string>
+    <string name="force_dub_subtitle">Combine la meilleure vidéo avec l’audio doublé d’une autre source. Peut prendre jusqu’à 20 secondes (avec repli sur l’original). Exclusif au moteur ExoPlayer.</string>
+    <string name="force_dub_target_language">Langue cible du doublage</string>
+    <string name="force_dub_status_active">Activé</string>
+    <string name="force_dub_status_inactive">Désactivé</string>
+    <string name="force_dub_preparing">Préparation du doublage…</string>
+    <string name="force_dub_fallback_toast">Impossible de synchroniser le doublage à temps. Lecture de l’audio original.</string>
+    <string name="force_dub_warn_4k_title">Source audio 4K</string>
+    <string name="force_dub_warn_4k_desc">La source sélectionnée pour l’audio est en 4K ou plus et consommera une bande passante importante. Voulez-vous continuer avec ce doublage ou lire l’audio original ?</string>
+    <string name="force_dub_warn_blind_title">Synchronisation approximative</string>
+    <string name="force_dub_warn_blind_desc">La source doublée ne dispose pas de la piste audio originale comme référence directe. La synchronisation peut présenter de légères imprécisions. Voulez-vous continuer ou lire l’audio original ?</string>
+    <string name="force_dub_btn_continue">Continuer avec le doublage</string>
+    <string name="force_dub_btn_play_original">Lire l’original</string>
+    <string name="player_loading_dubbing">Doublage…</string>
+    <string name="player_loading_dubbed">Doublé</string>
+    <string name="playback_chapters_title">Chapitres</string>
+    <string name="playback_chapters_sub">Afficher les chapitres et les repères sur la barre de lecture.</string>
+</resources>

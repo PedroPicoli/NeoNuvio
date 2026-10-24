@@ -3166,4 +3166,23 @@
     <string name="subtitle_style_text_opacity_hdr">Tekstdekking (HDR)</string>
     <string name="action_add_to_list">Aan lijst toevoegen</string>
     <string name="action_remove_from_list">Uit lijst verwijderen</string>
+
+    <!-- Force Dubbing (Experimental) -->
+    <string name="force_dub_title">Nasynchronisatie forceren (Experimenteel)</string>
+    <string name="force_dub_subtitle">Combineert het beste beeld met nagesynchroniseerde audio van een andere bron. Kan tot 20 seconden duren (met terugval naar origineel). Exclusief voor ExoPlayer.</string>
+    <string name="force_dub_target_language">Doeltaal voor nasynchronisatie</string>
+    <string name="force_dub_status_active">Ingeschakeld</string>
+    <string name="force_dub_status_inactive">Uitgeschakeld</string>
+    <string name="force_dub_preparing">Nasynchronisatie voorbereiden…</string>
+    <string name="force_dub_fallback_toast">Kon de nasynchronisatie niet op tijd synchroniseren. Originele audio wordt afgespeeld.</string>
+    <string name="force_dub_warn_4k_title">4K-audiobron</string>
+    <string name="force_dub_warn_4k_desc">De geselecteerde audiobron is 4K of hoger en verbruikt aanzienlijk extra bandbreedte. Wilt u doorgaan met deze nasynchronisatie of de originele audio afspelen?</string>
+    <string name="force_dub_warn_blind_title">Geschatte synchronisatie</string>
+    <string name="force_dub_warn_blind_desc">De nagesynchroniseerde bron heeft geen origineel audiospoor voor directe referentie. De synchronisatie kan kleine afwijkingen vertonen. Wilt u doorgaan of de originele audio afspelen?</string>
+    <string name="force_dub_btn_continue">Doorgaan met nasynchronisatie</string>
+    <string name="force_dub_btn_play_original">Origineel afspelen</string>
+    <string name="player_loading_dubbing">Dubben…</string>
+    <string name="player_loading_dubbed">Gedubd</string>
+    <string name="playback_chapters_title">Hoofdstukken</string>
+    <string name="playback_chapters_sub">Hoofdstukken en markeringen weergeven op de afspeelbalk.</string>
 </resources>

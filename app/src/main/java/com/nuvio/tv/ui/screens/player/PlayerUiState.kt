@@ -246,7 +246,13 @@ data class PlayerUiState(
     // When true, suppress all torrent stats text (buffer, seeds, peers, speed)
     // from loading overlay, rebuffering indicator, and corner overlay.
     val hideTorrentStats: Boolean = true,
-    val isLive: Boolean = false
+    val isLive: Boolean = false,
+    // Force dubbing (Experimental)
+    val isForceDubEnabled: Boolean = false,
+    val isForceDubActive: Boolean = false,
+    val isForceDubLoading: Boolean = false,
+    val forceDubAudioStreamName: String? = null,
+    val forceDubWarningDialog: com.nuvio.tv.core.dub.ForceDubWarningType? = null
 ) {
     /** Subtitle style to render with, after applying the HDR override for the current video. */
     val effectiveSubtitleStyle: SubtitleStyleSettings
@@ -394,6 +400,9 @@ data object OnShowSourcesPanel : PlayerEvent()
     data object OnDismissStreamInfo : PlayerEvent()
     data object OnTogglePlayerStatsHud : PlayerEvent()
     data object OnToggleTorrentStats : PlayerEvent()
+    data object OnToggleForceDub : PlayerEvent()
+    data object OnConfirmForceDubWarning : PlayerEvent()
+    data object OnDismissForceDubWarning : PlayerEvent()
 }
 
 data class ParentalWarning(

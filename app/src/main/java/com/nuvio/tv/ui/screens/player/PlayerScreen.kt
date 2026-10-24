@@ -1983,6 +1983,9 @@ fun PlayerScreen(
             persistAmplification = uiState.persistAudioAmplification,
             centerMixLevelDb = uiState.centerMixLevelDb,
             isCenterMixAvailable = uiState.isCenterMixAvailable,
+            isForceDubActive = uiState.isForceDubActive,
+            isForceDubLoading = uiState.isForceDubLoading,
+            onForceDubToggle = { viewModel.onEvent(PlayerEvent.OnToggleForceDub) },
             onTrackSelected = { viewModel.onEvent(PlayerEvent.OnSelectAudioTrack(it)) },
             onAudioDelayChange = { viewModel.onEvent(PlayerEvent.OnSetAudioDelayMs(it)) },
             onAmplificationChange = { viewModel.onEvent(PlayerEvent.OnSetAudioAmplificationDb(it)) },
@@ -2068,6 +2071,14 @@ fun PlayerScreen(
                 currentSpeed = uiState.playbackSpeed,
                 onSpeedSelected = { viewModel.onEvent(PlayerEvent.OnSetPlaybackSpeed(it)) },
                 onDismiss = { viewModel.onEvent(PlayerEvent.OnDismissTransientOverlay) }
+            )
+        }
+
+        uiState.forceDubWarningDialog?.let { warningType ->
+            ForceDubWarningDialog(
+                warningType = warningType,
+                onConfirm = { viewModel.onEvent(PlayerEvent.OnConfirmForceDubWarning) },
+                onDismiss = { viewModel.onEvent(PlayerEvent.OnDismissForceDubWarning) }
             )
         }
     }

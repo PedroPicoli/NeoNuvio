@@ -129,14 +129,28 @@ private class AudioDelayMediaPeriod(
 
     override fun readDiscontinuity(): Long = mediaPeriod.readDiscontinuity()
 
-    override fun seekToUs(positionUs: Long): Long = mediaPeriod.seekToUs(positionUs)
+    override fun seekToUs(positionUs: Long): Long {
+        val delayUs = audioDelayUsProvider()
+        val adjustedPositionUs = (positionUs - delayUs).coerceAtLeast(0L)
+        val soughtUs = mediaPeriod.seekToUs(adjustedPositionUs)
+        return soughtUs + delayUs
+    }
 
     override fun getAdjustedSeekPositionUs(
         positionUs: Long,
         seekParameters: SeekParameters
-    ): Long = mediaPeriod.getAdjustedSeekPositionUs(positionUs, seekParameters)
+    ): Long {
+        val delayUs = audioDelayUsProvider()
+        val adjustedPositionUs = (positionUs - delayUs).coerceAtLeast(0L)
+        val adjustedSeekUs = mediaPeriod.getAdjustedSeekPositionUs(adjustedPositionUs, seekParameters)
+        return adjustedSeekUs + delayUs
+    }
 
-    override fun getBufferedPositionUs(): Long = mediaPeriod.getBufferedPositionUs()
+    override fun getBufferedPositionUs(): Long {
+        val buffered = mediaPeriod.getBufferedPositionUs()
+        if (buffered == C.TIME_END_OF_SOURCE || buffered == Long.MIN_VALUE) return buffered
+        return buffered + audioDelayUsProvider()
+    }
 
     override fun getNextLoadPositionUs(): Long = mediaPeriod.getNextLoadPositionUs()
 

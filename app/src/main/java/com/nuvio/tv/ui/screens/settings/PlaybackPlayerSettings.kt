@@ -176,6 +176,13 @@ internal fun PlaybackPlayerInterfaceSection(
         onToggle = { onUpdate { setParentalGuideEnabled(!settings.parentalGuideEnabled) } },
         enabled = internalPlayer
     )
+    SettingsToggleRow(
+        title = stringResource(R.string.playback_chapters_title),
+        subtitle = stringResource(R.string.playback_chapters_sub),
+        checked = settings.playerChaptersEnabled,
+        onToggle = { onUpdate { setPlayerChaptersEnabled(!settings.playerChaptersEnabled) } },
+        enabled = internalPlayer
+    )
 }
 
 @Composable

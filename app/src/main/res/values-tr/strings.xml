@@ -3219,4 +3219,23 @@
     <string name="subtitle_style_text_opacity_hdr">Metin Opaklığı (HDR)</string>
     <string name="action_add_to_list">Listeye ekle</string>
     <string name="action_remove_from_list">Listeden kaldır</string>
+
+    <!-- Force Dubbing (Experimental) -->
+    <string name="force_dub_title">Dublajı zorla (Deneysel)</string>
+    <string name="force_dub_subtitle">En iyi görüntüyü başka bir kaynaktan dublajlı sesle birleştirir. 20 saniyeye kadar sürebilir (orijinale geri dönüşlü). ExoPlayer motoruna özeldir.</string>
+    <string name="force_dub_target_language">Dublaj hedef dili</string>
+    <string name="force_dub_status_active">Etkin</string>
+    <string name="force_dub_status_inactive">Devre dışı</string>
+    <string name="force_dub_preparing">Dublaj hazırlanıyor…</string>
+    <string name="force_dub_fallback_toast">Dublaj zamanında senkronize edilemedi. Orijinal ses oynatılıyor.</string>
+    <string name="force_dub_warn_4k_title">4K Ses Kaynağı</string>
+    <string name="force_dub_warn_4k_desc">Ses için seçilen kaynak 4K veya üzeridir ve önemli miktarda ek bant genişliği tüketir. Bu dublajla devam etmek mi yoksa orijinal sesi oynatmak mı istersiniz?</string>
+    <string name="force_dub_warn_blind_title">Yaklaşık Senkronizasyon</string>
+    <string name="force_dub_warn_blind_desc">Dublajlı kaynakta doğrudan referans için orijinal ses parçası bulunmuyor. Senkronizasyonda küçük sapmalar olabilir. Devam etmek mi yoksa orijinal sesi oynatmak mı istersiniz?</string>
+    <string name="force_dub_btn_continue">Dublajla devam et</string>
+    <string name="force_dub_btn_play_original">Orijinali oynat</string>
+    <string name="player_loading_dubbing">Dublaj yapılıyor…</string>
+    <string name="player_loading_dubbed">Dublajlı</string>
+    <string name="playback_chapters_title">Bölümler</string>
+    <string name="playback_chapters_sub">Oynatma çubuğunda bölümleri ve işaretçileri göster.</string>
 </resources>

@@ -28,6 +28,7 @@ class SeriesCustomSettingsStore @Inject constructor(
             val sourceSeason = prefs[intPreferencesKey("source_season:$contentId")]
             val languagesRaw = prefs[stringPreferencesKey("source_languages:$contentId")]
             val detectedLanguages = languagesRaw?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList()
+            val forceDubEnabled = prefs[booleanPreferencesKey("force_dub:$contentId")]
             SeriesCustomSettings(
                 disableSkips = disableSkips,
                 preferredSourceAddon = sourceAddon,
@@ -36,7 +37,8 @@ class SeriesCustomSettingsStore @Inject constructor(
                 preferredLanguage = language,
                 sourceEpisode = sourceEpisode,
                 sourceSeason = sourceSeason,
-                detectedLanguages = detectedLanguages
+                detectedLanguages = detectedLanguages,
+                forceDubEnabled = forceDubEnabled
             )
         }
     }
@@ -113,6 +115,11 @@ class SeriesCustomSettingsStore @Inject constructor(
                 prefs[stringPreferencesKey("source_languages:$contentId")] = settings.detectedLanguages.joinToString(",")
             } else {
                 prefs.remove(stringPreferencesKey("source_languages:$contentId"))
+            }
+            if (settings.forceDubEnabled != null) {
+                prefs[booleanPreferencesKey("force_dub:$contentId")] = settings.forceDubEnabled
+            } else {
+                prefs.remove(booleanPreferencesKey("force_dub:$contentId"))
             }
         }
     }

@@ -281,6 +281,9 @@ data class PlayerSettings(
     val rememberAudioDelayPerDevice: Boolean = true,
     val preferredAudioLanguage: String = AudioLanguageOption.DEVICE,
     val secondaryPreferredAudioLanguage: String? = null,
+    val forceDubEnabled: Boolean = false,
+    val forceDubTargetLanguage: String = "pt-BR",
+    val forceDubAllowBlindSync: Boolean = false,
     val loadingOverlayEnabled: Boolean = true,
     val showPlayerLoadingStatus: Boolean = true,
     val playbackIssueReportsEnabled: Boolean = false,
@@ -301,8 +304,8 @@ data class PlayerSettings(
     // Only honored when dv7HandlingMode is OFF or DV81_LIBDOVI.
     val dv7LibdoviModeOverride: Int = -1,
     val stripHdr10PlusSei: Boolean = false,
-    /** ExoPlayer reads Matroska chapters itself over HTTP; mpv always lists them. */
-    val exoChaptersEnabled: Boolean = false,
+    val playerChaptersEnabled: Boolean = false,
+    val exoChaptersEnabled: Boolean = playerChaptersEnabled,
     val mpvHi10pGnextSoftwareFallbackEnabled: Boolean = false,
     val mpvHardwareDecodeMode: MpvHardwareDecodeMode = MpvHardwareDecodeMode.AUTO_SAFE,
     // Display settings
@@ -571,6 +574,9 @@ class PlayerSettingsDataStore @Inject constructor(
     private val rememberAudioDelayPerDeviceKey = booleanPreferencesKey("remember_audio_delay_per_device")
     private val preferredAudioLanguageKey = stringPreferencesKey("preferred_audio_language")
     private val secondaryPreferredAudioLanguageKey = stringPreferencesKey("secondary_preferred_audio_language")
+    private val forceDubEnabledKey = booleanPreferencesKey("force_dub_enabled")
+    private val forceDubTargetLanguageKey = stringPreferencesKey("force_dub_target_language")
+    private val forceDubAllowBlindSyncKey = booleanPreferencesKey("force_dub_allow_blind_sync")
     private val loadingOverlayEnabledKey = booleanPreferencesKey("loading_overlay_enabled")
     private val showPlayerLoadingStatusKey = booleanPreferencesKey("show_player_loading_status")
     private val playbackIssueReportsEnabledKey = booleanPreferencesKey("playback_issue_reports_enabled")
@@ -591,8 +597,9 @@ class PlayerSettingsDataStore @Inject constructor(
     // Legacy "DV7 - HEVC" boolean, read only to migrate existing users to HDR10_BASE_LAYER.
     private val legacyMapDv7ToHevcKey = booleanPreferencesKey("map_dv7_to_hevc")
     private val dv7LibdoviModeOverrideKey = intPreferencesKey("dv7_libdovi_mode_override")
-    private val stripHdr10PlusSeiKey = booleanPreferencesKey("strip_hdr10plus_sei")
+    private val stripHdr10PlusSeiKey = booleanPreferencesKey("strip_hdr10_plus_sei")
     private val exoChaptersEnabledKey = booleanPreferencesKey("exo_chapters_enabled")
+    private val playerChaptersEnabledKey = booleanPreferencesKey("player_chapters_enabled")
     private val mpvHi10pGnextSoftwareFallbackEnabledKey =
         booleanPreferencesKey("mpv_hi10p_gnext_software_fallback_enabled")
     private val mpvHardwareDecodeModeKey = stringPreferencesKey("mpv_hardware_decode_mode")
@@ -966,6 +973,9 @@ class PlayerSettingsDataStore @Inject constructor(
                 ),
                 secondaryPreferredAudioLanguage = prefs[secondaryPreferredAudioLanguageKey]
                     ?.let(::normalizeSecondaryAudioLanguageCode),
+                forceDubEnabled = prefs[forceDubEnabledKey] ?: false,
+                forceDubTargetLanguage = prefs[forceDubTargetLanguageKey] ?: "pt-BR",
+                forceDubAllowBlindSync = prefs[forceDubAllowBlindSyncKey] ?: false,
                 loadingOverlayEnabled = prefs[loadingOverlayEnabledKey] ?: true,
                 showPlayerLoadingStatus = prefs[showPlayerLoadingStatusKey] ?: true,
                 playbackIssueReportsEnabled = prefs[playbackIssueReportsEnabledKey] ?: false,
@@ -988,7 +998,7 @@ class PlayerSettingsDataStore @Inject constructor(
                 },
                 dv7LibdoviModeOverride = (prefs[dv7LibdoviModeOverrideKey] ?: -1).coerceIn(-1, 4),
                 stripHdr10PlusSei = prefs[stripHdr10PlusSeiKey] ?: false,
-                exoChaptersEnabled = prefs[exoChaptersEnabledKey] ?: false,
+                playerChaptersEnabled = prefs[playerChaptersEnabledKey] ?: prefs[exoChaptersEnabledKey] ?: false,
                 mpvHi10pGnextSoftwareFallbackEnabled =
                     prefs[mpvHi10pGnextSoftwareFallbackEnabledKey] ?: false,
                 mpvHardwareDecodeMode = parseMpvHardwareDecodeMode(prefs[mpvHardwareDecodeModeKey]),
@@ -1270,6 +1280,24 @@ class PlayerSettingsDataStore @Inject constructor(
             val normalizedLanguage = language?.takeIf { it.isNotBlank() }?.let(::normalizeSecondaryAudioLanguageCode)
             if (normalizedLanguage != null) prefs[secondaryPreferredAudioLanguageKey] = normalizedLanguage
             else prefs.remove(secondaryPreferredAudioLanguageKey)
+        }
+    }
+
+    suspend fun setForceDubEnabled(enabled: Boolean) {
+        store().edit { prefs ->
+            prefs[forceDubEnabledKey] = enabled
+        }
+    }
+
+    suspend fun setForceDubTargetLanguage(language: String) {
+        store().edit { prefs ->
+            prefs[forceDubTargetLanguageKey] = normalizeSelectableLanguageCode(language.ifBlank { "pt-BR" })
+        }
+    }
+
+    suspend fun setForceDubAllowBlindSync(allow: Boolean) {
+        store().edit { prefs ->
+            prefs[forceDubAllowBlindSyncKey] = allow
         }
     }
 
@@ -1652,7 +1680,13 @@ class PlayerSettingsDataStore @Inject constructor(
     suspend fun setDv7HandlingMode(mode: Dv7HandlingMode) { store().edit { it[dv7HandlingModeKey] = mode.name } }
     suspend fun setDv7LibdoviModeOverride(mode: Int) { store().edit { it[dv7LibdoviModeOverrideKey] = mode.coerceIn(-1, 4) } }
     suspend fun setStripHdr10PlusSei(enabled: Boolean) { store().edit { it[stripHdr10PlusSeiKey] = enabled } }
-    suspend fun setExoChaptersEnabled(enabled: Boolean) { store().edit { it[exoChaptersEnabledKey] = enabled } }
+    suspend fun setPlayerChaptersEnabled(enabled: Boolean) {
+        store().edit {
+            it[playerChaptersEnabledKey] = enabled
+            it[exoChaptersEnabledKey] = enabled
+        }
+    }
+    suspend fun setExoChaptersEnabled(enabled: Boolean) { setPlayerChaptersEnabled(enabled) }
 
     // Subtitle styles
     suspend fun setSubtitlePreferredLanguage(language: String) { store().edit { it[subtitlePreferredLanguageKey] = normalizeSelectableLanguageCode(language.ifBlank { SubtitleLanguageOption.DEVICE }) } }

@@ -21,8 +21,10 @@ import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.dash.DashMediaSource
 import androidx.media3.exoplayer.hls.HlsMediaSource
+import androidx.media3.exoplayer.source.ClippingMediaSource
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MediaSource
+import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
 import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
 import androidx.media3.extractor.DefaultExtractorsFactory
@@ -172,7 +174,8 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
         mimeTypeOverride: String? = null,
         audioDelayUsProvider: (() -> Long)? = null,
         mediaMetadata: androidx.media3.common.MediaMetadata? = null,
-        cacheKey: String? = null
+        cacheKey: String? = null,
+        auxiliary: Boolean = false
     ): MediaSource {
         val sanitizedHeaders = sanitizeHeaders(headers)
         val resolvedMimeType = mimeTypeOverride ?: inferMimeType(
@@ -209,21 +212,25 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
 
         val mediaItem = mediaItemBuilder.build()
 
-        Log.i(
-            "PlayerMediaSource",
-            "PLAYBACK_CONFIG: native=$nativeEngineEnabled " +
-                "customBuffers=$bufferEngineEnabled budgetManaged=$bufferBudgetManaged " +
-                "minBufferMs=${NuvioExoPlayerPerformanceHelper.minBufferMs} " +
-                "maxBufferMs=${NuvioExoPlayerPerformanceHelper.maxBufferMs} " +
-                "backBufferMs=${NuvioExoPlayerPerformanceHelper.backBufferMs} " +
-                "targetMb=${NuvioExoPlayerPerformanceHelper.targetBufferSizeMb} " +
-                "safeNativeMb=${NuvioExoPlayerPerformanceHelper.getSafeNativeMemoryLimitMb(context)} " +
-                "parallel=${if (useParallelConnections) parallelConnectionCount else 0} chunkKb=$parallelChunkSizeKb " +
-                PlayerMemoryReporter.snapshot(context)
-        )
-        PlayerMemoryReporter.startSampling(context)
-        val useChunkSessionSource = useParallelConnections && !isHls && !isDash
-        parallelStartupPrefetchUnlocked.set(!useChunkSessionSource)
+        if (!auxiliary) {
+            Log.i(
+                "PlayerMediaSource",
+                "PLAYBACK_CONFIG: native=$nativeEngineEnabled " +
+                    "customBuffers=$bufferEngineEnabled budgetManaged=$bufferBudgetManaged " +
+                    "minBufferMs=${NuvioExoPlayerPerformanceHelper.minBufferMs} " +
+                    "maxBufferMs=${NuvioExoPlayerPerformanceHelper.maxBufferMs} " +
+                    "backBufferMs=${NuvioExoPlayerPerformanceHelper.backBufferMs} " +
+                    "targetMb=${NuvioExoPlayerPerformanceHelper.targetBufferSizeMb} " +
+                    "safeNativeMb=${NuvioExoPlayerPerformanceHelper.getSafeNativeMemoryLimitMb(context)} " +
+                    "parallel=${if (useParallelConnections) parallelConnectionCount else 0} chunkKb=$parallelChunkSizeKb " +
+                    PlayerMemoryReporter.snapshot(context)
+            )
+            PlayerMemoryReporter.startSampling(context)
+        }
+        // A fonte auxiliar (áudio dublado) nunca usa a sessão de conexões paralelas nem o cache VOD,
+        // ambos são estado global que pertence ao vídeo principal.
+        val useChunkSessionSource = useParallelConnections && !isHls && !isDash && !auxiliary
+        if (!auxiliary) parallelStartupPrefetchUnlocked.set(!useChunkSessionSource)
         val networkProgressiveFactory: DataSource.Factory = if (useChunkSessionSource) {
             val okHttpFactory = OkHttpDataSource.Factory(playbackHttpClient).apply {
                 setDefaultRequestProperties(sanitizedHeaders)
@@ -254,48 +261,57 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
         } else {
             httpDataSourceFactory
         }
-        val progressiveUpstreamFactory: DataSource.Factory =
+        val progressiveUpstreamFactory: DataSource.Factory = if (auxiliary) {
+            networkProgressiveFactory
+        } else {
             RedirectReportingDataSource.Factory(networkProgressiveFactory, url) { resolvedUrl ->
                 onStreamRedirected?.invoke(url, resolvedUrl)
             }
+        }
 
         // 2. VOD disk cache (opt-in).
-        val useVodCache = ENABLE_VOD_CACHE && vodCacheEnabled && !isHls && !isDash && shouldUseVodCache(url)
-        // A playback started inside the delay window would have its own data swept out from under it.
-        pendingEvictionJob?.cancel()
-        pendingEvictionJob = null
-        currentVodCacheUrl = url
-        currentVodCacheResolvedUrl = null
-        vodCacheEvictor?.resetTrimAnchor()
+        val useVodCache = !auxiliary && ENABLE_VOD_CACHE && vodCacheEnabled && !isHls && !isDash && shouldUseVodCache(url)
+        if (!auxiliary) {
+            // A playback started inside the delay window would have its own data swept out from under it.
+            pendingEvictionJob?.cancel()
+            pendingEvictionJob = null
+            currentVodCacheUrl = url
+            currentVodCacheResolvedUrl = null
+            vodCacheEvictor?.resetTrimAnchor()
+        }
         // Size the cache only when used; 0 means off or not enough free space (skip, stream direct).
         val vodCacheMaxBytes = if (useVodCache && !isVodCacheDisabled) resolveVodCacheMaxBytes() else 0L
         val vodCacheActive = vodCacheMaxBytes > 0L
 
+        var sourceUsesVodCache = false
         val cachedProgressiveFactory: DataSource.Factory = if (vodCacheActive) {
             val cache = obtainVodCache(context, vodCacheMaxBytes)
             if (cache != null) {
-                currentVodCacheActive = true
+                sourceUsesVodCache = true
                 buildVodCacheDataSourceFactory(progressiveUpstreamFactory, cache)
             } else {
-                currentVodCacheActive = false
                 progressiveUpstreamFactory
             }
         } else {
-            currentVodCacheActive = false
             progressiveUpstreamFactory
         }
+        if (!auxiliary) {
+            currentVodCacheActive = sourceUsesVodCache
+        }
         // The buffer only pays off against the cache's per-call cost, so a direct stream keeps its original chain.
-        val progressiveFactory: DataSource.Factory = if (currentVodCacheActive) {
+        val progressiveFactory: DataSource.Factory = if (sourceUsesVodCache) {
             DataSource.Factory { BufferedReadDataSource(cachedProgressiveFactory.createDataSource()) }
         } else {
             cachedProgressiveFactory
         }
         // BUFFER_NETWORK reports the setting before this runs, so report what the stream actually got.
-        Log.i(
-            LOG_TAG,
-            "VOD_CACHE: enabled=$vodCacheEnabled active=$currentVodCacheActive " +
-                "requestedCap=${vodCacheMaxBytes / (1024L * 1024L)}MB stats=${vodCacheStatsSnapshot()}"
-        )
+        if (!auxiliary) {
+            Log.i(
+                LOG_TAG,
+                "VOD_CACHE: enabled=$vodCacheEnabled active=$currentVodCacheActive " +
+                    "requestedCap=${vodCacheMaxBytes / (1024L * 1024L)}MB stats=${vodCacheStatsSnapshot()}"
+            )
+        }
 
         val extractorsFactory = customExtractorsFactory ?: DefaultExtractorsFactory()
         // MediaItem subtitle tracks load through this factory too; route addon subtitles through the
@@ -332,6 +348,102 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
             else -> defaultFactory.createMediaSource(mediaItem)
         }
         return wrapAudioDelay(mediaSource = mediaSource, audioDelayUsProvider = audioDelayUsProvider)
+    }
+
+    /**
+     * Mescla o vídeo original com o áudio de outra fonte (dublagem). O áudio é aparado em
+     * [audioOffsetMs] para casar com o início do vídeo e respeita o atraso de áudio do usuário.
+     * A seleção da faixa de áudio dublada é feita pelo controlador (grupos "1:*").
+     */
+    fun createDubbedMediaSource(
+        context: Context,
+        videoUrl: String,
+        videoHeaders: Map<String, String>,
+        audioUrl: String,
+        audioHeaders: Map<String, String>,
+        audioOffsetMs: Long,
+        scale: Double = 1.0,
+        audioDelayUsProvider: (() -> Long)? = null,
+        subtitleConfigurations: List<MediaItem.SubtitleConfiguration> = emptyList(),
+        subtitleRoutes: Map<String, SubtitleRoute> = emptyMap(),
+        filename: String? = null,
+        responseHeaders: Map<String, String> = emptyMap(),
+        mimeTypeOverride: String? = null,
+        mediaMetadata: androidx.media3.common.MediaMetadata? = null,
+        cacheKey: String? = null
+    ): MediaSource {
+        // O áudio é criado primeiro: o estado global do cache/redirect deve refletir o vídeo.
+        val rawAudioSource = createMediaSource(
+            context = context,
+            url = audioUrl,
+            headers = audioHeaders,
+            subtitleConfigurations = emptyList(),
+            subtitleRoutes = emptyMap(),
+            filename = null,
+            responseHeaders = emptyMap(),
+            mimeTypeOverride = null,
+            audioDelayUsProvider = null,
+            mediaMetadata = null,
+            cacheKey = null,
+            auxiliary = true
+        )
+        // Sincronização e alinhamento do áudio dublado:
+        // audioOffsetMs > 0: o áudio dublado possui vinheta/abertura extra; cortamos o início via ClippingMediaSource
+        // para que a timeline comece em 0us sem amostras com timestamps negativos.
+        // audioOffsetMs < 0: o vídeo possui abertura extra; atrasamos a entrada do áudio (+offsetUs).
+        val baseAudioSource: MediaSource = if (audioOffsetMs > 0L) {
+            ClippingMediaSource(
+                rawAudioSource,
+                /* startPositionUs = */ audioOffsetMs * 1000L,
+                /* endPositionUs = */ C.TIME_END_OF_SOURCE,
+                /* enableInitialDiscontinuity = */ false,
+                /* allowDynamicClippingUpdates = */ false,
+                /* relativeToDefaultPosition = */ false
+            )
+        } else {
+            rawAudioSource
+        }
+
+        val effectiveDelayProvider: (() -> Long)? = when {
+            audioOffsetMs < 0L -> {
+                val introDelayUs = -audioOffsetMs * 1000L
+                { (audioDelayUsProvider?.invoke() ?: 0L) + introDelayUs }
+            }
+            audioDelayUsProvider != null -> audioDelayUsProvider
+            else -> null
+        }
+
+        // Compensação linear contínua para drift de FPS (ex: áudio PAL a 25 fps vs vídeo a 23.976 fps: scale ~0.959)
+        val audioDelayAtUs: ((Long) -> Long)? = if (scale in 0.8..1.2 && kotlin.math.abs(scale - 1.0) > 0.005) {
+            { positionUs -> ((positionUs * (1.0 - scale)).toLong()) }
+        } else null
+
+        val dubbedAudioSource = wrapAudioDelay(
+            mediaSource = baseAudioSource,
+            audioDelayUsProvider = effectiveDelayProvider,
+            audioDelayAtUs = audioDelayAtUs
+        )
+
+        val videoSource = createMediaSource(
+            context = context,
+            url = videoUrl,
+            headers = videoHeaders,
+            subtitleConfigurations = subtitleConfigurations,
+            subtitleRoutes = subtitleRoutes,
+            filename = filename,
+            responseHeaders = responseHeaders,
+            mimeTypeOverride = mimeTypeOverride,
+            audioDelayUsProvider = null,
+            mediaMetadata = mediaMetadata,
+            cacheKey = cacheKey
+        )
+
+        return MergingMediaSource(
+            /* adjustPeriodTimeOffsets = */ false,
+            /* clipDurations = */ true,
+            videoSource,
+            dubbedAudioSource
+        )
     }
 
     fun shutdown() {
@@ -1093,14 +1205,16 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
 
         private fun wrapAudioDelay(
             mediaSource: MediaSource,
-            audioDelayUsProvider: (() -> Long)?
+            audioDelayUsProvider: (() -> Long)?,
+            audioDelayAtUs: ((Long) -> Long)? = null
         ): MediaSource {
-            return if (audioDelayUsProvider == null) {
+            return if (audioDelayUsProvider == null && audioDelayAtUs == null) {
                 mediaSource
             } else {
                 AudioDelayMediaSource(
                     mediaSource = mediaSource,
-                    audioDelayUsProvider = audioDelayUsProvider
+                    audioDelayUsProvider = audioDelayUsProvider ?: { 0L },
+                    audioDelayAtUs = audioDelayAtUs
                 )
             }
         }

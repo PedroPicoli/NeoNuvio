@@ -35,6 +35,9 @@ internal fun PlayerRuntimeController.preparePlaybackBeforeStart(
             "currentEpisode=${currentEpisode ?: -1} streamName=${_uiState.value.currentStreamName ?: "n/a"}"
     )
     clearPendingEngineSwitchTrackPreference()
+    forceDubUserOverridden = null
+    cancelForceDubWork()
+    clearForceDubState(stopTorrent = true)
     playbackPreparationJob?.cancel()
 
     // Fire-and-forget: warm the Trakt episode mapping in the background.

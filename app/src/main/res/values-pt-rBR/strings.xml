@@ -3604,4 +3604,23 @@
     <string name="subtitle_style_text_opacity_hdr">Opacidade do texto (HDR)</string>
     <string name="action_add_to_list">Adicionar à lista</string>
     <string name="action_remove_from_list">Remover da lista</string>
+
+    <!-- Forçar Dublagem (Experimental) -->
+    <string name="force_dub_title">Forçar dublagem (Experimental)</string>
+    <string name="force_dub_subtitle">Combina a melhor imagem com áudio dublado de outra fonte. Pode demorar até 20 segundos (com fallback para o original). Exclusivo no motor ExoPlayer.</string>
+    <string name="force_dub_target_language">Idioma alvo da dublagem</string>
+    <string name="force_dub_status_active">Ativado</string>
+    <string name="force_dub_status_inactive">Desativado</string>
+    <string name="force_dub_preparing">Preparando dublagem…</string>
+    <string name="force_dub_fallback_toast">Não foi possível sincronizar a dublagem a tempo. Reproduzindo áudio original.</string>
+    <string name="force_dub_warn_4k_title">Fonte de áudio em 4K</string>
+    <string name="force_dub_warn_4k_desc">A fonte selecionada para o áudio é 4K ou superior e consumirá banda adicional considerável. Deseja continuar com esta dublagem ou reproduzir o áudio original?</string>
+    <string name="force_dub_warn_blind_title">Sincronização aproximada</string>
+    <string name="force_dub_warn_blind_desc">A fonte dublada não possui a faixa de áudio original para referência direta. A sincronização pode ter imprecisões. Deseja continuar ou reproduzir o áudio original?</string>
+    <string name="force_dub_btn_continue">Continuar com dublagem</string>
+    <string name="force_dub_btn_play_original">Reproduzir original</string>
+    <string name="player_loading_dubbing">Dublando…</string>
+    <string name="player_loading_dubbed">Dublado</string>
+    <string name="playback_chapters_title">Capítulos</string>
+    <string name="playback_chapters_sub">Exibir capítulos e marcadores na barra de reprodução.</string>
 </resources>

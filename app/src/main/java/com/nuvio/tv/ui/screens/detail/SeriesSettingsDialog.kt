@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -259,6 +260,88 @@ fun SeriesSettingsDialog(
                                         checked = isSkipsDisabled,
                                         onCheckedChange = { checked ->
                                             val newSettings = settings.copy(disableSkips = checked)
+                                            settings = newSettings
+                                            onSaveSettings(newSettings)
+                                        },
+                                        colors = SwitchDefaults.colors(
+                                            checkedThumbColor = NuvioTheme.colors.Primary,
+                                            checkedTrackColor = NuvioTheme.colors.Primary.copy(alpha = 0.35f),
+                                            uncheckedThumbColor = NuvioTheme.colors.TextSecondary,
+                                            uncheckedTrackColor = NuvioTheme.colors.SurfaceVariant
+                                        )
+                                    )
+                                }
+                            }
+                        }
+
+                        // Forçar dublagem (Experimental) para esta série
+                        item {
+                            val isForceDub = settings.forceDubEnabled == true
+                            var isForceDubFocused by remember { mutableStateOf(false) }
+
+                            Card(
+                                onClick = {
+                                    val newSettings = settings.copy(forceDubEnabled = !isForceDub)
+                                    settings = newSettings
+                                    onSaveSettings(newSettings)
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .onFocusChanged { isForceDubFocused = it.isFocused },
+                                shape = CardDefaults.shape(RoundedCornerShape(NuvioTheme.radii.lg)),
+                                colors = CardDefaults.colors(
+                                    containerColor = NuvioTheme.colors.SurfaceVariant.copy(alpha = 0.6f),
+                                    focusedContainerColor = NuvioTheme.colors.FocusBackground
+                                ),
+                                border = CardDefaults.border(
+                                    focusedBorder = Border(
+                                        border = NuvioTheme.focusRing.border(NuvioTheme.spacing.xxs),
+                                        shape = RoundedCornerShape(NuvioTheme.radii.lg)
+                                    )
+                                ),
+                                scale = CardDefaults.scale(focusedScale = 1.01f)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(NuvioTheme.spacing.lg),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.md),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.VolumeUp,
+                                            contentDescription = null,
+                                            tint = if (isForceDubFocused) NuvioTheme.colors.Primary else NuvioTheme.colors.TextSecondary,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Column {
+                                            Text(
+                                                text = stringResource(R.string.force_dub_title),
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = NuvioTheme.colors.TextPrimary
+                                            )
+                                            Text(
+                                                text = if (isForceDub) {
+                                                    stringResource(R.string.force_dub_status_active)
+                                                } else {
+                                                    stringResource(R.string.force_dub_status_inactive)
+                                                },
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = if (isForceDub) NuvioTheme.colors.Primary else NuvioTheme.colors.TextSecondary
+                                            )
+                                        }
+                                    }
+
+                                    Switch(
+                                        checked = isForceDub,
+                                        onCheckedChange = { checked ->
+                                            val newSettings = settings.copy(forceDubEnabled = checked)
                                             settings = newSettings
                                             onSaveSettings(newSettings)
                                         },

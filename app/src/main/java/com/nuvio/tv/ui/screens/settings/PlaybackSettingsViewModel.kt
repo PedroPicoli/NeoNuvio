@@ -159,6 +159,18 @@ class PlaybackSettingsViewModel @Inject constructor(
         playerSettingsDataStore.setSecondaryPreferredAudioLanguage(language)
     }
 
+    suspend fun setForceDubEnabled(enabled: Boolean) {
+        playerSettingsDataStore.setForceDubEnabled(enabled)
+    }
+
+    suspend fun setForceDubTargetLanguage(language: String) {
+        playerSettingsDataStore.setForceDubTargetLanguage(language)
+    }
+
+    suspend fun setForceDubAllowBlindSync(allow: Boolean) {
+        playerSettingsDataStore.setForceDubAllowBlindSync(allow)
+    }
+
     suspend fun setLoadingOverlayEnabled(enabled: Boolean) {
         playerSettingsDataStore.setLoadingOverlayEnabled(enabled)
     }
@@ -243,8 +255,12 @@ class PlaybackSettingsViewModel @Inject constructor(
         playerSettingsDataStore.setStripHdr10PlusSei(enabled)
     }
 
+    suspend fun setPlayerChaptersEnabled(enabled: Boolean) {
+        playerSettingsDataStore.setPlayerChaptersEnabled(enabled)
+    }
+
     suspend fun setExoChaptersEnabled(enabled: Boolean) {
-        playerSettingsDataStore.setExoChaptersEnabled(enabled)
+        setPlayerChaptersEnabled(enabled)
     }
 
     suspend fun setUseLibass(enabled: Boolean) {

@@ -3255,4 +3255,23 @@
     <string name="subtitle_style_text_opacity_hdr">文字不透明度 (HDR)</string>
     <string name="action_add_to_list">添加到列表</string>
     <string name="action_remove_from_list">从列表移除</string>
+
+    <!-- Force Dubbing (Experimental) -->
+    <string name="force_dub_title">强制配音（实验性）</string>
+    <string name="force_dub_subtitle">将最佳画质视频与另一来源的配音音频合并。可能需要长达20秒（超时将回退至原声）。仅限ExoPlayer引擎。</string>
+    <string name="force_dub_target_language">配音目标语言</string>
+    <string name="force_dub_status_active">已开启</string>
+    <string name="force_dub_status_inactive">已关闭</string>
+    <string name="force_dub_preparing">正在准备配音…</string>
+    <string name="force_dub_fallback_toast">未能及时同步配音。正在播放原声音频。</string>
+    <string name="force_dub_warn_4k_title">4K音频来源</string>
+    <string name="force_dub_warn_4k_desc">所选音频来源分辨率为4K或更高，将消耗大量额外带宽。是否继续使用此配音，或播放原声？</string>
+    <string name="force_dub_warn_blind_title">近似同步</string>
+    <string name="force_dub_warn_blind_desc">配音来源没有原声音频轨道作为直接参考，同步可能存在微小偏差。是否继续，或播放原声？</string>
+    <string name="force_dub_btn_continue">继续使用配音</string>
+    <string name="force_dub_btn_play_original">播放原声</string>
+    <string name="player_loading_dubbing">配音中…</string>
+    <string name="player_loading_dubbed">已配音</string>
+    <string name="playback_chapters_title">章节</string>
+    <string name="playback_chapters_sub">在播放栏上显示章节和标记。</string>
 </resources>

@@ -7,6 +7,7 @@ import kotlinx.coroutines.launch
 
 /** mpv lists the chapters itself; they come with the file, so once read for a stream they are kept. */
 internal fun PlayerRuntimeController.refreshMpvChapters(view: NuvioMpvSurfaceView) {
+    if (currentPlayerSettingsForReport?.playerChaptersEnabled != true) return
     if (mpvChaptersStreamUrl == currentStreamUrl && _uiState.value.chapters.isNotEmpty()) return
     val chapters = PlayerChapters.normalize(view.readChapters())
     if (chapters.isEmpty()) return
@@ -33,7 +34,7 @@ internal fun PlayerRuntimeController.seekToChapter(startMs: Long) {
 }
 
 internal fun PlayerRuntimeController.showChaptersPanel() {
-    if (_uiState.value.chapters.isEmpty()) return
+    if (_uiState.value.chapters.isEmpty() || currentPlayerSettingsForReport?.playerChaptersEnabled != true) return
     hideControlsJob?.cancel()
     _uiState.update {
         it.copy(
@@ -65,7 +66,7 @@ internal fun PlayerRuntimeController.loadExoChapters() {
     val url = currentStreamUrl
     val headers = currentHeaders
     exoChapterLoadJob = scope.launch {
-        if (!playerSettingsDataStore.playerSettings.first().exoChaptersEnabled) return@launch
+        if (!playerSettingsDataStore.playerSettings.first().playerChaptersEnabled) return@launch
         val chapters = MatroskaChapterLoader.load(url, headers)
         if (chapters.isEmpty() || isUsingMpvEngine() || currentStreamUrl != url) return@launch
         _uiState.update { it.copy(chapters = chapters) }

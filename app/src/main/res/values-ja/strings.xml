@@ -2724,4 +2724,23 @@
     <string name="subtitle_style_text_opacity_hdr">文字の不透明度 (HDR)</string>
     <string name="action_add_to_list">リストに追加</string>
     <string name="action_remove_from_list">リストから削除</string>
+
+    <!-- Force Dubbing (Experimental) -->
+    <string name="force_dub_title">吹き替えを強制（実験的）</string>
+    <string name="force_dub_subtitle">最高画質の映像と別ソースの吹き替え音声を結合します。最大20秒かかる場合があります（元の音声にフォールバック）。ExoPlayer限定。</string>
+    <string name="force_dub_target_language">吹き替えの対象言語</string>
+    <string name="force_dub_status_active">有効</string>
+    <string name="force_dub_status_inactive">無効</string>
+    <string name="force_dub_preparing">吹き替えを準備中…</string>
+    <string name="force_dub_fallback_toast">吹き替えの同期が間に合いませんでした。元の音声を再生します。</string>
+    <string name="force_dub_warn_4k_title">4K音声ソース</string>
+    <string name="force_dub_warn_4k_desc">選択された音声ソースは4K以上であり、かなりの追加帯域幅を消費します。この吹き替えで続行しますか、それとも元の音声を再生しますか？</string>
+    <string name="force_dub_warn_blind_title">近似同期</string>
+    <string name="force_dub_warn_blind_desc">吹き替えソースには直接参照用のオリジナル音声トラックがありません。同期に若干のズレが生じる可能性があります。続行しますか、それとも元の音声を再生しますか？</string>
+    <string name="force_dub_btn_continue">吹き替えで続行</string>
+    <string name="force_dub_btn_play_original">元の音声を再生</string>
+    <string name="player_loading_dubbing">吹き替え処理中…</string>
+    <string name="player_loading_dubbed">吹替済み</string>
+    <string name="playback_chapters_title">チャプター</string>
+    <string name="playback_chapters_sub">再生バーにチャプターとマーカーを表示します。</string>
 </resources>

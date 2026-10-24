@@ -21,6 +21,8 @@ internal fun PlayerRuntimeController.releasePlayer(
         if (!keepTorrentStream) stopTorrentStream()
         flushPlaybackSnapshotForSwitchOrExit()
     }
+    cancelForceDubWork()
+    clearForceDubState(stopTorrent = true)
 
     notifyAudioSessionUpdate(false)
     unregisterAudioDelayRouteCallback()

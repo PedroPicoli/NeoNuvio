@@ -2723,4 +2723,23 @@
     <string name="subtitle_style_text_opacity_hdr">Tekstugennemsigtighed (HDR)</string>
     <string name="action_add_to_list">Føj til liste</string>
     <string name="action_remove_from_list">Fjern fra liste</string>
+
+    <!-- Force Dubbing (Experimental) -->
+    <string name="force_dub_title">Gennemtving synkronisering (Eksperimentel)</string>
+    <string name="force_dub_subtitle">Kombinerer det bedste billede med synkroniseret lyd fra en anden kilde. Kan tage op til 20 sekunder (med fallback til original). Kun til ExoPlayer.</string>
+    <string name="force_dub_target_language">Målsprog for synkronisering</string>
+    <string name="force_dub_status_active">Aktiveret</string>
+    <string name="force_dub_status_inactive">Deaktiveret</string>
+    <string name="force_dub_preparing">Forbereder synkronisering…</string>
+    <string name="force_dub_fallback_toast">Kunne ikke synkronisere lyden i tide. Afspiller originallyd.</string>
+    <string name="force_dub_warn_4k_title">4K-lydkilde</string>
+    <string name="force_dub_warn_4k_desc">Den valgte lydkilde er 4K eller højere og bruger betydelig båndbredde. Vil du fortsætte med denne synkronisering eller afspille originallyden?</string>
+    <string name="force_dub_warn_blind_title">Omtrentlig synkronisering</string>
+    <string name="force_dub_warn_blind_desc">Den synkroniserede kilde har ikke det originale lydspor til direkte reference. Vil du fortsætte eller afspille originallyden?</string>
+    <string name="force_dub_btn_continue">Fortsæt med synkronisering</string>
+    <string name="force_dub_btn_play_original">Afspil original</string>
+    <string name="player_loading_dubbing">Dubber…</string>
+    <string name="player_loading_dubbed">Dubbet</string>
+    <string name="playback_chapters_title">Kapitler</string>
+    <string name="playback_chapters_sub">Vis kapitler og markører på afspilningslinjen.</string>
 </resources>

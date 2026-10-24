@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -70,6 +72,9 @@ internal fun AudioSelectionOverlay(
     centerMixLevelDb: Int,
     isCenterMixAvailable: Boolean,
     persistAmplification: Boolean,
+    isForceDubActive: Boolean = false,
+    isForceDubLoading: Boolean = false,
+    onForceDubToggle: () -> Unit = {},
     onTrackSelected: (Int) -> Unit,
     onAudioDelayChange: (Int) -> Unit,
     onAmplificationChange: (Int) -> Unit,
@@ -78,6 +83,7 @@ internal fun AudioSelectionOverlay(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val forceDubFocusRequester = remember { FocusRequester() }
     val tracksFocusRequester = remember { FocusRequester() }
     val delayMinusFocusRequester = remember { FocusRequester() }
     val delayPlusFocusRequester = remember { FocusRequester() }
@@ -186,15 +192,7 @@ internal fun AudioSelectionOverlay(
                         selectedIndex = selectedIndex,
                         listState = listState,
                         initialFocusRequester = tracksFocusRequester,
-                        rightFocusRequester = when {
-                            canDecreaseDelay -> delayMinusFocusRequester
-                            canIncreaseDelay -> delayPlusFocusRequester
-                            canDecreaseAmp -> ampMinusFocusRequester
-                            canIncreaseAmp -> ampPlusFocusRequester
-                            canDecreaseCenterMix -> centerMinusFocusRequester
-                            canIncreaseCenterMix -> centerPlusFocusRequester
-                            else -> persistFocusRequester
-                        },
+                        rightFocusRequester = forceDubFocusRequester,
                         onTrackFocused = { lastFocusedAudioIndex = it },
                         onTrackSelected = onTrackSelected
                     )
@@ -207,6 +205,10 @@ internal fun AudioSelectionOverlay(
                         centerMixLevelDb = centerMixLevelDb,
                         isCenterMixAvailable = isCenterMixAvailable,
                         persistAmplification = persistAmplification,
+                        isForceDubActive = isForceDubActive,
+                        isForceDubLoading = isForceDubLoading,
+                        onForceDubToggle = onForceDubToggle,
+                        forceDubFocusRequester = forceDubFocusRequester,
                         delayMinusFocusRequester = delayMinusFocusRequester,
                         delayPlusFocusRequester = delayPlusFocusRequester,
                         ampMinusFocusRequester = ampMinusFocusRequester,
@@ -378,6 +380,10 @@ private fun AudioControlsContent(
     centerMixLevelDb: Int,
     isCenterMixAvailable: Boolean,
     persistAmplification: Boolean,
+    isForceDubActive: Boolean,
+    isForceDubLoading: Boolean,
+    onForceDubToggle: () -> Unit,
+    forceDubFocusRequester: FocusRequester,
     delayMinusFocusRequester: FocusRequester,
     delayPlusFocusRequester: FocusRequester,
     ampMinusFocusRequester: FocusRequester,
@@ -474,6 +480,15 @@ private fun AudioControlsContent(
             .padding(top = NuvioTheme.spacing.xs, bottom = NuvioTheme.spacing.sm),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        ForceDubCard(
+            isActive = isForceDubActive,
+            isLoading = isForceDubLoading,
+            focusRequester = forceDubFocusRequester,
+            leftFocusRequester = leftFocusRequester,
+            downFocusRequester = firstDelayFocusRequester,
+            onClick = onForceDubToggle
+        )
+
         AdjustmentSection(
             title = stringResource(R.string.audio_delay_label),
             valueText = formatAudioDelay(currentDelayMs),
@@ -488,7 +503,7 @@ private fun AudioControlsContent(
             plusFocusRequester = delayPlusFocusRequester,
             minusLeftFocusRequester = leftFocusRequester,
             plusLeftFocusRequester = delayPlusLeftFocusRequester,
-            upFocusRequester = null,
+            upFocusRequester = forceDubFocusRequester,
             downFocusRequester = firstAmpFocusRequester,
             onDecrease = {
                 val nextDelayMs = currentDelayMs - AUDIO_DELAY_STEP_MS
@@ -788,6 +803,93 @@ private fun StepCard(
                 contentDescription = null,
                 tint = if (enabled) Color.White else Color.White.copy(alpha = 0.35f)
             )
+        }
+    }
+}
+
+@Composable
+private fun ForceDubCard(
+    isActive: Boolean,
+    isLoading: Boolean,
+    focusRequester: FocusRequester,
+    leftFocusRequester: FocusRequester,
+    downFocusRequester: FocusRequester,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusRequester(focusRequester)
+            .focusProperties {
+                left = leftFocusRequester
+                down = downFocusRequester
+            },
+        colors = CardDefaults.colors(
+            containerColor = if (isActive) NuvioTheme.colors.Secondary else Color.Transparent,
+            focusedContainerColor = if (isActive) NuvioTheme.colors.Secondary else Color.Transparent
+        ),
+        shape = CardDefaults.shape(RoundedCornerShape(NuvioTheme.radii.md)),
+        border = CardDefaults.border(
+            border = Border(
+                border = BorderStroke(NuvioTheme.spacing.xxs, Color.Transparent),
+                shape = RoundedCornerShape(NuvioTheme.radii.md)
+            ),
+            focusedBorder = Border(
+                border = NuvioTheme.focusRing.border(NuvioTheme.spacing.xxs),
+                shape = RoundedCornerShape(NuvioTheme.radii.md)
+            )
+        ),
+        scale = CardDefaults.scale(focusedScale = 1f, pressedScale = 1f)
+    ) {
+        val primaryTextColor = if (isActive) NuvioTheme.colors.OnSecondary else Color.White
+        val secondaryTextColor = if (isActive) {
+            NuvioTheme.colors.OnSecondary.copy(alpha = 0.82f)
+        } else {
+            Color.White.copy(alpha = 0.72f)
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = NuvioTheme.spacing.md, vertical = NuvioTheme.spacing.sm),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.xxs)
+            ) {
+                Text(
+                    text = stringResource(R.string.force_dub_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = primaryTextColor
+                )
+                Text(
+                    text = when {
+                        isLoading -> stringResource(R.string.force_dub_preparing)
+                        isActive -> stringResource(R.string.force_dub_status_active)
+                        else -> stringResource(R.string.force_dub_status_inactive)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = secondaryTextColor
+                )
+            }
+
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    color = primaryTextColor,
+                    strokeWidth = 2.dp
+                )
+            } else if (isActive) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = primaryTextColor,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
     }
 }

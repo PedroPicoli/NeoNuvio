@@ -3396,5 +3396,23 @@
     <string name="subtitle_style_text_opacity_hdr">Opacidad del texto (HDR)</string>
     <string name="action_add_to_list">Añadir a la lista</string>
     <string name="action_remove_from_list">Quitar de la lista</string>
-</resources>
 
+    <!-- Force Dubbing (Experimental) -->
+    <string name="force_dub_title">Forzar doblaje (Experimental)</string>
+    <string name="force_dub_subtitle">Combina la mejor imagen con audio doblado de otra fuente. Puede tardar hasta 20 segundos (con fallback al original). Exclusivo del motor ExoPlayer.</string>
+    <string name="force_dub_target_language">Idioma de destino del doblaje</string>
+    <string name="force_dub_status_active">Activado</string>
+    <string name="force_dub_status_inactive">Desactivado</string>
+    <string name="force_dub_preparing">Preparando doblaje…</string>
+    <string name="force_dub_fallback_toast">No se pudo sincronizar el doblaje a tiempo. Reproduciendo audio original.</string>
+    <string name="force_dub_warn_4k_title">Fuente de audio en 4K</string>
+    <string name="force_dub_warn_4k_desc">La fuente seleccionada para el audio es 4K o superior y consumirá un ancho de banda adicional considerable. ¿Desea continuar con este doblaje o reproducir el audio original?</string>
+    <string name="force_dub_warn_blind_title">Sincronización aproximada</string>
+    <string name="force_dub_warn_blind_desc">La fuente doblada no dispone de la pista de audio original como referencia directa. La sincronización puede presentar pequeñas imprecisiones. ¿Desea continuar o reproducir el audio original?</string>
+    <string name="force_dub_btn_continue">Continuar con doblaje</string>
+    <string name="force_dub_btn_play_original">Reproducir original</string>
+    <string name="player_loading_dubbing">Doblando…</string>
+    <string name="player_loading_dubbed">Doblado</string>
+    <string name="playback_chapters_title">Capítulos</string>
+    <string name="playback_chapters_sub">Mostrar capítulos y marcadores en la barra de reproducción.</string>
+</resources>

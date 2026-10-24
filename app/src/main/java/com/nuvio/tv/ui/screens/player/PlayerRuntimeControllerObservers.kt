@@ -361,7 +361,9 @@ internal fun PlayerRuntimeController.observeSubtitleSettings() {
                             resolvedInternalPlayerEngine != InternalPlayerEngine.MVP_PLAYER,
                     persistAudioAmplification = settings.persistAudioAmplification,
                     audioAmplificationDb = resolvedAudioAmplificationDb,
-                    centerMixLevelDb = resolvedCenterMixLevelDb
+                    centerMixLevelDb = resolvedCenterMixLevelDb,
+                    chapters = if (settings.playerChaptersEnabled) state.chapters else emptyList(),
+                    showChaptersPanel = if (settings.playerChaptersEnabled) state.showChaptersPanel else false
                 )
             }
 
