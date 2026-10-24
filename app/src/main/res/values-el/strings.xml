@@ -3304,4 +3304,23 @@
     <string name="subtitle_style_text_opacity_hdr">Αδιαφάνεια κειμένου (HDR)</string>
     <string name="action_add_to_list">Προσθήκη στη λίστα</string>
     <string name="action_remove_from_list">Αφαίρεση από τη λίστα</string>
+
+    <!-- Force Dubbing (Experimental) -->
+    <string name="force_dub_title">Εξαναγκασμός μεταγλώττισης (Πειραματικό)</string>
+    <string name="force_dub_subtitle">Συνδυάζει την καλύτερη εικόνα με μεταγλωττισμένο ήχο από άλλη πηγή. Μπορεί να διαρκέσει έως 20 δευτερόλεπτα (με επιστροφή στο πρωτότυπο). Αποκλειστικά για ExoPlayer.</string>
+    <string name="force_dub_target_language">Γλώσσα στόχος μεταγλώττισης</string>
+    <string name="force_dub_status_active">Ενεργοποιημένο</string>
+    <string name="force_dub_status_inactive">Απενεργοποιημένο</string>
+    <string name="force_dub_preparing">Προετοιμασία μεταγλώττισης…</string>
+    <string name="force_dub_fallback_toast">Δεν ήταν δυνατός ο έγκαιρος συγχρονισμός της μεταγλώττισης. Αναπαραγωγή πρωτότυπου ήχου.</string>
+    <string name="force_dub_warn_4k_title">Πηγή ήχου 4K</string>
+    <string name="force_dub_warn_4k_desc">Η πηγή ήχου είναι 4K ή ανώτερη και θα καταναλώσει σημαντικό εύρος ζώνης. Θέλετε να συνεχίσετε με αυτή τη μεταγλώττιση ή να ακούσετε το πρωτότυπο;</string>
+    <string name="force_dub_warn_blind_title">Κατά προσέγγιση συγχρονισμός</string>
+    <string name="force_dub_warn_blind_desc">Η μεταγλωττισμένη πηγή δεν διαθέτει την αρχική διαδρομή ήχου για άμεση αναφορά. Θέλετε να συνεχίσετε ή να ακούσετε το πρωτότυπο;</string>
+    <string name="force_dub_btn_continue">Συνέχεια με μεταγλώττιση</string>
+    <string name="force_dub_btn_play_original">Αναπαραγωγή πρωτοτύπου</string>
+    <string name="player_loading_dubbing">Μεταγλώττιση…</string>
+    <string name="player_loading_dubbed">Μεταγλωττισμένο</string>
+    <string name="playback_chapters_title">Κεφάλαια</string>
+    <string name="playback_chapters_sub">Εμφάνιση κεφαλαίων και δεικτών στη γραμμή αναπαραγωγής.</string>
 </resources>

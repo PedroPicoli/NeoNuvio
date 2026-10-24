@@ -2044,6 +2044,15 @@ fun PlayerRuntimeController.onEvent(event: PlayerEvent) {
                 }
             }
         }
+        PlayerEvent.OnToggleForceDub -> {
+            toggleForceDub()
+        }
+        PlayerEvent.OnConfirmForceDubWarning -> {
+            resolveForceDubWarning(continueWithDub = true)
+        }
+        PlayerEvent.OnDismissForceDubWarning -> {
+            resolveForceDubWarning(continueWithDub = false)
+        }
     }
 }
 

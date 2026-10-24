@@ -21,6 +21,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.text.Cue
 import androidx.media3.common.text.CueGroup
 import androidx.media3.common.util.UnstableApi
+import com.nuvio.tv.core.dub.DubPlan
 import androidx.media3.decoder.ffmpeg.FfmpegAudioRenderer
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
@@ -1097,19 +1098,58 @@ internal fun PlayerRuntimeController.initializePlayer(
                         "bufferEngine=${playerSettings.bufferEngineEnabled} parallel=${mediaSourceFactory.useParallelConnections} " +
                         "vodCache=${mediaSourceFactory.vodCacheEnabled} tunneling=${playerSettings.effectiveTunnelingEnabled}"
                 )
-                val initialMediaSource = mediaSourceFactory.createMediaSource(
-                    context = context,
-                    url = url,
-                    headers = headers,
-                    subtitleConfigurations = startupSubtitleConfigurations,
-                    subtitleRoutes = subtitleRoutes(startupSubtitlePreparation.attachedSubtitles),
-                    filename = currentFilename,
-                    responseHeaders = currentStreamResponseHeaders,
-                    mimeTypeOverride = currentStreamMimeType,
-                    audioDelayUsProvider = audioDelayUs::get,
-                    mediaMetadata = buildMediaSessionMetadata(),
-                    cacheKey = currentStreamCacheKey
-                )
+                // Dublagem forçada: resolvida ANTES do prepare para que a tela de carregamento
+                // permaneça visível ("Dublando") até a dublagem estar pronta ou falhar.
+                val builtExoPlayer = this
+                val shouldTryForceDub = !forceDubFailedStreamUrls.contains(currentStreamUrl) &&
+                    isForceDubEffectivelyEnabledForCurrent()
+                _uiState.update { it.copy(isForceDubEnabled = shouldTryForceDub) }
+                var startupDubPlan: DubPlan? = null
+                if (shouldTryForceDub) {
+                    setLoadingStatus(
+                        phase = "force_dub",
+                        message = context.getString(R.string.player_loading_dubbing),
+                        showOverlay = true
+                    )
+                    _uiState.update { it.copy(isForceDubLoading = true) }
+                    startupDubPlan = try {
+                        prepareForceDubPlan(fromMenu = false)
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Log.e(PlayerRuntimeController.TAG, "Force dub startup failed", e)
+                        forceDubFailedStreamUrls.add(currentStreamUrl)
+                        showToastOnUiThread(context.getString(R.string.force_dub_fallback_toast))
+                        null
+                    }
+                    if (_exoPlayer !== builtExoPlayer || isReleasingPlayer) return@launch
+                    if (!afrPreflightGate.isCurrent(afrPreflightToken)) return@launch
+                    if (startupDubPlan == null) {
+                        _uiState.update { it.copy(isForceDubLoading = false, isForceDubActive = false) }
+                    }
+                }
+                val dubPlanForStartup = startupDubPlan
+                val initialMediaSource = if (dubPlanForStartup != null) {
+                    createDubbedSourceForCurrent(
+                        plan = dubPlanForStartup,
+                        subtitleConfigurations = startupSubtitleConfigurations,
+                        subtitleRoutes = subtitleRoutes(startupSubtitlePreparation.attachedSubtitles)
+                    )
+                } else {
+                    mediaSourceFactory.createMediaSource(
+                        context = context,
+                        url = url,
+                        headers = headers,
+                        subtitleConfigurations = startupSubtitleConfigurations,
+                        subtitleRoutes = subtitleRoutes(startupSubtitlePreparation.attachedSubtitles),
+                        filename = currentFilename,
+                        responseHeaders = currentStreamResponseHeaders,
+                        mimeTypeOverride = currentStreamMimeType,
+                        audioDelayUsProvider = audioDelayUs::get,
+                        mediaMetadata = buildMediaSessionMetadata(),
+                        cacheKey = currentStreamCacheKey
+                    )
+                }
 
                 if (initialResumePosition > 0L) {
                     setMediaSource(initialMediaSource, initialResumePosition)
@@ -1118,11 +1158,21 @@ internal fun PlayerRuntimeController.initializePlayer(
                 } else {
                     setMediaSource(initialMediaSource)
                 }
-
-                setLoadingStatus(
-                    phase = "starting_stream",
-                    message = context.getString(R.string.player_loading_starting)
-                )
+                if (dubPlanForStartup != null) {
+                    markForceDubApplied(dubPlanForStartup)
+                    pendingForceDubReadyAnnouncement = true
+                    setLoadingStatus(
+                        phase = "force_dub",
+                        message = context.getString(R.string.player_loading_dubbing),
+                        showOverlay = true
+                    )
+                } else {
+                    pendingForceDubReadyAnnouncement = false
+                    setLoadingStatus(
+                        phase = "starting_stream",
+                        message = context.getString(R.string.player_loading_starting)
+                    )
+                }
                 val isTunneledPlayback = playerSettings.effectiveTunnelingEnabled
                 // Hold playWhenReady=false through prepare() so audio does not race ahead
                 // while the video decoder is still opening. The first STATE_READY primes the
@@ -1287,21 +1337,48 @@ internal fun PlayerRuntimeController.initializePlayer(
                                     if (_uiState.value.postPlayDismissedForCurrentEpisode) {
                                         _uiState.update { it.copy(postPlayDismissedForCurrentEpisode = false) }
                                     }
-                                    if (action.setPlayWhenReady) {
-                                        playWhenReady = true
-                                    }
-                                    if (action.callPlay) {
-                                        play()
-                                    }
                                     finishLoadingDiagnostics("first_frame_ready")
                                     currentDiagnostics = recordFirstFrameDiagnostics(this@apply, currentDiagnostics, playerSettings)
-                                    _uiState.update {
-                                        it.copy(
-                                            showLoadingOverlay = false,
-                                            loadingMessage = null,
-                                            loadingProgress = if (it.loadingProgress != null) 1f else null,
-                                            showPlayerEngineSwitchInfo = false
+
+                                    if (pendingForceDubReadyAnnouncement) {
+                                        pendingForceDubReadyAnnouncement = false
+                                        setLoadingStatus(
+                                            phase = "force_dub_ready",
+                                            message = context.getString(R.string.player_loading_dubbed),
+                                            showOverlay = true
                                         )
+                                        scope.launch {
+                                            delay(500)
+                                            if (action.setPlayWhenReady) {
+                                                _exoPlayer?.playWhenReady = true
+                                            }
+                                            if (action.callPlay) {
+                                                _exoPlayer?.play()
+                                            }
+                                            _uiState.update {
+                                                it.copy(
+                                                    showLoadingOverlay = false,
+                                                    loadingMessage = null,
+                                                    loadingProgress = if (it.loadingProgress != null) 1f else null,
+                                                    showPlayerEngineSwitchInfo = false
+                                                )
+                                            }
+                                        }
+                                    } else {
+                                        if (action.setPlayWhenReady) {
+                                            playWhenReady = true
+                                        }
+                                        if (action.callPlay) {
+                                            play()
+                                        }
+                                        _uiState.update {
+                                            it.copy(
+                                                showLoadingOverlay = false,
+                                                loadingMessage = null,
+                                                loadingProgress = if (it.loadingProgress != null) 1f else null,
+                                                showPlayerEngineSwitchInfo = false
+                                            )
+                                        }
                                     }
                                     // Read here unless onRenderedFirstFrame() already did:
                                     // marking the frame rendered keeps it from reading later.
@@ -1419,6 +1496,7 @@ internal fun PlayerRuntimeController.initializePlayer(
                     }
 
                     override fun onTracksChanged(tracks: Tracks) {
+                        enforceDubTrackSelection(tracks)
                         updateAvailableTracks(tracks)
                     }
 
@@ -1438,25 +1516,52 @@ internal fun PlayerRuntimeController.initializePlayer(
                             _uiState.update { it.copy(postPlayDismissedForCurrentEpisode = false) }
                         }
                         updateAudioControlAvailability()
-                        // Start playback now that the first video frame is
-                        // visible: audio and video begin in sync.
-                        if (!startPaused && !userPausedManually) {
-                            playWhenReady = true
-                            play()
-                        }
                         refreshStableProgressResetGate()
                         cancelFirstFrameWatchdog()
-                        _uiState.update {
-                            it.copy(
-                                showLoadingOverlay = false,
-                                loadingMessage = null,
-                                loadingProgress = if (it.loadingProgress != null) 1f else null,
-                                loadingIssueReportVisible = false,
-                                loadingIssueElapsedMs = 0L,
-                                showPlayerEngineSwitchInfo = false
-                            )
-                        }
                         finishLoadingDiagnostics("first_frame_rendered")
+
+                        if (pendingForceDubReadyAnnouncement) {
+                            pendingForceDubReadyAnnouncement = false
+                            setLoadingStatus(
+                                phase = "force_dub_ready",
+                                message = context.getString(R.string.player_loading_dubbed),
+                                showOverlay = true
+                            )
+                            scope.launch {
+                                delay(500)
+                                if (!startPaused && !userPausedManually) {
+                                    _exoPlayer?.playWhenReady = true
+                                    _exoPlayer?.play()
+                                }
+                                _uiState.update {
+                                    it.copy(
+                                        showLoadingOverlay = false,
+                                        loadingMessage = null,
+                                        loadingProgress = if (it.loadingProgress != null) 1f else null,
+                                        loadingIssueReportVisible = false,
+                                        loadingIssueElapsedMs = 0L,
+                                        showPlayerEngineSwitchInfo = false
+                                    )
+                                }
+                            }
+                        } else {
+                            // Start playback now that the first video frame is
+                            // visible: audio and video begin in sync.
+                            if (!startPaused && !userPausedManually) {
+                                playWhenReady = true
+                                play()
+                            }
+                            _uiState.update {
+                                it.copy(
+                                    showLoadingOverlay = false,
+                                    loadingMessage = null,
+                                    loadingProgress = if (it.loadingProgress != null) 1f else null,
+                                    loadingIssueReportVisible = false,
+                                    loadingIssueElapsedMs = 0L,
+                                    showPlayerEngineSwitchInfo = false
+                                )
+                            }
+                        }
 
                         if (isFirstFrame) {
                             currentDiagnostics = recordFirstFrameDiagnostics(this@apply, currentDiagnostics, playerSettings)
@@ -1465,6 +1570,11 @@ internal fun PlayerRuntimeController.initializePlayer(
                     }
 
                     override fun onPlayerError(error: PlaybackException) {
+                        if (isRestoringOriginalAfterDub) {
+                            Log.w(PlayerRuntimeController.TAG, "Ignorando erro transitório durante restauração de áudio original pós-dublagem: ${error.message}")
+                            return
+                        }
+                        if (handleForceDubPlaybackError()) return
                         if (isReleasingPlayer && error.errorCode == PlaybackException.ERROR_CODE_TIMEOUT) return
                         cancelFirstFrameWatchdog()
                         val detailedError = error.toDisplayMessage(context)

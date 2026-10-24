@@ -3141,4 +3141,23 @@
     <string name="subtitle_style_text_opacity_hdr">টেক্সট অস্বচ্ছতা (HDR)</string>
     <string name="action_add_to_list">তালিকায় যোগ করুন</string>
     <string name="action_remove_from_list">তালিকা থেকে সরান</string>
+
+    <!-- Force Dubbing (Experimental) -->
+    <string name="force_dub_title">Force dubbing (Experimental)</string>
+    <string name="force_dub_subtitle">Combines the best video with dubbed audio from another source. May take up to 20 seconds (with fallback to original). Exclusive to ExoPlayer engine.</string>
+    <string name="force_dub_target_language">Dubbing target language</string>
+    <string name="force_dub_status_active">Enabled</string>
+    <string name="force_dub_status_inactive">Disabled</string>
+    <string name="force_dub_preparing">Preparing dubbing…</string>
+    <string name="force_dub_fallback_toast">Could not synchronize dubbing in time. Playing original audio.</string>
+    <string name="force_dub_warn_4k_title">4K Audio Source</string>
+    <string name="force_dub_warn_4k_desc">The source selected for audio is 4K or higher and will consume considerable additional bandwidth. Do you want to continue with this dub or play the original audio?</string>
+    <string name="force_dub_warn_blind_title">Approximate Synchronization</string>
+    <string name="force_dub_warn_blind_desc">The dubbed source does not have the original audio track for direct reference. Synchronization may have slight inaccuracies. Do you want to continue or play the original audio?</string>
+    <string name="force_dub_btn_continue">Continue with dubbing</string>
+    <string name="force_dub_btn_play_original">Play original</string>
+    <string name="player_loading_dubbing">ডাবিং করা হচ্ছে…</string>
+    <string name="player_loading_dubbed">ডাব করা</string>
+    <string name="playback_chapters_title">অধ্যায়</string>
+    <string name="playback_chapters_sub">প্লেব্যাক বারে অধ্যায় এবং চিহ্নিতকারী প্রদর্শন করুন।</string>
 </resources>

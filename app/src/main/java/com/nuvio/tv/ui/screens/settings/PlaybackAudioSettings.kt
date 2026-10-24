@@ -37,6 +37,24 @@ internal fun PlaybackAudioSection(
         onClick = { onOpenDialog(PlaybackDialog.SECONDARY_AUDIO_LANGUAGE) }
     )
 
+    SettingsToggleRow(
+        title = stringResource(R.string.force_dub_title),
+        subtitle = stringResource(R.string.force_dub_subtitle),
+        checked = settings.forceDubEnabled,
+        onToggle = { onUpdate { setForceDubEnabled(!settings.forceDubEnabled) } },
+        enabled = enabled
+    )
+    if (settings.forceDubEnabled) {
+        val forceDubLangLabel = AVAILABLE_SUBTITLE_LANGUAGES.find { it.code.equals(settings.forceDubTargetLanguage, ignoreCase = true) }?.displayName ?: settings.forceDubTargetLanguage.uppercase()
+        SettingsActionRow(
+            title = stringResource(R.string.force_dub_target_language),
+            subtitle = null,
+            value = forceDubLangLabel,
+            enabled = enabled,
+            onClick = { onOpenDialog(PlaybackDialog.FORCE_DUB_LANGUAGE) }
+        )
+    }
+
     if (isExoEngine) {
         SettingsToggleRow(
             title = stringResource(R.string.audio_skip_silence),
@@ -153,6 +171,18 @@ internal fun AudioSettingsDialogs(
             ),
             onLanguageSelected = { language ->
                 onUpdate { setSecondaryPreferredAudioLanguage(language) }
+                onDismiss()
+            },
+            onDismiss = onDismiss
+        )
+        PlaybackDialog.FORCE_DUB_LANGUAGE -> LanguageSelectionDialog(
+            title = stringResource(R.string.force_dub_target_language),
+            selectedLanguage = settings.forceDubTargetLanguage,
+            showNoneOption = false,
+            onLanguageSelected = { language ->
+                if (language != null) {
+                    onUpdate { setForceDubTargetLanguage(language) }
+                }
                 onDismiss()
             },
             onDismiss = onDismiss

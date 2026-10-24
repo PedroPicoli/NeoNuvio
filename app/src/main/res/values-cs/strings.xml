@@ -2859,4 +2859,23 @@
     <string name="subtitle_style_text_opacity_hdr">Průhlednost textu (HDR)</string>
     <string name="action_add_to_list">Přidat do seznamu</string>
     <string name="action_remove_from_list">Odebrat ze seznamu</string>
+
+    <!-- Force Dubbing (Experimental) -->
+    <string name="force_dub_title">Vynutit dabing (Experimentální)</string>
+    <string name="force_dub_subtitle">Kombinuje nejlepší obraz s dabovaným zvukem z jiného zdroje. Může trvat až 20 sekund (se záložním návratem k originálu). Pouze pro ExoPlayer.</string>
+    <string name="force_dub_target_language">Cílový jazyk dabingu</string>
+    <string name="force_dub_status_active">Zapnuto</string>
+    <string name="force_dub_status_inactive">Vypnuto</string>
+    <string name="force_dub_preparing">Příprava dabingu…</string>
+    <string name="force_dub_fallback_toast">Dabing se nepodařilo včas synchronizovat. Přehrává se původní zvuk.</string>
+    <string name="force_dub_warn_4k_title">4K zdroj zvuku</string>
+    <string name="force_dub_warn_4k_desc">Zdroj vybraný pro zvuk je 4K nebo vyšší a spotřebuje značnou šířku pásma. Chcete pokračovat s tímto dabingem nebo přehrát původní zvuk?</string>
+    <string name="force_dub_warn_blind_title">Přibližná synchronizace</string>
+    <string name="force_dub_warn_blind_desc">Dabovaný zdroj nemá původní zvukovou stopu pro přímé porovnání. Synchronizace může mít drobné nepřesnosti. Chcete pokračovat nebo přehrát původní zvuk?</string>
+    <string name="force_dub_btn_continue">Pokračovat s dabingem</string>
+    <string name="force_dub_btn_play_original">Přehrát originál</string>
+    <string name="player_loading_dubbing">Dabování…</string>
+    <string name="player_loading_dubbed">Dabováno</string>
+    <string name="playback_chapters_title">Kapitoly</string>
+    <string name="playback_chapters_sub">Zobrazit kapitoly a značky na liště přehrávání.</string>
 </resources>

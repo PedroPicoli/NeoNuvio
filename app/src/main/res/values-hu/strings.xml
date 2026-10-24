@@ -3377,5 +3377,23 @@
     <string name="sub_libass_render_scale_sub">Az alacsonyabb felbontás javítja a teljesítményt az összetett feliratoknál az élesség rovására</string>
     <string name="action_add_to_list">Hozzáadás a listához</string>
     <string name="action_remove_from_list">Eltávolítás a listáról</string>
-</resources>
 
+    <!-- Force Dubbing (Experimental) -->
+    <string name="force_dub_title">Szinkron kényszerítése (Kísérleti)</string>
+    <string name="force_dub_subtitle">Kombinálja a legjobb képet egy másik forrásból származó szinkronizált hanggal. Akár 20 másodpercet is igénybe vehet (visszaállással az eredetire). Kizárólag ExoPlayerhez.</string>
+    <string name="force_dub_target_language">Szinkron célnyelve</string>
+    <string name="force_dub_status_active">Bekapcsolva</string>
+    <string name="force_dub_status_inactive">Kikapcsolva</string>
+    <string name="force_dub_preparing">Szinkron előkészítése…</string>
+    <string name="force_dub_fallback_toast">Nem sikerült időben szinkronizálni a hangot. Az eredeti hang lejátszása.</string>
+    <string name="force_dub_warn_4k_title">4K hangforrás</string>
+    <string name="force_dub_warn_4k_desc">A hanghoz kiválasztott forrás 4K vagy nagyobb, és jelentős sávszélességet igényel. Folytatja a szinkronnal, vagy az eredeti hangot játssza le?</string>
+    <string name="force_dub_warn_blind_title">Hozzávetőleges szinkronizálás</string>
+    <string name="force_dub_warn_blind_desc">A szinkronizált forrás nem tartalmazza az eredeti hangot közvetlen referenciaként. Kisebb pontatlanságok előfordulhatnak. Folytatja, vagy az eredetit játssza le?</string>
+    <string name="force_dub_btn_continue">Folytatás szinkronnal</string>
+    <string name="force_dub_btn_play_original">Eredeti lejátszása</string>
+    <string name="player_loading_dubbing">Szinkronizálás…</string>
+    <string name="player_loading_dubbed">Szinkronizálva</string>
+    <string name="playback_chapters_title">Fejezetek</string>
+    <string name="playback_chapters_sub">Fejezetek és jelölők megjelenítése a lejátszási sávon.</string>
+</resources>

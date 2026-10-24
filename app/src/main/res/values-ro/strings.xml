@@ -852,4 +852,23 @@
     <string name="subtitle_style_text_opacity_hdr">Opacitate text (HDR)</string>
     <string name="action_add_to_list">Adaugă la listă</string>
     <string name="action_remove_from_list">Elimină din listă</string>
+
+    <!-- Force Dubbing (Experimental) -->
+    <string name="force_dub_title">Forțare dublaj (Experimental)</string>
+    <string name="force_dub_subtitle">Combină cea mai bună imagine cu sunetul dublat din altă sursă. Poate dura până la 20 de secunde (cu revenire la original). Exclusiv pentru ExoPlayer.</string>
+    <string name="force_dub_target_language">Limba țintă a dublajului</string>
+    <string name="force_dub_status_active">Activat</string>
+    <string name="force_dub_status_inactive">Dezactivat</string>
+    <string name="force_dub_preparing">Se pregătește dublajul…</string>
+    <string name="force_dub_fallback_toast">Dublajul nu a putut fi sincronizat la timp. Se redă sunetul original.</string>
+    <string name="force_dub_warn_4k_title">Sursă audio 4K</string>
+    <string name="force_dub_warn_4k_desc">Sursa audio selectată este 4K sau superioară și va consuma lățime de bandă considerabilă. Doriți să continuați cu acest dublaj sau să redați sunetul original?</string>
+    <string name="force_dub_warn_blind_title">Sincronizare aproximativă</string>
+    <string name="force_dub_warn_blind_desc">Sursa dublată nu conține pista audio originală ca referință directă. Sincronizarea poate avea mici inexactități. Doriți să continuați sau să redați originalul?</string>
+    <string name="force_dub_btn_continue">Continuă cu dublajul</string>
+    <string name="force_dub_btn_play_original">Redă originalul</string>
+    <string name="player_loading_dubbing">Dublare…</string>
+    <string name="player_loading_dubbed">Dublat</string>
+    <string name="playback_chapters_title">Capitole</string>
+    <string name="playback_chapters_sub">Afișează capitolele și marcajele pe bara de redare.</string>
 </resources>

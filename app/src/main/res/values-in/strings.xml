@@ -2470,4 +2470,23 @@
     <string name="subtitle_style_text_opacity_hdr">Opasitas Teks (HDR)</string>
     <string name="action_add_to_list">Tambahkan ke daftar</string>
     <string name="action_remove_from_list">Hapus dari daftar</string>
+
+    <!-- Force Dubbing (Experimental) -->
+    <string name="force_dub_title">Paksa sulih suara (Eksperimental)</string>
+    <string name="force_dub_subtitle">Menggabungkan video terbaik dengan audio sulih suara dari sumber lain. Dapat memakan waktu hingga 20 detik (dengan fallback ke asli). Eksklusif untuk ExoPlayer.</string>
+    <string name="force_dub_target_language">Bahasa target sulih suara</string>
+    <string name="force_dub_status_active">Diaktifkan</string>
+    <string name="force_dub_status_inactive">Dinonaktifkan</string>
+    <string name="force_dub_preparing">Menyiapkan sulih suara…</string>
+    <string name="force_dub_fallback_toast">Tidak dapat menyinkronkan sulih suara tepat waktu. Memutar audio asli.</string>
+    <string name="force_dub_warn_4k_title">Sumber Audio 4K</string>
+    <string name="force_dub_warn_4k_desc">Sumber yang dipilih untuk audio adalah 4K atau lebih tinggi dan akan menggunakan bandwidth tambahan yang cukup besar. Apakah Anda ingin melanjutkan dengan sulih suara ini atau memutar audio asli?</string>
+    <string name="force_dub_warn_blind_title">Sinkronisasi Perkiraan</string>
+    <string name="force_dub_warn_blind_desc">Sumber sulih suara tidak memiliki trek audio asli untuk referensi langsung. Sinkronisasi mungkin memiliki sedikit ketidakakuratan. Apakah Anda ingin melanjutkan atau memutar audio asli?</string>
+    <string name="force_dub_btn_continue">Lanjutkan dengan sulih suara</string>
+    <string name="force_dub_btn_play_original">Putar asli</string>
+    <string name="player_loading_dubbing">Melakukan dubbing…</string>
+    <string name="player_loading_dubbed">Tersulih suara</string>
+    <string name="playback_chapters_title">Bab</string>
+    <string name="playback_chapters_sub">Tampilkan bab dan penanda pada bilah putar.</string>
 </resources>

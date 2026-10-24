@@ -3406,4 +3406,23 @@
     <string name="sub_libass_render_scale_sub">Độ phân giải thấp hơn giúp tăng hiệu năng với các phụ đề phức tạp nhưng giảm độ sắc nét</string>
     <string name="action_add_to_list">Thêm vào danh sách</string>
     <string name="action_remove_from_list">Xóa khỏi danh sách</string>
+
+    <!-- Force Dubbing (Experimental) -->
+    <string name="force_dub_title">Bắt buộc lồng tiếng (Thử nghiệm)</string>
+    <string name="force_dub_subtitle">Kết hợp hình ảnh tốt nhất với âm thanh lồng tiếng từ nguồn khác. Có thể mất tới 20 giây (với dự phòng về bản gốc). Chỉ dành riêng cho ExoPlayer.</string>
+    <string name="force_dub_target_language">Ngôn ngữ đích lồng tiếng</string>
+    <string name="force_dub_status_active">Đã bật</string>
+    <string name="force_dub_status_inactive">Đã tắt</string>
+    <string name="force_dub_preparing">Đang chuẩn bị lồng tiếng…</string>
+    <string name="force_dub_fallback_toast">Không thể đồng bộ hóa lồng tiếng kịp thời. Đang phát âm thanh gốc.</string>
+    <string name="force_dub_warn_4k_title">Nguồn âm thanh 4K</string>
+    <string name="force_dub_warn_4k_desc">Nguồn được chọn cho âm thanh là 4K trở lên và sẽ tiêu tốn băng thông bổ sung đáng kể. Bạn có muốn tiếp tục với bản lồng tiếng này hay phát âm thanh gốc?</string>
+    <string name="force_dub_warn_blind_title">Đồng bộ hóa ước tính</string>
+    <string name="force_dub_warn_blind_desc">Nguồn lồng tiếng không có rãnh âm thanh gốc để tham chiếu trực tiếp. Đồng bộ hóa có thể có sai số nhỏ. Bạn có muốn tiếp tục hay phát âm thanh gốc?</string>
+    <string name="force_dub_btn_continue">Tiếp tục với lồng tiếng</string>
+    <string name="force_dub_btn_play_original">Phát bản gốc</string>
+    <string name="player_loading_dubbing">Đang lồng tiếng…</string>
+    <string name="player_loading_dubbed">Đã lồng tiếng</string>
+    <string name="playback_chapters_title">Chương</string>
+    <string name="playback_chapters_sub">Hiển thị các chương và dấu mốc trên thanh phát lại.</string>
 </resources>

@@ -548,6 +548,20 @@ class PlayerRuntimeController(
     internal var lastActiveSkipType: String? = null
     internal var autoSubtitleSelected: Boolean = false
     internal var isUserExplicitSubtitleSelection: Boolean = false
+    // Force dubbing (Experimental)
+    internal var currentForceDubActive: Boolean = false
+    internal var currentForceDubPlan: com.nuvio.tv.core.dub.DubPlan? = null
+    internal var forceDubUserOverridden: Boolean? = null
+    internal var forceDubJob: Job? = null
+    internal var forceDubVerifyJob: Job? = null
+    internal var forceDubPlanStreamUrl: String? = null
+    internal var forceDubPlanCache: com.nuvio.tv.core.dub.DubPlan? = null
+    internal val forceDubFailedStreamUrls: MutableSet<String> = mutableSetOf()
+    internal var forceDubVerifiedForPlan: Boolean = false
+    internal var forceDubTorrentStartedForAudio: Boolean = false
+    internal var isRestoringOriginalAfterDub: Boolean = false
+    internal var pendingForceDubReadyAnnouncement: Boolean = false
+    internal var pendingWarningResolution: ((Boolean) -> Unit)? = null
     internal var lastSubtitlePreferredLanguage: String? = null
     internal var lastSubtitleSecondaryLanguage: String? = null
     internal var lastUseForcedSubtitles: Boolean? = null

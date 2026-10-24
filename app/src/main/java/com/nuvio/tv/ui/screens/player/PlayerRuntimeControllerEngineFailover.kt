@@ -13,6 +13,8 @@ internal fun PlayerRuntimeController.maybeAutoSwitchInternalPlayerOnStartupError
     allowEngineFailover: Boolean
 ): Boolean {
     if (!allowEngineFailover) return false
+    if (isRestoringOriginalAfterDub || currentForceDubActive) return false
+    if (hasRenderedFirstFrame) return false
     if (!autoSwitchInternalPlayerOnErrorEnabled) return false
     if (startupEngineFailoverTriggered) return false
     if (!isStartupPhaseForEngineFailover()) return false

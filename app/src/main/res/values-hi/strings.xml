@@ -1020,4 +1020,23 @@
     <string name="subtitle_style_text_opacity_hdr">टेक्स्ट अपारदर्शिता (HDR)</string>
     <string name="action_add_to_list">सूची में जोड़ें</string>
     <string name="action_remove_from_list">सूची से हटाएं</string>
+
+    <!-- Force Dubbing (Experimental) -->
+    <string name="force_dub_title">डबिंग बाध्य करें (प्रायोगिक)</string>
+    <string name="force_dub_subtitle">दूसरे स्रोत के डब ऑडियो के साथ सर्वश्रेष्ठ वीडियो को जोड़ता है। इसमें 20 सेकंड तक का समय लग सकता है (मूल पर फ़ॉलबैक के साथ)। केवल ExoPlayer के लिए।</string>
+    <string name="force_dub_target_language">डबिंग लक्ष्य भाषा</string>
+    <string name="force_dub_status_active">सक्रिय</string>
+    <string name="force_dub_status_inactive">निष्क्रिय</string>
+    <string name="force_dub_preparing">डबिंग तैयार की जा रही है…</string>
+    <string name="force_dub_fallback_toast">समय पर डबिंग सिंक नहीं हो सकी। मूल ऑडियो चलाया जा रहा है।</string>
+    <string name="force_dub_warn_4k_title">4K ऑडियो स्रोत</string>
+    <string name="force_dub_warn_4k_desc">ऑडियो के लिए चुना गया स्रोत 4K या उससे अधिक है और अधिक बैंडविड्थ का उपयोग करेगा। क्या आप इस डब के साथ जारी रखना चाहते हैं या मूल ऑडियो चलाना चाहते हैं?</string>
+    <string name="force_dub_warn_blind_title">अनुमानित सिंक्रनाइज़ेशन</string>
+    <string name="force_dub_warn_blind_desc">डब किए गए स्रोत में सीधे संदर्भ के लिए मूल ऑडियो ट्रैक नहीं है। सिंक में मामूली अंतर हो सकता है। क्या आप जारी रखना चाहते हैं या मूल ऑडियो चलाना चाहते हैं?</string>
+    <string name="force_dub_btn_continue">डबिंग के साथ जारी रखें</string>
+    <string name="force_dub_btn_play_original">मूल ऑडियो चलाएं</string>
+    <string name="player_loading_dubbing">डबिंग हो रही है…</string>
+    <string name="player_loading_dubbed">डब किया हुआ</string>
+    <string name="playback_chapters_title">अध्याय</string>
+    <string name="playback_chapters_sub">प्लेबैक बार पर अध्याय और मार्कर प्रदर्शित करें।</string>
 </resources>
