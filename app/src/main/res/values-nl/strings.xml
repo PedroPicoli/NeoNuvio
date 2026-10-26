@@ -3185,4 +3185,21 @@
     <string name="player_loading_dubbed">Gedubd</string>
     <string name="playback_chapters_title">Hoofdstukken</string>
     <string name="playback_chapters_sub">Hoofdstukken en markeringen weergeven op de afspeelbalk.</string>
+    <string name="series_force_dub_mode_default">Standaard (Volg app)</string>
+    <string name="series_force_dub_mode_enabled">Altijd nasynchroniseren</string>
+    <string name="series_force_dub_mode_disabled">Nooit nasynchroniseren</string>
+    <string name="series_force_dub_select_language">Nasynchronisatietaal voor deze serie</string>
+    <string name="series_force_dub_language_default">Standaard (Volg app)</string>
+    <string name="force_dub_lang_not_configured">Niet geconfigureerd</string>
+    <string name="force_dub_no_target_lang_toast">Stel een doeltaal in bij de audio-opties om geforceerde nasynchronisatie te gebruiken</string>
+
+    <string name="debug_force_dub_stats_title">Force Dubbing Stats</string>
+    <string name="debug_force_dub_stats_subtitle">Displays a detailed debug overlay in the player showing sync method, offset, streams and active engineering.</string>
+    <string name="audio_delay_preset_zero">Reset (0 ms)</string>
+    <string name="audio_delay_preset_bluray">Blu-ray (+2.1s)</string>
+    <string name="audio_delay_preset_minus_half_sec">-500 ms</string>
+    <string name="audio_delay_preset_plus_half_sec">+500 ms</string>
+    <string name="force_dub_offset_current">Dubbing Offset: %s</string>
+    <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
+    <string name="force_dub_incompatible">Incompatibele nasynchronisatie voor deze video</string>
 </resources>

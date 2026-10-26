@@ -3415,4 +3415,21 @@
     <string name="player_loading_dubbed">Doblado</string>
     <string name="playback_chapters_title">Capítulos</string>
     <string name="playback_chapters_sub">Mostrar capítulos y marcadores en la barra de reproducción.</string>
+    <string name="series_force_dub_mode_default">Predeterminado (Seguir app)</string>
+    <string name="series_force_dub_mode_enabled">Siempre doblar</string>
+    <string name="series_force_dub_mode_disabled">Nunca doblar</string>
+    <string name="series_force_dub_select_language">Idioma de doblaje para esta serie</string>
+    <string name="series_force_dub_language_default">Predeterminado (Seguir app)</string>
+    <string name="force_dub_lang_not_configured">No configurado</string>
+    <string name="force_dub_no_target_lang_toast">Configure un idioma de destino en las opciones de audio para usar el doblaje forzado</string>
+
+    <string name="debug_force_dub_stats_title">Estadísticas de Forzar Doblaje</string>
+    <string name="debug_force_dub_stats_subtitle">Muestra un panel detallado de depuración en el reproductor con método de sincronización, desfase, fuentes e ingeniería activa.</string>
+    <string name="audio_delay_preset_zero">Restablecer (0 ms)</string>
+    <string name="audio_delay_preset_bluray">Blu-ray (+2.1s)</string>
+    <string name="audio_delay_preset_minus_half_sec">-500 ms</string>
+    <string name="audio_delay_preset_plus_half_sec">+500 ms</string>
+    <string name="force_dub_offset_current">Desfase de doblaje: %s</string>
+    <string name="force_dub_quick_sync_title">Ajuste rápido de sincronización</string>
+    <string name="force_dub_incompatible">Doblaje incompatible para este video</string>
 </resources>

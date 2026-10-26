@@ -551,9 +551,12 @@ class PlayerRuntimeController(
     // Force dubbing (Experimental)
     internal var currentForceDubActive: Boolean = false
     internal var currentForceDubPlan: com.nuvio.tv.core.dub.DubPlan? = null
+    internal var pendingMpvDubPlan: com.nuvio.tv.core.dub.DubPlan? = null
     internal var forceDubUserOverridden: Boolean? = null
     internal var forceDubJob: Job? = null
     internal var forceDubVerifyJob: Job? = null
+    internal var forceDubOrchestraJob: Job? = null
+    internal val currentDubAudioOffsetUs = java.util.concurrent.atomic.AtomicLong(0L)
     internal var forceDubPlanStreamUrl: String? = null
     internal var forceDubPlanCache: com.nuvio.tv.core.dub.DubPlan? = null
     internal val forceDubFailedStreamUrls: MutableSet<String> = mutableSetOf()

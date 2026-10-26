@@ -55,10 +55,15 @@ class DebugSettingsViewModel @Inject constructor(
                 _uiState.update { it.copy(composeHighlighterEnabled = enabled) }
             }
         }
-        // Buffer logs state
+        // Buffer logs & force dub stats state
         viewModelScope.launch {
             playerSettingsDataStore.playerSettings.collectLatest { settings ->
-                _uiState.update { it.copy(bufferLogsEnabled = settings.enableBufferLogs) }
+                _uiState.update {
+                    it.copy(
+                        bufferLogsEnabled = settings.enableBufferLogs,
+                        forceDubStatsEnabled = settings.forceDubStatsEnabled
+                    )
+                }
             }
         }
     }
@@ -76,6 +81,9 @@ class DebugSettingsViewModel @Inject constructor(
             }
             is DebugSettingsEvent.ToggleBufferLogs -> {
                 viewModelScope.launch { playerSettingsDataStore.setEnableBufferLogs(event.enabled) }
+            }
+            is DebugSettingsEvent.ToggleForceDubStats -> {
+                viewModelScope.launch { playerSettingsDataStore.setForceDubStatsEnabled(event.enabled) }
             }
             is DebugSettingsEvent.GenerateLibraryItems -> {
                 viewModelScope.launch {
@@ -165,6 +173,7 @@ data class DebugSettingsUiState(
     val syncCodeFeaturesEnabled: Boolean = false,
     val composeHighlighterEnabled: Boolean = false,
     val bufferLogsEnabled: Boolean = false,
+    val forceDubStatsEnabled: Boolean = false,
     val generateLibraryLoading: Boolean = false,
     val generateLibraryResult: String? = null,
     val signInLoading: Boolean = false,
@@ -176,6 +185,7 @@ sealed class DebugSettingsEvent {
     data class ToggleSyncCodeFeatures(val enabled: Boolean) : DebugSettingsEvent()
     data class ToggleComposeHighlighter(val enabled: Boolean) : DebugSettingsEvent()
     data class ToggleBufferLogs(val enabled: Boolean) : DebugSettingsEvent()
+    data class ToggleForceDubStats(val enabled: Boolean) : DebugSettingsEvent()
     data class GenerateLibraryItems(val count: Int) : DebugSettingsEvent()
     data class SignIn(val email: String, val password: String) : DebugSettingsEvent()
 }

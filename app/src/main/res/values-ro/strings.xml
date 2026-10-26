@@ -871,4 +871,21 @@
     <string name="player_loading_dubbed">Dublat</string>
     <string name="playback_chapters_title">Capitole</string>
     <string name="playback_chapters_sub">Afișează capitolele și marcajele pe bara de redare.</string>
+    <string name="series_force_dub_mode_default">Default (Follow app)</string>
+    <string name="series_force_dub_mode_enabled">Always dub</string>
+    <string name="series_force_dub_mode_disabled">Never dub</string>
+    <string name="series_force_dub_select_language">Dubbing language for this series</string>
+    <string name="series_force_dub_language_default">Default (Follow app)</string>
+    <string name="force_dub_lang_not_configured">Not configured</string>
+    <string name="force_dub_no_target_lang_toast">Set a target language in audio options to use forced dubbing</string>
+
+    <string name="debug_force_dub_stats_title">Force Dubbing Stats</string>
+    <string name="debug_force_dub_stats_subtitle">Displays a detailed debug overlay in the player showing sync method, offset, streams and active engineering.</string>
+    <string name="audio_delay_preset_zero">Reset (0 ms)</string>
+    <string name="audio_delay_preset_bluray">Blu-ray (+2.1s)</string>
+    <string name="audio_delay_preset_minus_half_sec">-500 ms</string>
+    <string name="audio_delay_preset_plus_half_sec">+500 ms</string>
+    <string name="force_dub_offset_current">Dubbing Offset: %s</string>
+    <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
+    <string name="force_dub_incompatible">Dublaj incompatibil pentru acest videoclip</string>
 </resources>

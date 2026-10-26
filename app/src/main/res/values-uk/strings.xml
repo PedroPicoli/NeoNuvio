@@ -2776,4 +2776,21 @@
     <string name="player_loading_dubbed">Дубльовано</string>
     <string name="playback_chapters_title">Розділи</string>
     <string name="playback_chapters_sub">Відображати розділи та мітки на панелі відтворення.</string>
+    <string name="series_force_dub_mode_default">За замовчуванням (Як у додатку)</string>
+    <string name="series_force_dub_mode_enabled">Завжди дублювати</string>
+    <string name="series_force_dub_mode_disabled">Ніколи не дублювати</string>
+    <string name="series_force_dub_select_language">Мова дубляжу для цього серіалу</string>
+    <string name="series_force_dub_language_default">За замовчуванням (Як у додатку)</string>
+    <string name="force_dub_lang_not_configured">Не налаштовано</string>
+    <string name="force_dub_no_target_lang_toast">Вкажіть цільову мову в налаштуваннях звуку для примусового дубляжу</string>
+
+    <string name="debug_force_dub_stats_title">Force Dubbing Stats</string>
+    <string name="debug_force_dub_stats_subtitle">Displays a detailed debug overlay in the player showing sync method, offset, streams and active engineering.</string>
+    <string name="audio_delay_preset_zero">Reset (0 ms)</string>
+    <string name="audio_delay_preset_bluray">Blu-ray (+2.1s)</string>
+    <string name="audio_delay_preset_minus_half_sec">-500 ms</string>
+    <string name="audio_delay_preset_plus_half_sec">+500 ms</string>
+    <string name="force_dub_offset_current">Dubbing Offset: %s</string>
+    <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
+    <string name="force_dub_incompatible">Несумісний дубляж для этого відео</string>
 </resources>

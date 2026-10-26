@@ -169,6 +169,7 @@ internal fun PlayerRuntimeController.initializePlayer(
             if (allowEngineFailover) {
                 startupEngineFailoverTriggered = false
             }
+            ensureNativeAudioRestored()
             autoSubtitleSelected = false
             hasScannedTextTracksOnce = false
             lastPlaybackDiagnosticsForReport = LastPlaybackDiagnostics.EMPTY
@@ -250,6 +251,18 @@ internal fun PlayerRuntimeController.initializePlayer(
             if (effectiveInternalPlayerEngine == InternalPlayerEngine.AUTO) {
                 effectiveInternalPlayerEngine = resolveAutoInternalPlayerEngine()
             }
+
+            // Salvaguarda Universal de Estabilidade para Streams AV1:
+            // Se o vídeo for AV1 e o dispositivo carecer de decoder por hardware,
+            // o ExoPlayer tentará carregar o Gav1Decoder (software) e sofrerá crash fatal
+            // derrubando a Surface de renderização do sistema.
+            // Força o motor MPV (dav1d em software/CPU) no milissegundo 0.
+            val isAv1 = isAv1StreamCandidate(url, currentFilename, streamName, currentStreamDescription, title)
+            if (isAv1 && !hasAv1HardwareDecoder() && effectiveInternalPlayerEngine != InternalPlayerEngine.MVP_PLAYER) {
+                Log.w(PlayerRuntimeController.TAG, "Fast-Failover HW: Stream AV1 sem suporte de hardware para video/av01 detectado. Redirecionando para MPV no milissegundo 0.")
+                effectiveInternalPlayerEngine = InternalPlayerEngine.MVP_PLAYER
+            }
+
             runtimeInternalPlayerEngineOverride = overrideInternalPlayerEngine
             if (overrideInternalPlayerEngine == null && playerSettings.internalPlayerEngine == InternalPlayerEngine.AUTO) {
                 resolvedAutoPlayerEngine = effectiveInternalPlayerEngine
@@ -319,11 +332,51 @@ internal fun PlayerRuntimeController.initializePlayer(
                         Log.d(PlayerRuntimeController.TAG, "AFR display mode switched; delaying MPV start by ${MPV_AFR_SETTLE_DELAY_MS}ms")
                         delay(MPV_AFR_SETTLE_DELAY_MS)
                     }
+                    val shouldTryForceDub = !forceDubFailedStreamUrls.contains(currentStreamUrl) &&
+                        isForceDubEffectivelyEnabledForCurrent()
+                    _uiState.update { it.copy(isForceDubEnabled = shouldTryForceDub) }
+                    var startupDubPlan: DubPlan? = null
+                    if (shouldTryForceDub) {
+                        setLoadingStatus(
+                            phase = "force_dub",
+                            message = context.getString(R.string.player_loading_dubbing),
+                            showOverlay = true
+                        )
+                        _uiState.update { it.copy(isForceDubLoading = true) }
+                        startupDubPlan = try {
+                            prepareForceDubPlan(fromMenu = false)
+                        } catch (e: kotlinx.coroutines.CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            Log.e(PlayerRuntimeController.TAG, "Force dub startup failed in MPV", e)
+                            forceDubFailedStreamUrls.add(currentStreamUrl)
+                            showToastOnUiThread(context.getString(R.string.force_dub_fallback_toast))
+                            null
+                        }
+                        if (isReleasingPlayer) return@launch
+                        if (!afrPreflightGate.isCurrent(afrPreflightToken)) return@launch
+                        if (startupDubPlan == null) {
+                            _uiState.update { it.copy(isForceDubLoading = false, isForceDubActive = false) }
+                        }
+                    }
+
                     setLoadingStatus(
                         phase = "mpv_buffering",
                         message = context.getString(R.string.player_loading_buffering)
                     )
-                    if (!afrPreflightGate.isCurrent(afrPreflightToken)) return@launch
+                    val effectiveDubPlan = startupDubPlan ?: pendingMpvDubPlan
+                    if (effectiveDubPlan != null) {
+                        pendingMpvDubPlan = effectiveDubPlan
+                        currentForceDubPlan = effectiveDubPlan
+                        currentForceDubActive = true
+                        _uiState.update {
+                            it.copy(
+                                isForceDubActive = true,
+                                isForceDubLoading = true,
+                                forceDubAudioStreamName = effectiveDubPlan.audio.stream.name
+                            )
+                        }
+                    }
                     initializeMpvPlayer(url = url, headers = headers, allowEngineFailover = allowEngineFailover)
                     fetchAddonSubtitles()
                 } finally {
@@ -789,6 +842,8 @@ internal fun PlayerRuntimeController.initializePlayer(
                 }
                 if (audioDisabledForStream) {
                     setParameters(buildUponParameters().setDisabledTrackTypes(setOf(C.TRACK_TYPE_AUDIO)))
+                } else {
+                    setParameters(buildUponParameters().setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, false))
                 }
                 if (vc1TrackSelectionBypassActive ||
                     Vc1VideoFormatHeuristics.isLikelyVc1Stream(
@@ -1060,6 +1115,8 @@ internal fun PlayerRuntimeController.initializePlayer(
                     .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
                     .build()
                 setAudioAttributes(audioAttributes, true)
+                volume = 1.0f
+                ensureNativeAudioRestored()
                 setPlaybackSpeed(_uiState.value.playbackSpeed)
                 if (applyPcmFallbackOnStartup) {
                     pendingAudioPcmFallbackRebuild = false
@@ -1189,6 +1246,9 @@ internal fun PlayerRuntimeController.initializePlayer(
                         newPosition: Player.PositionInfo,
                         reason: Int
                     ) {
+                        if (reason == Player.DISCONTINUITY_REASON_SEEK) {
+                            onUserSeekOccurred()
+                        }
                         if (isReleasingPlayer || reason != Player.DISCONTINUITY_REASON_SEEK) return
                         // Holding the seek button emits a discontinuity per step, and reading the
                         // span set on each one is real work on a cache holding thousands of spans.
@@ -1574,7 +1634,7 @@ internal fun PlayerRuntimeController.initializePlayer(
                             Log.w(PlayerRuntimeController.TAG, "Ignorando erro transitório durante restauração de áudio original pós-dublagem: ${error.message}")
                             return
                         }
-                        if (handleForceDubPlaybackError()) return
+                        if (handleForceDubPlaybackError(error = error, allowEngineFailover = allowEngineFailover)) return
                         if (isReleasingPlayer && error.errorCode == PlaybackException.ERROR_CODE_TIMEOUT) return
                         cancelFirstFrameWatchdog()
                         val detailedError = error.toDisplayMessage(context)
@@ -2046,13 +2106,50 @@ internal fun PlayerRuntimeController.initializePlayer(
     }
 }
 
+internal fun isAv1StreamCandidate(
+    url: String?,
+    filename: String?,
+    streamName: String?,
+    description: String?,
+    title: String?
+): Boolean {
+    val text = buildString {
+        url?.let { appendLine(it) }
+        filename?.let { appendLine(it) }
+        streamName?.let { appendLine(it) }
+        description?.let { appendLine(it) }
+        title?.let { appendLine(it) }
+    }
+    return Regex("""(?i)\b(av1|av01)\b|(\.av1\.)|(-av1-)""").containsMatchIn(text)
+}
+
+internal fun hasAv1HardwareDecoder(): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
+    return runCatching {
+        val codecList = android.media.MediaCodecList(android.media.MediaCodecList.REGULAR_CODECS)
+        codecList.codecInfos.any { info ->
+            !info.isEncoder && info.isHardwareAccelerated && info.supportedTypes.any { type ->
+                type.equals("video/av01", ignoreCase = true)
+            }
+        }
+    }.getOrDefault(false)
+}
+
 internal suspend fun PlayerRuntimeController.resolveAutoInternalPlayerEngine(): InternalPlayerEngine {
+    val isAv1 = isAv1StreamCandidate(currentStreamUrl, currentFilename, streamName, currentStreamDescription, title)
+    if (isAv1 && !hasAv1HardwareDecoder()) {
+        Log.i(PlayerRuntimeController.TAG, "Stream é AV1 e o dispositivo não possui decodificador por hardware para video/av01. Selecionando MPV imediatamente (Fast-Failover no milissegundo 0).")
+        return InternalPlayerEngine.MVP_PLAYER
+    }
+
     val streamMetadataText = buildString {
+        currentStreamUrl.let { appendLine(it) }
         currentFilename?.let { appendLine(it) }
         streamName?.let { appendLine(it) }
         currentStreamDescription?.let { appendLine(it) }
         append(title)
     }
+
     val isHdrOrDv = Regex("""(?i)\b(hdr|hdr10\+?|dv|dolby\s*vision)\b""").containsMatchIn(streamMetadataText)
 
     return if (isHdrOrDv) {

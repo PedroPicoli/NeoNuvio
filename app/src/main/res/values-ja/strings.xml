@@ -2743,4 +2743,21 @@
     <string name="player_loading_dubbed">吹替済み</string>
     <string name="playback_chapters_title">チャプター</string>
     <string name="playback_chapters_sub">再生バーにチャプターとマーカーを表示します。</string>
+    <string name="series_force_dub_mode_default">デフォルト（アプリに従う）</string>
+    <string name="series_force_dub_mode_enabled">常に吹き替え</string>
+    <string name="series_force_dub_mode_disabled">吹き替えしない</string>
+    <string name="series_force_dub_select_language">このシリーズの吹き替え言語</string>
+    <string name="series_force_dub_language_default">デフォルト（アプリに従う）</string>
+    <string name="force_dub_lang_not_configured">未設定</string>
+    <string name="force_dub_no_target_lang_toast">強制吹き替えを使用するには、音声オプションで対象言語を設定してください</string>
+
+    <string name="debug_force_dub_stats_title">Force Dubbing Stats</string>
+    <string name="debug_force_dub_stats_subtitle">Displays a detailed debug overlay in the player showing sync method, offset, streams and active engineering.</string>
+    <string name="audio_delay_preset_zero">Reset (0 ms)</string>
+    <string name="audio_delay_preset_bluray">Blu-ray (+2.1s)</string>
+    <string name="audio_delay_preset_minus_half_sec">-500 ms</string>
+    <string name="audio_delay_preset_plus_half_sec">+500 ms</string>
+    <string name="force_dub_offset_current">Dubbing Offset: %s</string>
+    <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
+    <string name="force_dub_incompatible">この動画と互換性のない吹き替えです</string>
 </resources>

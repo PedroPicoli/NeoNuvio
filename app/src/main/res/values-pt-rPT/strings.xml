@@ -2733,4 +2733,21 @@
     <string name="player_loading_dubbed">Dobrado</string>
     <string name="playback_chapters_title">Capítulos</string>
     <string name="playback_chapters_sub">Apresentar capítulos e marcadores na barra de reprodução.</string>
+    <string name="series_force_dub_mode_default">Padrão (Seguir app)</string>
+    <string name="series_force_dub_mode_enabled">Sempre dobrar</string>
+    <string name="series_force_dub_mode_disabled">Nunca dobrar</string>
+    <string name="series_force_dub_select_language">Idioma da dobragem para esta série</string>
+    <string name="series_force_dub_language_default">Padrão (Seguir app)</string>
+    <string name="force_dub_lang_not_configured">Não configurado</string>
+    <string name="force_dub_no_target_lang_toast">Configure um idioma alvo nas opções de áudio para usar a dobragem forçada</string>
+
+    <string name="debug_force_dub_stats_title">Estatísticas de Forçar Dobragem</string>
+    <string name="debug_force_dub_stats_subtitle">Exibe no reprodutor um painel detalhado de depuração com método de sincronia, offset, fontes e engenharias ativas.</string>
+    <string name="audio_delay_preset_zero">Repor (0 ms)</string>
+    <string name="audio_delay_preset_bluray">Blu-ray (+2.1s)</string>
+    <string name="audio_delay_preset_minus_half_sec">-500 ms</string>
+    <string name="audio_delay_preset_plus_half_sec">+500 ms</string>
+    <string name="force_dub_offset_current">Offset da Dobragem: %s</string>
+    <string name="force_dub_quick_sync_title">Ajuste Rápido de Sincronização</string>
+    <string name="force_dub_incompatible">Dobragem incompatível para este vídeo</string>
 </resources>

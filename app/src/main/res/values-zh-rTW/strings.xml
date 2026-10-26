@@ -3274,4 +3274,21 @@
     <string name="player_loading_dubbed">已配音</string>
     <string name="playback_chapters_title">章節</string>
     <string name="playback_chapters_sub">在播放列上顯示章節和標記。</string>
+    <string name="series_force_dub_mode_default">預設（跟隨應用）</string>
+    <string name="series_force_dub_mode_enabled">總是配音</string>
+    <string name="series_force_dub_mode_disabled">從不配音</string>
+    <string name="series_force_dub_select_language">此影集的配音語言</string>
+    <string name="series_force_dub_language_default">預設（跟隨應用）</string>
+    <string name="force_dub_lang_not_configured">未設定</string>
+    <string name="force_dub_no_target_lang_toast">請在音訊選項中設定目標語言以使用強制配音</string>
+
+    <string name="debug_force_dub_stats_title">強制配音調試統計</string>
+    <string name="debug_force_dub_stats_subtitle">在播放器中顯示詳細的調試面板，包含同步方法、偏移量、串流來源和當前運行的工程方案。</string>
+    <string name="audio_delay_preset_zero">Reset (0 ms)</string>
+    <string name="audio_delay_preset_bluray">Blu-ray (+2.1s)</string>
+    <string name="audio_delay_preset_minus_half_sec">-500 ms</string>
+    <string name="audio_delay_preset_plus_half_sec">+500 ms</string>
+    <string name="force_dub_offset_current">Dubbing Offset: %s</string>
+    <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
+    <string name="force_dub_incompatible">此影片配音不相容</string>
 </resources>

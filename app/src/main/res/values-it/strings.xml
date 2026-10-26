@@ -3410,4 +3410,21 @@
     <string name="player_loading_dubbed">Doppiato</string>
     <string name="playback_chapters_title">Capitoli</string>
     <string name="playback_chapters_sub">Mostra capitoli e indicatori sulla barra di riproduzione.</string>
+    <string name="series_force_dub_mode_default">Predefinito (Segui app)</string>
+    <string name="series_force_dub_mode_enabled">Sempre doppiato</string>
+    <string name="series_force_dub_mode_disabled">Mai doppiato</string>
+    <string name="series_force_dub_select_language">Lingua di doppiaggio per questa serie</string>
+    <string name="series_force_dub_language_default">Predefinito (Segui app)</string>
+    <string name="force_dub_lang_not_configured">Non configurato</string>
+    <string name="force_dub_no_target_lang_toast">Imposta una lingua di destinazione nelle opzioni audio per usare il doppiaggio forzato</string>
+
+    <string name="debug_force_dub_stats_title">Statistiche di doppiaggio forzato</string>
+    <string name="debug_force_dub_stats_subtitle">Mostra un pannello di debug dettagliato nel lettore con metodo di sincronizzazione, offset, flussi e ingegneria attiva.</string>
+    <string name="audio_delay_preset_zero">Ripristina (0 ms)</string>
+    <string name="audio_delay_preset_bluray">Blu-ray (+2.1s)</string>
+    <string name="audio_delay_preset_minus_half_sec">-500 ms</string>
+    <string name="audio_delay_preset_plus_half_sec">+500 ms</string>
+    <string name="force_dub_offset_current">Offset doppiaggio: %s</string>
+    <string name="force_dub_quick_sync_title">Sincronizzazione rapida</string>
+    <string name="force_dub_incompatible">Doppiaggio incompatibile per questo video</string>
 </resources>

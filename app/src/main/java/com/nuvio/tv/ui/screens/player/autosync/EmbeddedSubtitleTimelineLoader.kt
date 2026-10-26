@@ -1,11 +1,24 @@
 package com.nuvio.tv.ui.screens.player.autosync
 
+import android.net.Uri
 import androidx.media3.common.C
+import androidx.media3.common.DataReader
+import androidx.media3.common.Format
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.ParsableByteArray
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.container.Mp4Box
+import androidx.media3.datasource.DataSpec
+import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.extractor.DefaultExtractorInput
+import androidx.media3.extractor.Extractor
+import androidx.media3.extractor.ExtractorInput
+import androidx.media3.extractor.ExtractorOutput
 import androidx.media3.extractor.GaplessInfoHolder
+import androidx.media3.extractor.PositionHolder
+import androidx.media3.extractor.SeekMap
+import androidx.media3.extractor.TrackOutput
+import androidx.media3.extractor.mkv.MatroskaExtractor
 import androidx.media3.extractor.mp4.BoxParser
 import androidx.media3.extractor.mp4.TrackSampleTable
 import com.nuvio.tv.core.network.NoDelaySocketFactory
@@ -196,6 +209,7 @@ internal object EmbeddedSubtitleTimelineLoader {
                 withTimeout(TOTAL_TIMEOUT_MS) {
                     withContext(Dispatchers.IO) {
                         loadMatroskaCueIndex(sourceUrl, sourceHeaders)
+                            ?: loadSubtitlesViaMedia3Matroska(sourceUrl, sourceHeaders)
                     }
                 }
             } catch (_: TimeoutCancellationException) {
@@ -1753,6 +1767,173 @@ internal object EmbeddedSubtitleTimelineLoader {
         val cues: List<SubtitleSyncCue>,
         val estimatedEndStartsMs: Set<Long>,
     )
+
+    private class Media3SubtitleTrack(val id: Int) : TrackOutput {
+        var format: Format? = null
+        val cues = mutableListOf<SubtitleSyncCue>()
+        private var sampleBytes = ByteArray(1024)
+        private var samplePos = 0
+
+        override fun format(format: Format) {
+            this.format = format
+        }
+
+        override fun sampleData(
+            input: DataReader,
+            length: Int,
+            allowEndOfInput: Boolean,
+            sampleDataPart: Int
+        ): Int {
+            if (samplePos + length > sampleBytes.size) {
+                sampleBytes = sampleBytes.copyOf(maxOf(sampleBytes.size * 2, samplePos + length))
+            }
+            val read = input.read(sampleBytes, samplePos, length)
+            if (read > 0) samplePos += read
+            return if (read < 0 && allowEndOfInput) C.RESULT_END_OF_INPUT else maxOf(0, read)
+        }
+
+        override fun sampleData(data: ParsableByteArray, length: Int, sampleDataPart: Int) {
+            if (samplePos + length > sampleBytes.size) {
+                sampleBytes = sampleBytes.copyOf(maxOf(sampleBytes.size * 2, samplePos + length))
+            }
+            data.readBytes(sampleBytes, samplePos, length)
+            samplePos += length
+        }
+
+        override fun sampleMetadata(
+            timeUs: Long,
+            flags: Int,
+            size: Int,
+            offset: Int,
+            cryptoData: TrackOutput.CryptoData?
+        ) {
+            val textLen = minOf(samplePos, size)
+            if (textLen > 0) {
+                val text = runCatching { String(sampleBytes, 0, textLen, Charsets.UTF_8).trim() }.getOrDefault("")
+                val timeMs = timeUs / 1000L
+                if (text.isNotBlank()) {
+                    cues.add(SubtitleSyncCue(startTimeMs = timeMs, endTimeMs = timeMs + 3500L, text = text))
+                }
+            }
+            samplePos = 0
+        }
+    }
+
+    suspend fun loadSubtitlesViaMedia3Matroska(
+        sourceUrl: String,
+        sourceHeaders: Map<String, String>,
+        maxScanSeconds: Long = 45L,
+        timeoutMs: Long = 3_500L
+    ): IndexedEmbeddedTimeline? = withContext(Dispatchers.IO) {
+        var dataSource: DefaultHttpDataSource? = null
+        val startTime = System.currentTimeMillis()
+        try {
+            val httpHeaders = LinkedHashMap<String, String>()
+            sourceHeaders.forEach { (k, v) ->
+                if (!k.equals("Range", ignoreCase = true) && k.isNotBlank() && v.isNotBlank()) {
+                    httpHeaders[k] = v
+                }
+            }
+            if (httpHeaders.keys.none { it.equals("User-Agent", ignoreCase = true) }) {
+                httpHeaders["User-Agent"] = "Mozilla/5.0 (Linux; Android 13; Android TV)"
+            }
+
+            dataSource = DefaultHttpDataSource.Factory()
+                .setUserAgent("Mozilla/5.0 (Linux; Android 13; Android TV)")
+                .setDefaultRequestProperties(httpHeaders)
+                .setConnectTimeoutMs(4000)
+                .setReadTimeoutMs(4000)
+                .setAllowCrossProtocolRedirects(true)
+                .createDataSource()
+
+            val uri = Uri.parse(sourceUrl)
+            val dataSpec = DataSpec.Builder()
+                .setUri(uri)
+                .setLength(48L * 1024L * 1024L)
+                .build()
+
+            val openLen = dataSource.open(dataSpec)
+            val extractorInput = DefaultExtractorInput(dataSource, 0L, openLen)
+            val extractor = MatroskaExtractor()
+
+            val subtitleTracks = mutableMapOf<Int, Media3SubtitleTrack>()
+            val discardTrack = object : TrackOutput {
+                override fun format(format: Format) {}
+                override fun sampleData(input: DataReader, length: Int, allowEndOfInput: Boolean, sampleDataPart: Int): Int {
+                    if (input is ExtractorInput) {
+                        input.skipFully(length)
+                        return length
+                    }
+                    val discardBuf = ByteArray(minOf(length, 4096))
+                    var rem = length
+                    while (rem > 0) {
+                        val r = input.read(discardBuf, 0, minOf(rem, discardBuf.size))
+                        if (r <= 0) break
+                        rem -= r
+                    }
+                    return length
+                }
+                override fun sampleData(data: ParsableByteArray, length: Int, sampleDataPart: Int) {
+                    data.skipBytes(length)
+                }
+                override fun sampleMetadata(timeUs: Long, flags: Int, size: Int, offset: Int, cryptoData: TrackOutput.CryptoData?) {}
+            }
+
+            val extractorOutput = object : ExtractorOutput {
+                override fun track(id: Int, type: Int): TrackOutput {
+                    return if (type == C.TRACK_TYPE_TEXT) {
+                        subtitleTracks.getOrPut(id) { Media3SubtitleTrack(id) }
+                    } else {
+                        discardTrack
+                    }
+                }
+                override fun endTracks() {}
+                override fun seekMap(seekMap: SeekMap) {}
+            }
+
+            extractor.init(extractorOutput)
+            val positionHolder = PositionHolder()
+
+            while ((System.currentTimeMillis() - startTime) < timeoutMs) {
+                val res = extractor.read(extractorInput, positionHolder)
+                if (res == Extractor.RESULT_END_OF_INPUT) break
+
+                val anyTrackExceeded = subtitleTracks.values.any { trk ->
+                    val last = trk.cues.lastOrNull()
+                    last != null && last.startTimeMs >= (maxScanSeconds * 1000L)
+                }
+                if (anyTrackExceeded) break
+            }
+
+            val referenceTracks = subtitleTracks.values.mapNotNull { trk ->
+                val cues = trk.cues
+                if (cues.isEmpty()) return@mapNotNull null
+                val lang = trk.format?.language
+                val label = trk.format?.label ?: lang ?: "subrip"
+                ReferenceTrack(
+                    key = "media3-mkv-text:${trk.id}",
+                    language = lang,
+                    cues = cues,
+                    label = label,
+                    sampled = true
+                )
+            }
+
+            if (referenceTracks.isEmpty()) return@withContext null
+
+            IndexedEmbeddedTimeline(
+                tracks = referenceTracks,
+                source = "media3-matroska-stream",
+                bytesDownloaded = extractorInput.position,
+                rangeRequests = 1,
+                loadMs = System.currentTimeMillis() - startTime
+            )
+        } catch (_: Exception) {
+            null
+        } finally {
+            runCatching { dataSource?.close() }
+        }
+    }
 }
 
 internal data class IndexedEmbeddedTimeline(

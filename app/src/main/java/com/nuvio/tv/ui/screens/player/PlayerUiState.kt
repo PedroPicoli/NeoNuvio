@@ -252,7 +252,9 @@ data class PlayerUiState(
     val isForceDubActive: Boolean = false,
     val isForceDubLoading: Boolean = false,
     val forceDubAudioStreamName: String? = null,
-    val forceDubWarningDialog: com.nuvio.tv.core.dub.ForceDubWarningType? = null
+    val forceDubWarningDialog: com.nuvio.tv.core.dub.ForceDubWarningType? = null,
+    val forceDubStatsEnabled: Boolean = false,
+    val forceDubDebugInfo: ForceDubDebugInfo = ForceDubDebugInfo()
 ) {
     /** Subtitle style to render with, after applying the HDR override for the current video. */
     val effectiveSubtitleStyle: SubtitleStyleSettings
@@ -313,6 +315,32 @@ data class SubtitleSyncCue(
     val startTimeMs: Long,
     val endTimeMs: Long,
     val text: String
+)
+
+data class ForceDubDebugInfo(
+    val isEnabled: Boolean = false,
+    val isActive: Boolean = false,
+    val isLoading: Boolean = false,
+    val targetLanguage: String = "",
+    val appliedOffsetMs: Long = 0L,
+    val method: String = "Nenhum",
+    val logicApplied: String = "Nenhuma",
+    val confidence: Float = 0f,
+    val isBlind: Boolean = false,
+    val fromCache: Boolean = false,
+    val audioStreamName: String = "",
+    val audioStreamTitle: String = "",
+    val audioStreamUrl: String = "",
+    val videoStreamTitle: String = "",
+    val engineeringSummary: String = "",
+    val engine: String = "ExoPlayer",
+    val tVideoMs: Long? = null,
+    val tAudioMs: Long? = null,
+    val acousticNccScore: Float? = null,
+    val winningLayer: String = "",
+    val isFallbackToOriginal: Boolean = false,
+    val fallbackReason: String = "",
+    val diagnosticFilePath: String = ""
 )
 
 sealed class PlayerEvent {
@@ -403,6 +431,8 @@ data object OnShowSourcesPanel : PlayerEvent()
     data object OnToggleForceDub : PlayerEvent()
     data object OnConfirmForceDubWarning : PlayerEvent()
     data object OnDismissForceDubWarning : PlayerEvent()
+    data class OnSetForceDubOffsetMs(val offsetMs: Long) : PlayerEvent()
+    data object OnResetForceDubOffset : PlayerEvent()
 }
 
 data class ParentalWarning(
