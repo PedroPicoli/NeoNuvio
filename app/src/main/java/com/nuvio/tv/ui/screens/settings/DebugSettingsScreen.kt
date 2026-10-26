@@ -157,6 +157,15 @@ fun DebugSettingsContent(
                 )
             }
 
+            item(key = "debug_toggle_force_dub_stats") {
+                DebugToggleCard(
+                    title = stringResource(R.string.debug_force_dub_stats_title),
+                    subtitle = stringResource(R.string.debug_force_dub_stats_subtitle),
+                    checked = uiState.forceDubStatsEnabled,
+                    onToggle = { viewModel.onEvent(DebugSettingsEvent.ToggleForceDubStats(it)) }
+                )
+            }
+
             // ── Library Testing ──
             item(key = "debug_library_header") {
                 Spacer(modifier = Modifier.height(NuvioTheme.spacing.sm))

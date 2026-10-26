@@ -3238,4 +3238,21 @@
     <string name="player_loading_dubbed">Dublajlı</string>
     <string name="playback_chapters_title">Bölümler</string>
     <string name="playback_chapters_sub">Oynatma çubuğunda bölümleri ve işaretçileri göster.</string>
+    <string name="series_force_dub_mode_default">Varsayılan (Uygulamayı izle)</string>
+    <string name="series_force_dub_mode_enabled">Her zaman dublaj yap</string>
+    <string name="series_force_dub_mode_disabled">Asla dublaj yapma</string>
+    <string name="series_force_dub_select_language">Bu dizi için dublaj dili</string>
+    <string name="series_force_dub_language_default">Varsayılan (Uygulamayı izle)</string>
+    <string name="force_dub_lang_not_configured">Yapılandırılmadı</string>
+    <string name="force_dub_no_target_lang_toast">Zorunlu dublaj kullanmak için ses seçeneklerinde bir hedef dil ayarlayın</string>
+
+    <string name="debug_force_dub_stats_title">Force Dubbing Stats</string>
+    <string name="debug_force_dub_stats_subtitle">Displays a detailed debug overlay in the player showing sync method, offset, streams and active engineering.</string>
+    <string name="audio_delay_preset_zero">Reset (0 ms)</string>
+    <string name="audio_delay_preset_bluray">Blu-ray (+2.1s)</string>
+    <string name="audio_delay_preset_minus_half_sec">-500 ms</string>
+    <string name="audio_delay_preset_plus_half_sec">+500 ms</string>
+    <string name="force_dub_offset_current">Dubbing Offset: %s</string>
+    <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
+    <string name="force_dub_incompatible">Bu video için uyumsuz dublaj</string>
 </resources>

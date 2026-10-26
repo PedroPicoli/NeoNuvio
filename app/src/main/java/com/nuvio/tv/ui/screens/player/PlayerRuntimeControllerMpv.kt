@@ -95,6 +95,7 @@ internal fun PlayerRuntimeController.initializeMpvPlayer(
     mpvMediaLoadPrepared = true
     prefetchAutoSyncIndex(url, headers) // AutoSync hook
     disposeExoPlayerBeforeRebuild()
+    ensureNativeAudioRestored()
     trackSelector = null
     notifyAudioSessionUpdate(false)
 
@@ -426,7 +427,18 @@ private fun PlayerRuntimeController.applyMpvTrackSnapshot(snapshot: MpvTrackSnap
                 selectAudioTrack(targetIndex, audioTracks[targetIndex])
                 selectedAudioIndex = targetIndex
             }
+        } else {
+            // Fallback: se o conteúdo não possui a língua alvo, garantir que reproduza normalmente
+            // o áudio nativo da fonte (faixa 0) em vez de permanecer sem áudio
+            lastPicBrAutoSelectedStreamUrl = currentStreamUrl
+            if (initialSelectedAudioIndex < 0 || audioTracks.none { it.isSelected }) {
+                selectAudioTrack(0, audioTracks[0])
+                selectedAudioIndex = 0
+            }
         }
+    } else if (audioTracks.isNotEmpty() && (selectedAudioIndex < 0 || audioTracks.none { it.isSelected })) {
+        selectAudioTrack(0, audioTracks[0])
+        selectedAudioIndex = 0
     }
 
     val selectedSubtitleIndex = internalSubtitleTracks.indexOfFirst { it.isSelected }
@@ -616,6 +628,7 @@ internal fun PlayerRuntimeController.seekPlaybackTo(
     seekParameters: SeekParameters = SeekParameters.CLOSEST_SYNC,
     exact: Boolean = false
 ) {
+    onUserSeekOccurred()
     if (isUsingMpvEngine()) {
         mpvView?.let { view ->
             if (exact) view.seekToMsExact(positionMs) else view.seekToMs(positionMs)

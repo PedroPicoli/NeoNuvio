@@ -29,6 +29,7 @@ class SeriesCustomSettingsStore @Inject constructor(
             val languagesRaw = prefs[stringPreferencesKey("source_languages:$contentId")]
             val detectedLanguages = languagesRaw?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList()
             val forceDubEnabled = prefs[booleanPreferencesKey("force_dub:$contentId")]
+            val forceDubTargetLanguage = prefs[stringPreferencesKey("force_dub_lang:$contentId")]
             SeriesCustomSettings(
                 disableSkips = disableSkips,
                 preferredSourceAddon = sourceAddon,
@@ -38,7 +39,8 @@ class SeriesCustomSettingsStore @Inject constructor(
                 sourceEpisode = sourceEpisode,
                 sourceSeason = sourceSeason,
                 detectedLanguages = detectedLanguages,
-                forceDubEnabled = forceDubEnabled
+                forceDubEnabled = forceDubEnabled,
+                forceDubTargetLanguage = forceDubTargetLanguage
             )
         }
     }
@@ -49,12 +51,12 @@ class SeriesCustomSettingsStore @Inject constructor(
         fallbackId: String? = null
     ): SeriesCustomSettings {
         val primary = observe(contentId, profileId).first()
-        if (primary.preferredSourceKey != null || primary.preferredSourceAddon != null || primary.disableSkips) {
+        if (primary.preferredSourceKey != null || primary.preferredSourceAddon != null || primary.disableSkips || primary.forceDubEnabled != null) {
             return primary
         }
         if (!fallbackId.isNullOrBlank() && fallbackId != contentId) {
             val fallback = observe(fallbackId, profileId).first()
-            if (fallback.preferredSourceKey != null || fallback.preferredSourceAddon != null || fallback.disableSkips) {
+            if (fallback.preferredSourceKey != null || fallback.preferredSourceAddon != null || fallback.disableSkips || fallback.forceDubEnabled != null) {
                 return fallback
             }
         }
@@ -120,6 +122,11 @@ class SeriesCustomSettingsStore @Inject constructor(
                 prefs[booleanPreferencesKey("force_dub:$contentId")] = settings.forceDubEnabled
             } else {
                 prefs.remove(booleanPreferencesKey("force_dub:$contentId"))
+            }
+            if (!settings.forceDubTargetLanguage.isNullOrBlank()) {
+                prefs[stringPreferencesKey("force_dub_lang:$contentId")] = settings.forceDubTargetLanguage
+            } else {
+                prefs.remove(stringPreferencesKey("force_dub_lang:$contentId"))
             }
         }
     }

@@ -35,6 +35,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Language
@@ -44,6 +45,9 @@ import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import com.nuvio.tv.data.local.AVAILABLE_SUBTITLE_LANGUAGES
+import com.nuvio.tv.data.local.displayName
+import com.nuvio.tv.ui.screens.settings.LanguageSelectionDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -53,7 +57,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -90,7 +97,10 @@ fun SeriesSettingsDialog(
 ) {
     var settings by remember(initialSettings) { mutableStateOf(initialSettings) }
     var expandedAddonName by remember { mutableStateOf<String?>(null) }
+    var showForceDubLanguageDialog by remember { mutableStateOf(false) }
     val firstFocusRequester = remember { FocusRequester() }
+    val forceDubLangFocusRequester = remember { FocusRequester() }
+    val coroutineScope = rememberCoroutineScope()
 
     BackHandler {
         onDismiss()
@@ -276,82 +286,229 @@ fun SeriesSettingsDialog(
 
                         // Forçar dublagem (Experimental) para esta série
                         item {
-                            val isForceDub = settings.forceDubEnabled == true
-                            var isForceDubFocused by remember { mutableStateOf(false) }
-
-                            Card(
-                                onClick = {
-                                    val newSettings = settings.copy(forceDubEnabled = !isForceDub)
-                                    settings = newSettings
-                                    onSaveSettings(newSettings)
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .onFocusChanged { isForceDubFocused = it.isFocused },
-                                shape = CardDefaults.shape(RoundedCornerShape(NuvioTheme.radii.lg)),
-                                colors = CardDefaults.colors(
-                                    containerColor = NuvioTheme.colors.SurfaceVariant.copy(alpha = 0.6f),
-                                    focusedContainerColor = NuvioTheme.colors.FocusBackground
-                                ),
-                                border = CardDefaults.border(
-                                    focusedBorder = Border(
-                                        border = NuvioTheme.focusRing.border(NuvioTheme.spacing.xxs),
-                                        shape = RoundedCornerShape(NuvioTheme.radii.lg)
-                                    )
-                                ),
-                                scale = CardDefaults.scale(focusedScale = 1.01f)
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.sm)
                             ) {
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(NuvioTheme.spacing.lg),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    horizontalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.sm),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.md),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.VolumeUp,
-                                            contentDescription = null,
-                                            tint = if (isForceDubFocused) NuvioTheme.colors.Primary else NuvioTheme.colors.TextSecondary,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                        Column {
-                                            Text(
-                                                text = stringResource(R.string.force_dub_title),
-                                                style = MaterialTheme.typography.titleMedium,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = NuvioTheme.colors.TextPrimary
-                                            )
-                                            Text(
-                                                text = if (isForceDub) {
-                                                    stringResource(R.string.force_dub_status_active)
-                                                } else {
-                                                    stringResource(R.string.force_dub_status_inactive)
-                                                },
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = if (isForceDub) NuvioTheme.colors.Primary else NuvioTheme.colors.TextSecondary
-                                            )
+                                    Icon(
+                                        imageVector = Icons.Default.VolumeUp,
+                                        contentDescription = null,
+                                        tint = NuvioTheme.colors.Primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.force_dub_title),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = NuvioTheme.colors.TextPrimary
+                                    )
+                                }
+
+                                // 3 Modos: Padrão (Seguir app), Sempre dublar, Nunca dublar
+                                LazyRow(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.sm),
+                                    contentPadding = PaddingValues(vertical = 2.dp)
+                                ) {
+                                    // 1. Padrão (Seguir app)
+                                    item {
+                                        val isSelected = settings.forceDubEnabled == null
+                                        Card(
+                                            onClick = {
+                                                val newSettings = settings.copy(forceDubEnabled = null)
+                                                settings = newSettings
+                                                onSaveSettings(newSettings)
+                                            },
+                                            shape = CardDefaults.shape(RoundedCornerShape(NuvioTheme.radii.xl)),
+                                            colors = CardDefaults.colors(
+                                                containerColor = if (isSelected) NuvioTheme.colors.Primary.copy(alpha = 0.25f) else NuvioTheme.colors.SurfaceVariant.copy(alpha = 0.5f),
+                                                focusedContainerColor = NuvioTheme.colors.FocusBackground
+                                            ),
+                                            border = CardDefaults.border(
+                                                focusedBorder = Border(
+                                                    border = NuvioTheme.focusRing.border(NuvioTheme.spacing.xxs),
+                                                    shape = RoundedCornerShape(NuvioTheme.radii.xl)
+                                                )
+                                            ),
+                                            scale = CardDefaults.scale(focusedScale = 1.05f)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = NuvioTheme.spacing.md, vertical = NuvioTheme.spacing.sm),
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                if (isSelected) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Check,
+                                                        contentDescription = null,
+                                                        tint = NuvioTheme.colors.Primary,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
+                                                Text(
+                                                    text = stringResource(R.string.series_force_dub_mode_default),
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                    color = if (isSelected) NuvioTheme.colors.Primary else NuvioTheme.colors.TextPrimary
+                                                )
+                                            }
                                         }
                                     }
 
-                                    Switch(
-                                        checked = isForceDub,
-                                        onCheckedChange = { checked ->
-                                            val newSettings = settings.copy(forceDubEnabled = checked)
-                                            settings = newSettings
-                                            onSaveSettings(newSettings)
-                                        },
-                                        colors = SwitchDefaults.colors(
-                                            checkedThumbColor = NuvioTheme.colors.Primary,
-                                            checkedTrackColor = NuvioTheme.colors.Primary.copy(alpha = 0.35f),
-                                            uncheckedThumbColor = NuvioTheme.colors.TextSecondary,
-                                            uncheckedTrackColor = NuvioTheme.colors.SurfaceVariant
-                                        )
-                                    )
+                                    // 2. Sempre dublar
+                                    item {
+                                        val isSelected = settings.forceDubEnabled == true
+                                        Card(
+                                            onClick = {
+                                                val newSettings = settings.copy(forceDubEnabled = true)
+                                                settings = newSettings
+                                                onSaveSettings(newSettings)
+                                                coroutineScope.launch {
+                                                    delay(120)
+                                                    runCatching { forceDubLangFocusRequester.requestFocus() }
+                                                }
+                                            },
+                                            shape = CardDefaults.shape(RoundedCornerShape(NuvioTheme.radii.xl)),
+                                            colors = CardDefaults.colors(
+                                                containerColor = if (isSelected) NuvioTheme.colors.Primary.copy(alpha = 0.25f) else NuvioTheme.colors.SurfaceVariant.copy(alpha = 0.5f),
+                                                focusedContainerColor = NuvioTheme.colors.FocusBackground
+                                            ),
+                                            border = CardDefaults.border(
+                                                focusedBorder = Border(
+                                                    border = NuvioTheme.focusRing.border(NuvioTheme.spacing.xxs),
+                                                    shape = RoundedCornerShape(NuvioTheme.radii.xl)
+                                                )
+                                            ),
+                                            scale = CardDefaults.scale(focusedScale = 1.05f)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = NuvioTheme.spacing.md, vertical = NuvioTheme.spacing.sm),
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                if (isSelected) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Check,
+                                                        contentDescription = null,
+                                                        tint = NuvioTheme.colors.Primary,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
+                                                Text(
+                                                    text = stringResource(R.string.series_force_dub_mode_enabled),
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                    color = if (isSelected) NuvioTheme.colors.Primary else NuvioTheme.colors.TextPrimary
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // 3. Nunca dublar
+                                    item {
+                                        val isSelected = settings.forceDubEnabled == false
+                                        Card(
+                                            onClick = {
+                                                val newSettings = settings.copy(forceDubEnabled = false)
+                                                settings = newSettings
+                                                onSaveSettings(newSettings)
+                                            },
+                                            shape = CardDefaults.shape(RoundedCornerShape(NuvioTheme.radii.xl)),
+                                            colors = CardDefaults.colors(
+                                                containerColor = if (isSelected) NuvioTheme.colors.Primary.copy(alpha = 0.25f) else NuvioTheme.colors.SurfaceVariant.copy(alpha = 0.5f),
+                                                focusedContainerColor = NuvioTheme.colors.FocusBackground
+                                            ),
+                                            border = CardDefaults.border(
+                                                focusedBorder = Border(
+                                                    border = NuvioTheme.focusRing.border(NuvioTheme.spacing.xxs),
+                                                    shape = RoundedCornerShape(NuvioTheme.radii.xl)
+                                                )
+                                            ),
+                                            scale = CardDefaults.scale(focusedScale = 1.05f)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = NuvioTheme.spacing.md, vertical = NuvioTheme.spacing.sm),
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                if (isSelected) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Check,
+                                                        contentDescription = null,
+                                                        tint = NuvioTheme.colors.Primary,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
+                                                Text(
+                                                    text = stringResource(R.string.series_force_dub_mode_disabled),
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                    color = if (isSelected) NuvioTheme.colors.Primary else NuvioTheme.colors.TextPrimary
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Se não for "Nunca dublar", permite escolher o idioma alvo desta série
+                                if (settings.forceDubEnabled != false) {
+                                    val currentLangCode = settings.forceDubTargetLanguage
+                                    val currentLangLabel = if (currentLangCode.isNullOrBlank()) {
+                                        stringResource(R.string.series_force_dub_language_default)
+                                    } else {
+                                        AVAILABLE_SUBTITLE_LANGUAGES.find { it.code.equals(currentLangCode, ignoreCase = true) }?.displayName ?: currentLangCode.uppercase()
+                                    }
+
+                                    Card(
+                                        onClick = { showForceDubLanguageDialog = true },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .focusRequester(forceDubLangFocusRequester),
+                                        shape = CardDefaults.shape(RoundedCornerShape(NuvioTheme.radii.md)),
+                                        colors = CardDefaults.colors(
+                                            containerColor = NuvioTheme.colors.SurfaceVariant.copy(alpha = 0.35f),
+                                            focusedContainerColor = NuvioTheme.colors.FocusBackground
+                                        ),
+                                        border = CardDefaults.border(
+                                            focusedBorder = Border(
+                                                border = NuvioTheme.focusRing.border(NuvioTheme.spacing.hairline),
+                                                shape = RoundedCornerShape(NuvioTheme.radii.md)
+                                            )
+                                        ),
+                                        scale = CardDefaults.scale(focusedScale = 1.01f)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = NuvioTheme.spacing.lg, vertical = NuvioTheme.spacing.md),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column {
+                                                Text(
+                                                    text = stringResource(R.string.series_force_dub_select_language),
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = NuvioTheme.colors.TextPrimary
+                                                )
+                                                Text(
+                                                    text = currentLangLabel,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = NuvioTheme.colors.Primary
+                                                )
+                                            }
+                                            Icon(
+                                                imageVector = Icons.Default.Edit,
+                                                contentDescription = null,
+                                                tint = NuvioTheme.colors.TextSecondary,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -918,6 +1075,21 @@ fun SeriesSettingsDialog(
                 }
             }
         }
+    }
+
+    if (showForceDubLanguageDialog) {
+        LanguageSelectionDialog(
+            title = stringResource(R.string.series_force_dub_select_language),
+            selectedLanguage = settings.forceDubTargetLanguage,
+            showNoneOption = true,
+            onLanguageSelected = { lang ->
+                val newSettings = settings.copy(forceDubTargetLanguage = lang)
+                settings = newSettings
+                onSaveSettings(newSettings)
+                showForceDubLanguageDialog = false
+            },
+            onDismiss = { showForceDubLanguageDialog = false }
+        )
     }
 
     LaunchedEffect(Unit) {

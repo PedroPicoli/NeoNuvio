@@ -416,7 +416,7 @@ class MetaDetailsViewModel @Inject constructor(
                 meta?.imdbId
             ).filter { it.isNotBlank() }.distinct()
             seriesCustomSettingsStore.save(contentId, settings, aliasIds = aliases)
-            _uiState.update { it.copy(showSeriesSettingsDialog = false, seriesCustomSettings = settings) }
+            _uiState.update { it.copy(seriesCustomSettings = settings) }
         }
     }
 

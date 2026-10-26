@@ -3160,4 +3160,21 @@
     <string name="player_loading_dubbed">Дублировано</string>
     <string name="playback_chapters_title">Главы</string>
     <string name="playback_chapters_sub">Отображать главы и метки на панели воспроизведения.</string>
+    <string name="series_force_dub_mode_default">По умолчанию (Как в приложении)</string>
+    <string name="series_force_dub_mode_enabled">Всегда дублировать</string>
+    <string name="series_force_dub_mode_disabled">Никогда не дублировать</string>
+    <string name="series_force_dub_select_language">Язык дубляжа для этого сериала</string>
+    <string name="series_force_dub_language_default">По умолчанию (Как в приложении)</string>
+    <string name="force_dub_lang_not_configured">Не настроено</string>
+    <string name="force_dub_no_target_lang_toast">Укажите целевой язык в настройках звука для принудительного дубляжа</string>
+
+    <string name="debug_force_dub_stats_title">Статистика принудительного дубляжа</string>
+    <string name="debug_force_dub_stats_subtitle">Отображает в плеере подробную панель отладки с методом синхронизации, смещением, потоками и активными технологиями.</string>
+    <string name="audio_delay_preset_zero">Сброс (0 мс)</string>
+    <string name="audio_delay_preset_bluray">Blu-ray (+2.1с)</string>
+    <string name="audio_delay_preset_minus_half_sec">-500 мс</string>
+    <string name="audio_delay_preset_plus_half_sec">+500 мс</string>
+    <string name="force_dub_offset_current">Смещение дубляжа: %s</string>
+    <string name="force_dub_quick_sync_title">Быстрая синхронизация</string>
+    <string name="force_dub_incompatible">Несовместимый дубляж для этого видео</string>
 </resources>

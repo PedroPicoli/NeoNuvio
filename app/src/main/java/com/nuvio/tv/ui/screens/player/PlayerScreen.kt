@@ -1359,6 +1359,20 @@ fun PlayerScreen(
                 .zIndex(2.7f)
         )
 
+        // Force Dubbing Debug Stats overlay (top-right corner)
+        if (uiState.forceDubStatsEnabled && uiState.error == null) {
+            ForceDubDebugStatsOverlay(
+                info = uiState.forceDubDebugInfo,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(
+                        top = if (uiState.isTorrentStream && uiState.showTorrentStats && !uiState.hideTorrentStats) 110.dp else NuvioTheme.spacing.lg,
+                        end = NuvioTheme.spacing.lg
+                    )
+                    .zIndex(2.8f)
+            )
+        }
+
         // Buffering indicator — isolated in its own composable scope so that
         // isBuffering state changes only recompose this small subtree instead
         // of the entire PlayerScreen.
@@ -1985,7 +1999,11 @@ fun PlayerScreen(
             isCenterMixAvailable = uiState.isCenterMixAvailable,
             isForceDubActive = uiState.isForceDubActive,
             isForceDubLoading = uiState.isForceDubLoading,
+            forceDubAppliedOffsetMs = if (uiState.isForceDubActive) uiState.forceDubDebugInfo.appliedOffsetMs else null,
+            isLive = uiState.isLive,
             onForceDubToggle = { viewModel.onEvent(PlayerEvent.OnToggleForceDub) },
+            onForceDubOffsetChange = { viewModel.onEvent(PlayerEvent.OnSetForceDubOffsetMs(it)) },
+            onForceDubOffsetReset = { viewModel.onEvent(PlayerEvent.OnResetForceDubOffset) },
             onTrackSelected = { viewModel.onEvent(PlayerEvent.OnSelectAudioTrack(it)) },
             onAudioDelayChange = { viewModel.onEvent(PlayerEvent.OnSetAudioDelayMs(it)) },
             onAmplificationChange = { viewModel.onEvent(PlayerEvent.OnSetAudioAmplificationDb(it)) },

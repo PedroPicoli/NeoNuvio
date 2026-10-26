@@ -21,6 +21,8 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
 ) : BaseMPVView(context, attrs) {
 
     private var initialized = false
+    val isInitialized: Boolean
+        get() = initialized
     private var hasQueuedInitialMedia = false
     private var lastMediaRequestKey: String? = null
     private var pendingInitialMediaUrl: String? = null
@@ -38,13 +40,26 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
         applyAspectModeInternal(currentAspectMode, allowRetry = true)
     }
 
+
     fun ensureInitialized() {
-        if (initialized) return
+        if (isInitialized) return
         Utils.copyAssets(context)
         initialize(
             configDir = context.filesDir.path,
             cacheDir = context.cacheDir.path
         )
+        runCatching {
+            mpv.setPropertyString("mute", "no")
+            mpv.setPropertyDouble("volume", 100.0)
+            mpv.setPropertyDouble("audio-delay", 0.0)
+            mpv.setPropertyString("ad-lavc-downmix", "no")
+            mpv.setPropertyString("audio-spdif", "")
+            mpv.setPropertyString("framedrop", "vo")
+            mpv.setPropertyString("vd-lavc-fast", "yes")
+            mpv.setPropertyString("vd-lavc-skiploopfilter", "nonkey")
+            mpv.setPropertyDouble("mc", 2.0)
+            mpv.setPropertyString("initial-audio-sync", "yes")
+        }
         initialized = true
     }
 
@@ -104,6 +119,7 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
 
     override fun surfaceCreated(holder: SurfaceHolder) {
         super.surfaceCreated(holder)
+        initialized = true
         deferredLoadUntilSurface = false
         val url = pendingInitialMediaUrl ?: return
         val startOption = pendingInitialStartOption
@@ -342,12 +358,146 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
         }
     }
 
+    private var externalAudioOffsetMs: Long = 0L
+    private var userAudioDelayMs: Int = 0
+
     fun setAudioDelayMs(delayMs: Int) {
+        userAudioDelayMs = delayMs
+        applyTotalAudioDelay()
+    }
+
+    private fun applyTotalAudioDelay() {
         if (!initialized) return
         runCatching {
-            mpv.setPropertyDouble("audio-delay", audioDelayMsToSeconds(delayMs))
+            val totalDelaySec = (externalAudioOffsetMs / 1000.0) + audioDelayMsToSeconds(userAudioDelayMs)
+            mpv.setPropertyDouble("audio-delay", totalDelaySec)
         }.onFailure {
-            Log.w(TAG, "Failed to set audio delay on mpv (delayMs=$delayMs): ${it.message}")
+            Log.w(TAG, "Failed to set audio delay on mpv: ${it.message}")
+        }
+    }
+
+    fun getAvSyncDiffSec(): Double? {
+        if (!isInitialized) return null
+        return runCatching { mpv.getPropertyDouble("avsync") }.getOrNull()
+    }
+
+    /**
+     * Adiciona uma faixa de áudio externa e a seleciona imediatamente com o offset especificado.
+     */
+    fun addExternalAudioTrack(
+        audioUrl: String,
+        offsetMs: Long,
+        headers: Map<String, String> = emptyMap()
+    ) {
+        ensureInitialized()
+        externalAudioOffsetMs = offsetMs
+        runCatching {
+            if (headers.isNotEmpty()) {
+                applyHeaders(headers)
+            }
+            // Força busca exata e sincronização estrita A/V
+            runCatching {
+                mpv.setPropertyString("hr-seek", "yes")
+                mpv.setPropertyString("framedrop", "vo")
+                mpv.setPropertyString("vd-lavc-fast", "yes")
+                mpv.setPropertyString("vd-lavc-skiploopfilter", "nonkey")
+                mpv.setPropertyDouble("mc", 2.0)
+                mpv.setPropertyString("initial-audio-sync", "yes")
+            }
+            mpv.command("audio-add", audioUrl, "select", "Dublado")
+            // Ignora faixas de vídeo do arquivo secundário e mantém vid=1 fixo no primário
+            runCatching { mpv.setPropertyString("vid", "1") }
+            // Demuxer readahead enxuto de 5 segundos para seek rápido e re-sincronização sem sobrecarga
+            runCatching { mpv.setPropertyString("demuxer-readahead-secs", "5") }
+            applyTotalAudioDelay()
+            Log.i(TAG, "MPV: faixa de áudio externa adicionada (baseOffset=${offsetMs}ms, userDelay=${userAudioDelayMs}ms)")
+        }.onFailure {
+            Log.e(TAG, "Falha ao adicionar áudio externo no MPV: ${it.message}")
+        }
+    }
+
+    /**
+     * Auditoria de Drift Real (avsync):
+     * Apenas lê e registra se abs(avsync) > 0.300 segundos, sem disparar micro-seeks
+     * automáticos que possam desestabilizar a decodificação de 4K AV1.
+     */
+    fun checkAndCompensateAvSyncDrift(): Boolean {
+        if (!isInitialized) return false
+        val avSync = runCatching { mpv.getPropertyDouble("avsync") }.getOrNull() ?: return false
+        if (kotlin.math.abs(avSync) > 0.300) {
+            Log.d(TAG, "MPV: Descompasso de clock A/V detectado (avsync=${avSync}s > 300ms) - monitorando sem micro-seek.")
+            return true
+        }
+        return false
+    }
+
+    /**
+     * Atualiza dinamicamente o deslocamento inicial da faixa de dublagem externa sem recarregar o stream.
+     * Quando a mudança for < 0.5s, não dispara seek. Se for >= 0.5s, dispara relative+exact.
+     */
+    fun updateExternalAudioOffset(offsetMs: Long) {
+        if (!isInitialized) return
+        val prevOffset = externalAudioOffsetMs
+        externalAudioOffsetMs = offsetMs
+        applyTotalAudioDelay()
+        val deltaMs = kotlin.math.abs(offsetMs - prevOffset)
+        if (deltaMs >= 500L) {
+            runCatching { mpv.command("seek", "0", "relative+exact") }
+            Log.i(TAG, "MPV: offset base de dublagem atualizado para ${offsetMs}ms (delta=${deltaMs}ms >= 500ms, seek relative+exact aplicado)")
+        } else {
+            Log.i(TAG, "MPV: offset base de dublagem atualizado para ${offsetMs}ms (delta=${deltaMs}ms < 500ms, seek suprimido)")
+        }
+    }
+
+    /**
+     * Restaura a faixa de áudio padrão inicial do arquivo e reseta o delay para zero.
+     */
+    fun removeExternalAudioTrack() {
+        if (!initialized) return
+        externalAudioOffsetMs = 0L
+        runCatching {
+            mpv.setPropertyString("mute", "no")
+            mpv.setPropertyDouble("volume", 100.0)
+            mpv.setPropertyDouble("audio-delay", 0.0)
+            mpv.setPropertyString("aid", "1")
+            val aid = mpv.getPropertyString("aid")
+            if (aid.isNullOrBlank() || aid.equals("no", ignoreCase = true) || aid.equals("false", ignoreCase = true)) {
+                mpv.setPropertyString("aid", "auto")
+            }
+            applyTotalAudioDelay()
+            cachedTrackList = null
+            Log.i(TAG, "MPV: faixa externa removida e áudio restaurado (aid=${mpv.getPropertyString("aid")})")
+        }.onFailure {
+            Log.w(TAG, "Falha ao resetar áudio externo no MPV: ${it.message}")
+        }
+    }
+
+    /**
+     * Watchdog de Restauração de Áudio Obrigatório no MPV:
+     * Assegura que o áudio toque com volume normal, sem mute, delay zero e faixa de áudio válida selecionada.
+     */
+    fun ensureNativeAudioRestored() {
+        if (!initialized) return
+        externalAudioOffsetMs = 0L
+        runCatching {
+            mpv.setPropertyString("mute", "no")
+            mpv.setPropertyDouble("volume", 100.0)
+            mpv.setPropertyDouble("audio-delay", 0.0)
+            mpv.setPropertyString("ad-lavc-downmix", "no")
+            mpv.setPropertyString("audio-spdif", "")
+
+            val currentAid = mpv.getPropertyString("aid")
+            if (currentAid.isNullOrBlank() || currentAid.equals("no", ignoreCase = true) || currentAid.equals("false", ignoreCase = true)) {
+                Log.i(TAG, "MPV Watchdog: aid inválido ($currentAid). Forçando '1' / 'auto'")
+                mpv.setPropertyString("aid", "1")
+                val fallbackAid = mpv.getPropertyString("aid")
+                if (fallbackAid.isNullOrBlank() || fallbackAid.equals("no", ignoreCase = true)) {
+                    mpv.setPropertyString("aid", "auto")
+                }
+            }
+            cachedTrackList = null
+        }.onFailure {
+            Log.w(TAG, "Falha no watchdog de restauração de áudio do MPV: ${it.message}")
         }
     }
 
@@ -787,6 +937,8 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
         mpv.setOptionString("keep-open", "yes")
         mpv.setOptionString("softvol", "yes")
         mpv.setOptionString("volume-max", MPV_MAX_VOLUME_PERCENT.toInt().toString())
+        // Busca exata para garantir que a sincronização A/V de audio-add respeite o PTS de áudio
+        mpv.setOptionString("hr-seek", "yes")
     }
 
     override fun postInitOptions() {

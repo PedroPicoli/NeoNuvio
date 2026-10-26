@@ -8,9 +8,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -74,7 +76,11 @@ internal fun AudioSelectionOverlay(
     persistAmplification: Boolean,
     isForceDubActive: Boolean = false,
     isForceDubLoading: Boolean = false,
+    forceDubAppliedOffsetMs: Long? = null,
+    isLive: Boolean = false,
     onForceDubToggle: () -> Unit = {},
+    onForceDubOffsetChange: (Long) -> Unit = {},
+    onForceDubOffsetReset: () -> Unit = {},
     onTrackSelected: (Int) -> Unit,
     onAudioDelayChange: (Int) -> Unit,
     onAmplificationChange: (Int) -> Unit,
@@ -87,6 +93,10 @@ internal fun AudioSelectionOverlay(
     val tracksFocusRequester = remember { FocusRequester() }
     val delayMinusFocusRequester = remember { FocusRequester() }
     val delayPlusFocusRequester = remember { FocusRequester() }
+    val presetZeroFocusRequester = remember { FocusRequester() }
+    val presetMinus500FocusRequester = remember { FocusRequester() }
+    val presetPlus500FocusRequester = remember { FocusRequester() }
+    val presetBlurayFocusRequester = remember { FocusRequester() }
     val ampMinusFocusRequester = remember { FocusRequester() }
     val ampPlusFocusRequester = remember { FocusRequester() }
     val centerMinusFocusRequester = remember { FocusRequester() }
@@ -187,12 +197,19 @@ internal fun AudioSelectionOverlay(
                 modifier = Modifier.padding(bottom = NuvioTheme.spacing.sm)
             ) {
                 Column(modifier = Modifier.width(444.dp)) {
+                    val rightFocusTarget = if (!isLive) {
+                        forceDubFocusRequester
+                    } else if (canDecreaseDelay) {
+                        delayMinusFocusRequester
+                    } else {
+                        delayPlusFocusRequester
+                    }
                     AudioTracksContent(
                         tracks = tracks,
                         selectedIndex = selectedIndex,
                         listState = listState,
                         initialFocusRequester = tracksFocusRequester,
-                        rightFocusRequester = forceDubFocusRequester,
+                        rightFocusRequester = rightFocusTarget,
                         onTrackFocused = { lastFocusedAudioIndex = it },
                         onTrackSelected = onTrackSelected
                     )
@@ -207,10 +224,18 @@ internal fun AudioSelectionOverlay(
                         persistAmplification = persistAmplification,
                         isForceDubActive = isForceDubActive,
                         isForceDubLoading = isForceDubLoading,
+                        forceDubAppliedOffsetMs = forceDubAppliedOffsetMs,
+                        isLive = isLive,
                         onForceDubToggle = onForceDubToggle,
+                        onForceDubOffsetChange = onForceDubOffsetChange,
+                        onForceDubOffsetReset = onForceDubOffsetReset,
                         forceDubFocusRequester = forceDubFocusRequester,
                         delayMinusFocusRequester = delayMinusFocusRequester,
                         delayPlusFocusRequester = delayPlusFocusRequester,
+                        presetZeroFocusRequester = presetZeroFocusRequester,
+                        presetMinus500FocusRequester = presetMinus500FocusRequester,
+                        presetPlus500FocusRequester = presetPlus500FocusRequester,
+                        presetBlurayFocusRequester = presetBlurayFocusRequester,
                         ampMinusFocusRequester = ampMinusFocusRequester,
                         ampPlusFocusRequester = ampPlusFocusRequester,
                         centerMinusFocusRequester = centerMinusFocusRequester,
@@ -382,10 +407,18 @@ private fun AudioControlsContent(
     persistAmplification: Boolean,
     isForceDubActive: Boolean,
     isForceDubLoading: Boolean,
+    forceDubAppliedOffsetMs: Long? = null,
+    isLive: Boolean = false,
     onForceDubToggle: () -> Unit,
+    onForceDubOffsetChange: (Long) -> Unit = {},
+    onForceDubOffsetReset: () -> Unit = {},
     forceDubFocusRequester: FocusRequester,
     delayMinusFocusRequester: FocusRequester,
     delayPlusFocusRequester: FocusRequester,
+    presetZeroFocusRequester: FocusRequester,
+    presetMinus500FocusRequester: FocusRequester,
+    presetPlus500FocusRequester: FocusRequester,
+    presetBlurayFocusRequester: FocusRequester,
     ampMinusFocusRequester: FocusRequester,
     ampPlusFocusRequester: FocusRequester,
     centerMinusFocusRequester: FocusRequester,
@@ -429,8 +462,7 @@ private fun AudioControlsContent(
         canIncreaseCenterMix -> centerPlusFocusRequester
         canDecreaseAmp -> ampMinusFocusRequester
         canIncreaseAmp -> ampPlusFocusRequester
-        canDecreaseDelay -> delayMinusFocusRequester
-        else -> delayPlusFocusRequester
+        else -> presetZeroFocusRequester
     }
     val delayPlusLeftFocusRequester = if (canDecreaseDelay) {
         delayMinusFocusRequester
@@ -480,14 +512,17 @@ private fun AudioControlsContent(
             .padding(top = NuvioTheme.spacing.xs, bottom = NuvioTheme.spacing.sm),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        ForceDubCard(
-            isActive = isForceDubActive,
-            isLoading = isForceDubLoading,
-            focusRequester = forceDubFocusRequester,
-            leftFocusRequester = leftFocusRequester,
-            downFocusRequester = firstDelayFocusRequester,
-            onClick = onForceDubToggle
-        )
+        if (!isLive) {
+            ForceDubCard(
+                isActive = isForceDubActive,
+                isLoading = isForceDubLoading,
+                appliedOffsetMs = forceDubAppliedOffsetMs,
+                focusRequester = forceDubFocusRequester,
+                leftFocusRequester = leftFocusRequester,
+                downFocusRequester = firstDelayFocusRequester,
+                onClick = onForceDubToggle
+            )
+        }
 
         AdjustmentSection(
             title = stringResource(R.string.audio_delay_label),
@@ -503,8 +538,8 @@ private fun AudioControlsContent(
             plusFocusRequester = delayPlusFocusRequester,
             minusLeftFocusRequester = leftFocusRequester,
             plusLeftFocusRequester = delayPlusLeftFocusRequester,
-            upFocusRequester = forceDubFocusRequester,
-            downFocusRequester = firstAmpFocusRequester,
+            upFocusRequester = if (!isLive) forceDubFocusRequester else null,
+            downFocusRequester = presetZeroFocusRequester,
             onDecrease = {
                 val nextDelayMs = currentDelayMs - AUDIO_DELAY_STEP_MS
                 onAudioDelayChange(nextDelayMs)
@@ -534,6 +569,67 @@ private fun AudioControlsContent(
                 }
             }
         )
+
+        // Presets Rápidos de Sincronia (Quick Sync)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            QuickPresetButton(
+                text = stringResource(R.string.audio_delay_preset_zero),
+                focusRequester = presetZeroFocusRequester,
+                leftFocusRequester = leftFocusRequester,
+                rightFocusRequester = presetMinus500FocusRequester,
+                upFocusRequester = delayMinusFocusRequester,
+                downFocusRequester = firstAmpFocusRequester,
+                onClick = {
+                    onAudioDelayChange(0)
+                    if (isForceDubActive) {
+                        onForceDubOffsetReset()
+                    }
+                }
+            )
+            QuickPresetButton(
+                text = stringResource(R.string.audio_delay_preset_minus_half_sec),
+                focusRequester = presetMinus500FocusRequester,
+                leftFocusRequester = presetZeroFocusRequester,
+                rightFocusRequester = presetPlus500FocusRequester,
+                upFocusRequester = delayMinusFocusRequester,
+                downFocusRequester = firstAmpFocusRequester,
+                onClick = {
+                    val next = (currentDelayMs - 500).coerceIn(AUDIO_DELAY_MIN_MS, AUDIO_DELAY_MAX_MS)
+                    onAudioDelayChange(next)
+                }
+            )
+            QuickPresetButton(
+                text = stringResource(R.string.audio_delay_preset_plus_half_sec),
+                focusRequester = presetPlus500FocusRequester,
+                leftFocusRequester = presetMinus500FocusRequester,
+                rightFocusRequester = presetBlurayFocusRequester,
+                upFocusRequester = delayPlusFocusRequester,
+                downFocusRequester = firstAmpFocusRequester,
+                onClick = {
+                    val next = (currentDelayMs + 500).coerceIn(AUDIO_DELAY_MIN_MS, AUDIO_DELAY_MAX_MS)
+                    onAudioDelayChange(next)
+                }
+            )
+            QuickPresetButton(
+                text = stringResource(R.string.audio_delay_preset_bluray),
+                focusRequester = presetBlurayFocusRequester,
+                leftFocusRequester = presetPlus500FocusRequester,
+                rightFocusRequester = FocusRequester.Default,
+                upFocusRequester = delayPlusFocusRequester,
+                downFocusRequester = firstAmpFocusRequester,
+                onClick = {
+                    if (isForceDubActive) {
+                        onForceDubOffsetChange(2100L)
+                        onAudioDelayChange(0)
+                    } else {
+                        onAudioDelayChange(2100)
+                    }
+                }
+            )
+        }
 
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -811,6 +907,7 @@ private fun StepCard(
 private fun ForceDubCard(
     isActive: Boolean,
     isLoading: Boolean,
+    appliedOffsetMs: Long? = null,
     focusRequester: FocusRequester,
     leftFocusRequester: FocusRequester,
     downFocusRequester: FocusRequester,
@@ -868,6 +965,10 @@ private fun ForceDubCard(
                 Text(
                     text = when {
                         isLoading -> stringResource(R.string.force_dub_preparing)
+                        isActive && appliedOffsetMs != null -> {
+                            val sign = if (appliedOffsetMs > 0) "+" else ""
+                            stringResource(R.string.force_dub_status_active) + " (${stringResource(R.string.force_dub_offset_current, "$sign$appliedOffsetMs ms")})"
+                        }
                         isActive -> stringResource(R.string.force_dub_status_active)
                         else -> stringResource(R.string.force_dub_status_inactive)
                     },
@@ -890,6 +991,60 @@ private fun ForceDubCard(
                     modifier = Modifier.size(18.dp)
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.QuickPresetButton(
+    text: String,
+    focusRequester: FocusRequester,
+    leftFocusRequester: FocusRequester,
+    rightFocusRequester: FocusRequester,
+    upFocusRequester: FocusRequester?,
+    downFocusRequester: FocusRequester?,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier
+            .weight(1f)
+            .focusRequester(focusRequester)
+            .focusProperties {
+                left = leftFocusRequester
+                right = rightFocusRequester
+                upFocusRequester?.let { up = it }
+                downFocusRequester?.let { down = it }
+            },
+        colors = CardDefaults.colors(
+            containerColor = Color.White.copy(alpha = 0.08f),
+            focusedContainerColor = NuvioTheme.colors.Secondary
+        ),
+        shape = CardDefaults.shape(RoundedCornerShape(NuvioTheme.radii.md)),
+        border = CardDefaults.border(
+            border = Border(
+                border = BorderStroke(NuvioTheme.spacing.xxs, Color.White.copy(alpha = 0.14f)),
+                shape = RoundedCornerShape(NuvioTheme.radii.md)
+            ),
+            focusedBorder = Border(
+                border = NuvioTheme.focusRing.border(width = NuvioTheme.spacing.xxs),
+                shape = RoundedCornerShape(NuvioTheme.radii.md)
+            )
+        ),
+        scale = CardDefaults.scale(focusedScale = 1f, pressedScale = 1f)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 6.dp, horizontal = 4.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White,
+                maxLines = 1
+            )
         }
     }
 }

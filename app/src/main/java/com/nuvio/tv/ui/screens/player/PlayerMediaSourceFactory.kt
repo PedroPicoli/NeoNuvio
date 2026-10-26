@@ -29,6 +29,13 @@ import androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy
 import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.ExtractorsFactory
+import androidx.media3.extractor.Extractor
+import androidx.media3.extractor.ExtractorInput
+import androidx.media3.extractor.ExtractorOutput
+import androidx.media3.extractor.TrackOutput
+import androidx.media3.extractor.PositionHolder
+import androidx.media3.extractor.SeekMap
+import androidx.media3.extractor.DiscardingTrackOutput
 import androidx.media3.extractor.text.SubtitleParser
 import com.nuvio.tv.NuvioApplication
 import com.nuvio.tv.R
@@ -321,13 +328,22 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
         } else {
             progressiveFactory
         }
-        val defaultFactory = DefaultMediaSourceFactory(defaultSourceFactory, extractorsFactory).apply {
-            setLoadErrorHandlingPolicy(loadErrorHandlingPolicy)
-            customSubtitleParserFactory?.let { parserFactory ->
-                setSubtitleParserFactory(parserFactory)
+        val defaultFactory = if (auxiliary) {
+            // Suporte Universal a HLS/DASH/Progressive com Bloqueio Absoluto de Vídeo:
+            // Descarta 100% dos pacotes de vídeo e legendas do container secundário no Demuxer
+            val audioOnlyExtractorsFactory = AudioOnlyExtractorsFactory(DefaultExtractorsFactory())
+            DefaultMediaSourceFactory(context, audioOnlyExtractorsFactory).setDataSourceFactory(httpDataSourceFactory).apply {
+                setLoadErrorHandlingPolicy(loadErrorHandlingPolicy)
+            }
+        } else {
+            DefaultMediaSourceFactory(defaultSourceFactory, extractorsFactory).apply {
+                setLoadErrorHandlingPolicy(loadErrorHandlingPolicy)
+                customSubtitleParserFactory?.let { parserFactory ->
+                    setSubtitleParserFactory(parserFactory)
+                }
             }
         }
-        val forceDefaultFactory = customExtractorsFactory != null || customSubtitleParserFactory != null
+        val forceDefaultFactory = !auxiliary && (customExtractorsFactory != null || customSubtitleParserFactory != null)
 
         // Sidecar subtitles are more reliable through DefaultMediaSourceFactory.
         if (subtitleConfigurations.isNotEmpty()) {
@@ -364,6 +380,7 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
         audioOffsetMs: Long,
         scale: Double = 1.0,
         audioDelayUsProvider: (() -> Long)? = null,
+        dubAudioOffsetUsProvider: (() -> Long)? = null,
         subtitleConfigurations: List<MediaItem.SubtitleConfiguration> = emptyList(),
         subtitleRoutes: Map<String, SubtitleRoute> = emptyMap(),
         filename: String? = null,
@@ -388,29 +405,13 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
             auxiliary = true
         )
         // Sincronização e alinhamento do áudio dublado:
-        // audioOffsetMs > 0: o áudio dublado possui vinheta/abertura extra; cortamos o início via ClippingMediaSource
-        // para que a timeline comece em 0us sem amostras com timestamps negativos.
-        // audioOffsetMs < 0: o vídeo possui abertura extra; atrasamos a entrada do áudio (+offsetUs).
-        val baseAudioSource: MediaSource = if (audioOffsetMs > 0L) {
-            ClippingMediaSource(
-                rawAudioSource,
-                /* startPositionUs = */ audioOffsetMs * 1000L,
-                /* endPositionUs = */ C.TIME_END_OF_SOURCE,
-                /* enableInitialDiscontinuity = */ false,
-                /* allowDynamicClippingUpdates = */ false,
-                /* relativeToDefaultPosition = */ false
-            )
-        } else {
-            rawAudioSource
-        }
-
-        val effectiveDelayProvider: (() -> Long)? = when {
-            audioOffsetMs < 0L -> {
-                val introDelayUs = -audioOffsetMs * 1000L
-                { (audioDelayUsProvider?.invoke() ?: 0L) + introDelayUs }
-            }
-            audioDelayUsProvider != null -> audioDelayUsProvider
-            else -> null
+        // Convenção padronizada: offsetMs = T_video - T_audio.
+        // offsetUs positivo atrasa o áudio dublado para esperar o vídeo.
+        // offsetUs negativo adianta o áudio dublado e descarta vinheta pré-início (adjustedTimeUs < 0).
+        val fallbackOffsetUs = audioOffsetMs * 1000L
+        val effectiveDelayProvider: () -> Long = {
+            val dubOffsetUs = dubAudioOffsetUsProvider?.invoke() ?: fallbackOffsetUs
+            (audioDelayUsProvider?.invoke() ?: 0L) + dubOffsetUs
         }
 
         // Compensação linear contínua para drift de FPS (ex: áudio PAL a 25 fps vs vídeo a 23.976 fps: scale ~0.959)
@@ -419,9 +420,10 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
         } else null
 
         val dubbedAudioSource = wrapAudioDelay(
-            mediaSource = baseAudioSource,
+            mediaSource = rawAudioSource,
             audioDelayUsProvider = effectiveDelayProvider,
-            audioDelayAtUs = audioDelayAtUs
+            audioDelayAtUs = audioDelayAtUs,
+            stripVideo = true
         )
 
         val videoSource = createMediaSource(
@@ -1206,15 +1208,17 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
         private fun wrapAudioDelay(
             mediaSource: MediaSource,
             audioDelayUsProvider: (() -> Long)?,
-            audioDelayAtUs: ((Long) -> Long)? = null
+            audioDelayAtUs: ((Long) -> Long)? = null,
+            stripVideo: Boolean = false
         ): MediaSource {
-            return if (audioDelayUsProvider == null && audioDelayAtUs == null) {
+            return if (audioDelayUsProvider == null && audioDelayAtUs == null && !stripVideo) {
                 mediaSource
             } else {
                 AudioDelayMediaSource(
                     mediaSource = mediaSource,
                     audioDelayUsProvider = audioDelayUsProvider ?: { 0L },
-                    audioDelayAtUs = audioDelayAtUs
+                    audioDelayAtUs = audioDelayAtUs,
+                    stripVideo = stripVideo
                 )
             }
         }
@@ -1334,3 +1338,50 @@ internal fun shouldPreferAlternativeHlsTrack(
     responseCode == 404 &&
         dataType == C.DATA_TYPE_MEDIA &&
         alternativeTrackAvailable
+
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+internal class AudioOnlyExtractorsFactory(
+    private val delegate: ExtractorsFactory = DefaultExtractorsFactory()
+) : ExtractorsFactory {
+    override fun createExtractors(): Array<Extractor> {
+        return delegate.createExtractors().map { AudioOnlyExtractor(it) }.toTypedArray()
+    }
+
+    override fun createExtractors(uri: Uri, responseHeaders: Map<String, List<String>>): Array<Extractor> {
+        return delegate.createExtractors(uri, responseHeaders).map { AudioOnlyExtractor(it) }.toTypedArray()
+    }
+}
+
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+private class AudioOnlyExtractor(private val delegate: Extractor) : Extractor {
+    override fun init(output: ExtractorOutput) {
+        delegate.init(AudioOnlyExtractorOutput(output))
+    }
+
+    override fun sniff(input: ExtractorInput): Boolean = delegate.sniff(input)
+
+    override fun read(input: ExtractorInput, seekPosition: PositionHolder): Int =
+        delegate.read(input, seekPosition)
+
+    override fun seek(position: Long, timeUs: Long) = delegate.seek(position, timeUs)
+
+    override fun release() = delegate.release()
+
+    override fun getUnderlyingImplementation(): Extractor = delegate.underlyingImplementation
+}
+
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+private class AudioOnlyExtractorOutput(private val delegate: ExtractorOutput) : ExtractorOutput {
+    override fun track(id: Int, type: Int): TrackOutput {
+        return if (type == C.TRACK_TYPE_AUDIO) {
+            delegate.track(id, type)
+        } else {
+            DiscardingTrackOutput()
+        }
+    }
+
+    override fun endTracks() = delegate.endTracks()
+
+    override fun seekMap(seekMap: SeekMap) = delegate.seekMap(seekMap)
+}
+

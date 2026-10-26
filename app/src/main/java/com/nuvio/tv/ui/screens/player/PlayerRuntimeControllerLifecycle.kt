@@ -12,7 +12,8 @@ internal fun PlayerRuntimeController.releasePlayer() {
 // engine's local url, which stops serving once the torrent stream is stopped.
 internal fun PlayerRuntimeController.releasePlayer(
     flushPlaybackState: Boolean,
-    keepTorrentStream: Boolean = false
+    keepTorrentStream: Boolean = false,
+    keepDubPlan: Boolean = false
 ) {
     logScrobbleDiagnostic("release_player", "flushPlaybackState=$flushPlaybackState")
     isReleasingPlayer = true
@@ -22,7 +23,7 @@ internal fun PlayerRuntimeController.releasePlayer(
         flushPlaybackSnapshotForSwitchOrExit()
     }
     cancelForceDubWork()
-    clearForceDubState(stopTorrent = true)
+    clearForceDubState(stopTorrent = !keepTorrentStream, keepPlan = keepDubPlan)
 
     notifyAudioSessionUpdate(false)
     unregisterAudioDelayRouteCallback()

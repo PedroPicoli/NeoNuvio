@@ -3075,4 +3075,21 @@
     <string name="player_loading_dubbed">مدبلج</string>
     <string name="playback_chapters_title">الفصول</string>
     <string name="playback_chapters_sub">عرض الفصول والعلامات على شريط التشغيل.</string>
+    <string name="series_force_dub_mode_default">افتراضي (اتباع التطبيق)</string>
+    <string name="series_force_dub_mode_enabled">دبلجة دائماً</string>
+    <string name="series_force_dub_mode_disabled">عدم الدبلجة أبداً</string>
+    <string name="series_force_dub_select_language">لغة الدبلجة لهذا المسلسل</string>
+    <string name="series_force_dub_language_default">افتراضي (اتباع التطبيق)</string>
+    <string name="force_dub_lang_not_configured">غير مضبوط</string>
+    <string name="force_dub_no_target_lang_toast">حدد لغة مستهدفة في خيارات الصوت لاستخدام الدبلجة الإجبارية</string>
+
+    <string name="debug_force_dub_stats_title">إحصائيات الدبلجة الإجبارية</string>
+    <string name="debug_force_dub_stats_subtitle">يعرض في المشغل لوحة تصحيح أخطاء مفصلة تحتوي على طريقة المزامنة والإزاحة والمصادر والتقنيات النشطة.</string>
+    <string name="audio_delay_preset_zero">Reset (0 ms)</string>
+    <string name="audio_delay_preset_bluray">Blu-ray (+2.1s)</string>
+    <string name="audio_delay_preset_minus_half_sec">-500 ms</string>
+    <string name="audio_delay_preset_plus_half_sec">+500 ms</string>
+    <string name="force_dub_offset_current">Dubbing Offset: %s</string>
+    <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
+    <string name="force_dub_incompatible">الدبلجة غير متوافقة مع هذا الفيديو</string>
 </resources>

@@ -9,5 +9,6 @@ data class SeriesCustomSettings(
     val sourceEpisode: Int? = null,
     val sourceSeason: Int? = null,
     val detectedLanguages: List<String> = emptyList(),
-    val forceDubEnabled: Boolean? = null
+    val forceDubEnabled: Boolean? = null,
+    val forceDubTargetLanguage: String? = null
 )

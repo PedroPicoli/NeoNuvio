@@ -143,7 +143,11 @@ internal fun PlayerRuntimeController.onMpvEvent(eventId: Int, data: MPVNode) {
         MPV.mpvEvent.MPV_EVENT_START_FILE -> onMpvStartFile(data)
         MPV.mpvEvent.MPV_EVENT_END_FILE -> onMpvEndFile(data)
         MPV.mpvEvent.MPV_EVENT_SHUTDOWN -> onMpvCoreShutdown()
-        MPV.mpvEvent.MPV_EVENT_FILE_LOADED,
+        MPV.mpvEvent.MPV_EVENT_FILE_LOADED -> {
+            markMpvTracksStale()
+            updateMpvAvailableTracks()
+            handleMpvFileLoadedForDub()
+        }
         MPV.mpvEvent.MPV_EVENT_PLAYBACK_RESTART -> {
             markMpvTracksStale()
             updateMpvAvailableTracks()

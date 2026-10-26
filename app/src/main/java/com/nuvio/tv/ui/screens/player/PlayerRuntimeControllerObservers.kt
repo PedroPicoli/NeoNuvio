@@ -403,7 +403,8 @@ internal fun PlayerRuntimeController.observeSubtitleSettings() {
                 it.copy(
                     streamAutoPlayMode = settings.streamAutoPlayMode,
                     streamAutoPlayNextEpisodeEnabled = settings.streamAutoPlayNextEpisodeEnabled,
-                    streamAutoPlayPreferBingeGroupForNextEpisode = settings.streamAutoPlayPreferBingeGroupForNextEpisode
+                    streamAutoPlayPreferBingeGroupForNextEpisode = settings.streamAutoPlayPreferBingeGroupForNextEpisode,
+                    forceDubStatsEnabled = settings.forceDubStatsEnabled
                 )
             }
             streamAutoPlayPreferBingeGroupForNextEpisodeSetting =
@@ -855,6 +856,8 @@ internal fun PlayerRuntimeController.maybeScheduleStallWatchdog() {
                 continue
             }
 
+            val isDubActiveOrLoading = currentForceDubActive || _uiState.value.isForceDubLoading || _uiState.value.isForceDubActive
+            val stallThreshold = if (isDubActiveOrLoading) 25_000L else PlayerRuntimeController.STALL_WATCHDOG_THRESHOLD_MS
             val stalledForMs = nowMs - lastAdvanceAtMs
             when (
                 val decision = PlayerStallWatchdogPolicy.evaluate(
@@ -863,6 +866,7 @@ internal fun PlayerRuntimeController.maybeScheduleStallWatchdog() {
                         playheadMs = livePlayer.currentPosition,
                         durationMs = livePlayer.duration,
                         stalledForMs = stalledForMs,
+                        thresholdMs = stallThreshold,
                     )
                 )
             ) {
@@ -895,6 +899,13 @@ internal fun PlayerRuntimeController.maybeScheduleStallWatchdog() {
                     return@launch
                 }
                 is PlayerStallWatchdogPolicy.Decision.SeekPastBufferedEdge -> {
+                    if (!hasRenderedFirstFrame && isDubActiveOrLoading) {
+                        Log.i(
+                            PlayerRuntimeController.TAG,
+                            "STALL_WATCHDOG: suprimindo seekPastBufferedEdge durante carregamento de stream híbrido de dublagem forçada antes do 1º frame"
+                        )
+                        continue
+                    }
                     Log.w(
                         PlayerRuntimeController.TAG,
                         "STALL_WATCHDOG: bufferedPosition stuck at $bufferedNow for ${stalledForMs}ms " +
@@ -915,8 +926,11 @@ internal fun PlayerRuntimeController.maybeScheduleFirstFrameWatchdog() {
     if (player.playbackState != Player.STATE_READY) return
     if (firstFrameWatchdogJob?.isActive == true) return
 
+    val isDubActiveOrLoading = currentForceDubActive || _uiState.value.isForceDubLoading || _uiState.value.isForceDubActive
+    val timeoutMs = if (isDubActiveOrLoading) 25_000L else PlayerRuntimeController.FIRST_FRAME_TIMEOUT_MS
+
     firstFrameWatchdogJob = scope.launch {
-        delay(PlayerRuntimeController.FIRST_FRAME_TIMEOUT_MS)
+        delay(timeoutMs)
 
         val livePlayer = _exoPlayer ?: return@launch
         if (hasRenderedFirstFrame) return@launch

@@ -169,25 +169,38 @@ internal fun PlayerRuntimeController.updateAvailableTracks(tracks: Tracks) {
     val isPicBr = currentAddonName?.contains("PicBR", ignoreCase = true) == true ||
             _uiState.value.currentStreamName?.contains("PicBR", ignoreCase = true) == true
 
-    if (audioTracks.isNotEmpty() && lastPicBrAutoSelectedStreamUrl != currentStreamUrl) {
-        val targetIndex = if (!primaryPreferredAudioTarget.isNullOrBlank()) {
-            audioTracks.indexOfFirst { track ->
-                audioTrackMatchesLanguage(track, primaryPreferredAudioTarget)
-            }
-        } else if (isPicBr) {
-            audioTracks.indexOfFirst { track ->
-                val lang = track.language?.lowercase().orEmpty()
-                val name = track.name.lowercase()
-                lang.startsWith("por") || lang.startsWith("pt") || name.contains("portugu")
-            }
-        } else -1
+    if (!currentForceDubActive) {
+        if (audioTracks.isNotEmpty() && lastPicBrAutoSelectedStreamUrl != currentStreamUrl) {
+            val targetIndex = if (!primaryPreferredAudioTarget.isNullOrBlank()) {
+                audioTracks.indexOfFirst { track ->
+                    audioTrackMatchesLanguage(track, primaryPreferredAudioTarget)
+                }
+            } else if (isPicBr) {
+                audioTracks.indexOfFirst { track ->
+                    val lang = track.language?.lowercase().orEmpty()
+                    val name = track.name.lowercase()
+                    lang.startsWith("por") || lang.startsWith("pt") || name.contains("portugu")
+                }
+            } else -1
 
-        if (targetIndex >= 0) {
-            lastPicBrAutoSelectedStreamUrl = currentStreamUrl
-            if (selectedAudioIndex != targetIndex) {
-                selectAudioTrack(targetIndex, audioTracks[targetIndex])
-                selectedAudioIndex = targetIndex
+            if (targetIndex >= 0) {
+                lastPicBrAutoSelectedStreamUrl = currentStreamUrl
+                if (selectedAudioIndex != targetIndex) {
+                    selectAudioTrack(targetIndex, audioTracks[targetIndex])
+                    selectedAudioIndex = targetIndex
+                }
+            } else {
+                // Fallback: se o conteúdo não possui a língua alvo, garantir que reproduza normalmente
+                // o áudio nativo da fonte (faixa 0) em vez de permanecer sem áudio
+                lastPicBrAutoSelectedStreamUrl = currentStreamUrl
+                if (selectedAudioIndex < 0 || audioTracks.none { it.isSelected }) {
+                    selectAudioTrack(0, audioTracks[0])
+                    selectedAudioIndex = 0
+                }
             }
+        } else if (audioTracks.isNotEmpty() && (selectedAudioIndex < 0 || audioTracks.none { it.isSelected })) {
+            selectAudioTrack(0, audioTracks[0])
+            selectedAudioIndex = 0
         }
     }
 

@@ -40,20 +40,32 @@ internal fun PlaybackAudioSection(
     SettingsToggleRow(
         title = stringResource(R.string.force_dub_title),
         subtitle = stringResource(R.string.force_dub_subtitle),
-        checked = settings.forceDubEnabled,
-        onToggle = { onUpdate { setForceDubEnabled(!settings.forceDubEnabled) } },
+        checked = settings.forceDubEnabled && settings.forceDubTargetLanguage.isNotBlank(),
+        onToggle = {
+            if (!settings.forceDubEnabled || settings.forceDubTargetLanguage.isBlank()) {
+                if (settings.forceDubTargetLanguage.isBlank()) {
+                    onOpenDialog(PlaybackDialog.FORCE_DUB_LANGUAGE)
+                } else {
+                    onUpdate { setForceDubEnabled(true) }
+                }
+            } else {
+                onUpdate { setForceDubEnabled(false) }
+            }
+        },
         enabled = enabled
     )
-    if (settings.forceDubEnabled) {
-        val forceDubLangLabel = AVAILABLE_SUBTITLE_LANGUAGES.find { it.code.equals(settings.forceDubTargetLanguage, ignoreCase = true) }?.displayName ?: settings.forceDubTargetLanguage.uppercase()
-        SettingsActionRow(
-            title = stringResource(R.string.force_dub_target_language),
-            subtitle = null,
-            value = forceDubLangLabel,
-            enabled = enabled,
-            onClick = { onOpenDialog(PlaybackDialog.FORCE_DUB_LANGUAGE) }
-        )
+    val forceDubLangLabel = if (settings.forceDubTargetLanguage.isBlank()) {
+        stringResource(R.string.force_dub_lang_not_configured)
+    } else {
+        AVAILABLE_SUBTITLE_LANGUAGES.find { it.code.equals(settings.forceDubTargetLanguage, ignoreCase = true) }?.displayName ?: settings.forceDubTargetLanguage.uppercase()
     }
+    SettingsActionRow(
+        title = stringResource(R.string.force_dub_target_language),
+        subtitle = null,
+        value = forceDubLangLabel,
+        enabled = enabled,
+        onClick = { onOpenDialog(PlaybackDialog.FORCE_DUB_LANGUAGE) }
+    )
 
     if (isExoEngine) {
         SettingsToggleRow(
@@ -177,11 +189,14 @@ internal fun AudioSettingsDialogs(
         )
         PlaybackDialog.FORCE_DUB_LANGUAGE -> LanguageSelectionDialog(
             title = stringResource(R.string.force_dub_target_language),
-            selectedLanguage = settings.forceDubTargetLanguage,
+            selectedLanguage = settings.forceDubTargetLanguage.ifBlank { null },
             showNoneOption = false,
             onLanguageSelected = { language ->
-                if (language != null) {
-                    onUpdate { setForceDubTargetLanguage(language) }
+                if (!language.isNullOrBlank()) {
+                    onUpdate {
+                        setForceDubTargetLanguage(language)
+                        setForceDubEnabled(true)
+                    }
                 }
                 onDismiss()
             },

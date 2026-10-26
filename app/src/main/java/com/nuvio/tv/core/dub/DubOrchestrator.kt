@@ -8,6 +8,9 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.util.concurrent.TimeUnit
 
 /** Áudio já resolvido para uma URL reproduzível. */
 data class DubResolvedAudio(
@@ -24,7 +27,15 @@ data class DubPlan(
     val warnings: List<ForceDubWarningType>,
     val videoCacheKey: String,
     val audioCacheKey: String,
-    val audioFromCache: Boolean
+    val audioFromCache: Boolean,
+    val methodName: String = "Estimativa",
+    val logicDescription: String = "",
+    val videoStreamTitle: String = "",
+    val tVideoMs: Long? = null,
+    val tAudioMs: Long? = null,
+    val acousticNccScore: Float? = null,
+    val winningLayer: String = "",
+    val remainingCandidates: List<Stream> = emptyList()
 )
 
 sealed class DubOutcome {
@@ -43,14 +54,20 @@ sealed class DubOutcome {
 object DubOrchestrator {
 
     private const val TAG = "DubOrchestrator"
-    private const val MAX_HTTP_PROBES = 4
+    private const val MAX_HTTP_PROBES = 3
     private const val MAX_DEBRID_RESOLVES = 2
-    private const val PROBE_TIMEOUT_MS = 5_000L
+    private const val PROBE_TIMEOUT_MS = 2_500L
 
-    const val STARTUP_BUDGET_MS = 25_000L
-    const val MENU_BUDGET_MS = 80_000L
+    const val STARTUP_BUDGET_MS = 16_000L
+    const val MENU_BUDGET_MS = 25_000L
 
     private enum class Tier { HTTP, DEBRID_RESOLVE, TORRENT }
+
+    private fun isHeavyStream(stream: Stream): Boolean {
+        val text = (stream.name.orEmpty() + " " + stream.title.orEmpty()).lowercase()
+        return text.contains("4k") || text.contains("2160p") || text.contains("remux") ||
+               text.contains("uhd") || text.contains("bdrip") || text.contains("bluray")
+    }
 
     private data class RankedCandidate(
         val stream: Stream,
@@ -73,6 +90,18 @@ object DubOrchestrator {
         return base
     }
 
+    fun extractStreamSearchText(stream: Stream?, extraUrl: String? = null): String {
+        if (stream == null) return extraUrl.orEmpty()
+        val parts = listOfNotNull(
+            stream.name,
+            stream.title,
+            stream.description,
+            stream.behaviorHints?.filename,
+            extraUrl?.substringAfterLast('/')?.substringBefore('?')
+        )
+        return parts.joinToString(" ")
+    }
+
     /**
      * Procura uma fonte dublada no idioma [targetLanguage] compatível com o vídeo que está
      * tocando e devolve um [DubPlan]. Todo o processo respeita [totalBudgetMs].
@@ -86,14 +115,27 @@ object DubOrchestrator {
         targetLanguage: String,
         allowBlindSyncWithoutPrompt: Boolean,
         totalBudgetMs: Long,
+        seriesId: String? = null,
+        season: Int? = null,
         fetchStreams: suspend () -> List<Stream>,
         resolveAudio: suspend (Stream) -> DubResolvedAudio?
     ): DubOutcome {
         val normTarget = DubLanguageDetector.normalizeLanguageCode(targetLanguage)
         if (normTarget.isBlank()) return DubOutcome.NoCandidate
 
+        val videoSearchText = extractStreamSearchText(videoStream, videoUrl)
+
+        // Nível A: Stream principal já possui áudio único no idioma alvo ou é Dual Audio
+        if (DubLanguageDetector.isExplicitSingleTargetLanguage(videoSearchText, videoStream.addonName, normTarget)) {
+            Log.i(TAG, "Forçar Dublagem: Stream principal já possui áudio único '$normTarget' ($videoSearchText). Dublagem desnecessária.")
+            return DubOutcome.NotNeeded
+        }
+        if (DubLanguageDetector.isDualOrMultiAudio(videoSearchText)) {
+            Log.i(TAG, "Forçar Dublagem: Stream principal é Dual/Multi áudio. Dublagem externa desnecessária (selecionar interna).")
+            return DubOutcome.NotNeeded
+        }
         if (DubLanguageDetector.streamMatchesTargetLanguage(videoStream, normTarget)) {
-            Log.d(TAG, "Fonte de vídeo já possui '$normTarget' (texto). Dublagem desnecessária.")
+            Log.i(TAG, "Fonte de vídeo já possui '$normTarget' nos metadados. Dublagem desnecessária.")
             return DubOutcome.NotNeeded
         }
 
@@ -123,13 +165,27 @@ object DubOrchestrator {
 
                 val videoProbe = videoProbeDeferred.await()
                 val videoChapters = videoChaptersDeferred.await()
-                if (videoProbe != null && videoProbe.audioLanguages.contains(normTarget)) {
-                    Log.d(TAG, "Container do vídeo já tem áudio '$normTarget'. Dublagem desnecessária.")
-                    return@coroutineScope DubOutcome.NotNeeded
+
+                // Nível B e C na inspeção do container
+                if (videoProbe != null) {
+                    val hasTargetAudio = videoProbe.audioLanguages.any {
+                        DubLanguageDetector.isTrackMatchingTargetLanguage(it, null, normTarget)
+                    }
+                    if (hasTargetAudio) {
+                        Log.i(TAG, "Container do vídeo já possui faixa nativa '$normTarget'. Dublagem externa desnecessária.")
+                        return@coroutineScope DubOutcome.NotNeeded
+                    }
+                    // Nível C: Faixa única und/null com origem brasileira/dublada
+                    if (videoProbe.audioLanguages.size == 1) {
+                        val singleLang = videoProbe.audioLanguages.firstOrNull()
+                        if (DubLanguageDetector.isSingleTrackPresumedTarget(singleLang, videoSearchText, videoStream.addonName, normTarget)) {
+                            Log.i(TAG, "Container com faixa única '$singleLang' presumida '$normTarget' por metadados. Dublagem desnecessária.")
+                            return@coroutineScope DubOutcome.NotNeeded
+                        }
+                    }
                 }
                 val videoDurationMs = videoDurationHintMs?.takeIf { it > 0L } ?: videoProbe?.durationMs
                 val videoKey = stableKey(videoStream, videoUrl)
-
                 val best = evaluate(
                     ranked = ranked,
                     videoKey = videoKey,
@@ -138,12 +194,25 @@ object DubOrchestrator {
                     videoDurationMs = videoDurationMs,
                     targetLanguage = normTarget,
                     videoChapters = videoChapters,
+                    videoStreamTitle = videoSearchText,
+                    seriesId = seriesId,
+                    season = season,
                     resolveAudio = resolveAudio
                 ) ?: return@coroutineScope DubOutcome.NoCandidate
+
+                DubDiagnosticFileLogger.addDubCandidate(
+                    name = best.resolved.stream.name.orEmpty(),
+                    addon = best.resolved.stream.addonName.orEmpty(),
+                    url = best.resolved.url,
+                    responseMs = 0L,
+                    statusCode = 200,
+                    isChosen = true
+                )
 
                 val warnings = buildList {
                     if (best.is4k) add(ForceDubWarningType.WARNING_4K_AUDIO)
                 }
+                val remaining = ranked.map { it.stream }.filter { it != best.resolved.stream }
                 DubOutcome.Ready(
                     DubPlan(
                         audio = best.resolved,
@@ -151,7 +220,15 @@ object DubOrchestrator {
                         warnings = warnings,
                         videoCacheKey = videoKey,
                         audioCacheKey = stableKey(best.resolved.stream, best.resolved.url),
-                        audioFromCache = best.fromCache
+                        audioFromCache = best.fromCache,
+                        methodName = best.decision.methodName,
+                        logicDescription = best.decision.logicDescription,
+                        videoStreamTitle = videoSearchText,
+                        tVideoMs = best.decision.tVideoMs,
+                        tAudioMs = best.decision.tAudioMs,
+                        acousticNccScore = best.decision.acousticNccScore,
+                        winningLayer = best.decision.winningLayer,
+                        remainingCandidates = remaining
                     )
                 )
             }
@@ -167,7 +244,7 @@ object DubOrchestrator {
         normTarget: String
     ): List<RankedCandidate> {
         val seen = mutableSetOf<String>()
-        return streams.asSequence()
+        val filtered = streams.asSequence()
             .filter { it != videoStream }
             .filter { candidate ->
                 val url = candidate.getStreamUrl()
@@ -190,8 +267,43 @@ object DubOrchestrator {
                 if (!seen.add(key)) return@mapNotNull null
                 RankedCandidate(stream, tier, ContainerProbe.inferInfo(stream).is4kOrHigher)
             }
-            .sortedWith(compareBy<RankedCandidate>({ it.tier.ordinal }, { it.is4k }))
             .toList()
+
+        // Garante distribuição equilibrada: agrupa por Tier e intercala (round-robin) entre addons distintos
+        return filtered.groupBy { it.tier }
+            .entries
+            .sortedBy { it.key.ordinal }
+            .flatMap { (_, candidatesInTier) ->
+                interleaveByAddon(candidatesInTier)
+            }
+    }
+
+    private fun interleaveByAddon(candidates: List<RankedCandidate>): List<RankedCandidate> {
+        if (candidates.size <= 1) return candidates
+        val byAddon = candidates
+            .groupBy { it.stream.addonName }
+            .mapValues { (_, list) ->
+                list.sortedWith(
+                    compareBy<RankedCandidate> { if (it.is4k) 1 else 0 }
+                        .thenBy { if (isHeavyStream(it.stream)) 1 else 0 }
+                )
+            }
+            .values
+            .map { it.toMutableList() }
+            .toMutableList()
+
+        val result = mutableListOf<RankedCandidate>()
+        var addedAny = true
+        while (addedAny) {
+            addedAny = false
+            for (queue in byAddon) {
+                if (queue.isNotEmpty()) {
+                    result.add(queue.removeAt(0))
+                    addedAny = true
+                }
+            }
+        }
+        return result
     }
 
     private suspend fun evaluate(
@@ -202,13 +314,50 @@ object DubOrchestrator {
         videoDurationMs: Long?,
         targetLanguage: String,
         videoChapters: List<com.nuvio.tv.ui.screens.player.PlayerChapter> = emptyList(),
+        videoStreamTitle: String? = null,
+        seriesId: String? = null,
+        season: Int? = null,
         resolveAudio: suspend (Stream) -> DubResolvedAudio?
     ): Evaluated? {
-        // 1) Já deu certo antes: usa o cache e pula todo o probe.
+        // 1) Cache individual do episódio ou Season Pack Cache (0 ms instantâneo)
         for (candidate in ranked) {
             val url = candidate.stream.getStreamUrl()
             val audioKey = stableKey(candidate.stream, url)
-            val cached = DubResultCache.get(videoKey, audioKey) ?: continue
+            val candidateSearchText = extractStreamSearchText(candidate.stream, url)
+
+            // Se o candidato possuir um bumper evidente (como Adult Swim de 5.1s) e o vídeo não possuir (ou vice-versa),
+            // verificamos se o cache possui 0L cego e, se tiver, descartamos a entrada antiga contaminada
+            val videoBumper = DubSyncEstimator.detectStreamingBumper(videoStreamTitle)
+            val audioBumper = DubSyncEstimator.detectStreamingBumper(candidateSearchText)
+            val hasExplicitBumper = (videoBumper != null || audioBumper != null)
+
+            var cached = DubResultCache.get(videoKey, audioKey, seriesId)
+            if (cached != null && hasExplicitBumper && (cached.isBlind || cached.initialAudioOffsetMs == 0L)) {
+                Log.w(TAG, "Descartando cache antigo inválido (offset 0L) pois foi detectado bumper explícito: audio='${audioBumper?.name}' video='${videoBumper?.name}'")
+                DubResultCache.remove(videoKey, audioKey, seriesId)
+                cached = null
+            }
+
+            var cacheMethodName = "Cache de Episódio"
+            var cacheLogicDesc = "Alinhamento recuperado do histórico validado"
+            if (cached == null && !seriesId.isNullOrBlank() && season != null && season > 0) {
+                cached = DubResultCache.getSeasonPackSync(
+                    seriesId = seriesId,
+                    season = season,
+                    videoTitle = videoStreamTitle,
+                    audioTitle = candidateSearchText
+                )
+                if (cached != null) {
+                    cacheMethodName = "Season Pack Cache"
+                    cacheLogicDesc = "Alinhamento herdado da temporada para o mesmo release pack"
+                    Log.i(
+                        TAG,
+                        "SEASON PACK CACHE HIT: Reutilizando sincronia da temporada para $candidateSearchText (offset=${cached.initialAudioOffsetMs}ms, conf=${cached.confidence})"
+                    )
+                }
+            }
+            if (cached == null) continue
+
             val resolved = if (candidate.tier == Tier.HTTP && url != null) {
                 DubResolvedAudio(
                     stream = candidate.stream,
@@ -222,47 +371,144 @@ object DubOrchestrator {
             Log.d(TAG, "Alinhamento recuperado do cache para ${candidate.stream.name}")
             return Evaluated(
                 resolved = resolved,
-                decision = DubSyncEstimator.SyncDecision(cached, 0L, cached.isBlind),
+                decision = DubSyncEstimator.SyncDecision(
+                    timeline = cached,
+                    durationGapMs = 0L,
+                    approximate = cached.isBlind,
+                    methodName = cacheMethodName,
+                    logicDescription = "$cacheLogicDesc (offset=${cached.initialAudioOffsetMs}ms)"
+                ),
                 is4k = candidate.is4k,
                 tier = candidate.tier,
                 fromCache = true
             )
         }
 
-        // 2) Fontes HTTP diretas: probe paralelo das melhores.
-        val http = ranked.filter { it.tier == Tier.HTTP }.take(MAX_HTTP_PROBES)
-        val httpResults = coroutineScope {
-            http.map { candidate ->
-                async {
-                    val url = candidate.stream.getStreamUrl() ?: return@async null
-                    val headers = candidate.stream.behaviorHints?.proxyHeaders?.request.orEmpty()
-                    val resolved = DubResolvedAudio(candidate.stream, url, headers, isTorrent = false)
-                    evaluateOne(resolved, candidate, videoUrl, videoHeaders, videoDurationMs, targetLanguage, videoChapters)
+        // 2) Fontes HTTP diretas com Early Return
+        val httpCandidates = ranked.filter { it.tier == Tier.HTTP }.take(MAX_HTTP_PROBES)
+        val evaluatedHttp = mutableListOf<Evaluated>()
+        for (candidate in httpCandidates) {
+            val url = candidate.stream.getStreamUrl() ?: continue
+            val headers = candidate.stream.behaviorHints?.proxyHeaders?.request.orEmpty()
+            val resolved = DubResolvedAudio(candidate.stream, url, headers, isTorrent = false)
+            val evaluated = evaluateOne(resolved, candidate, videoUrl, videoHeaders, videoDurationMs, targetLanguage, videoChapters, videoStreamTitle)
+            if (evaluated != null) {
+                if (!evaluated.is4k) {
+                    Log.i(
+                        TAG,
+                        "Early return: fonte HTTP ideal encontrada em ${candidate.stream.name} " +
+                            "(offset=${evaluated.decision.timeline.initialAudioOffsetMs}ms)"
+                    )
+                    return evaluated
                 }
-            }.awaitAll()
-        }.filterNotNull()
-        pickBest(httpResults)?.let { return it }
-
-        // 3) Debrid que precisa de resolução local: resolução e probe em paralelo dos melhores.
-        val debrid = ranked.filter { it.tier == Tier.DEBRID_RESOLVE }.take(MAX_DEBRID_RESOLVES)
-        if (debrid.isNotEmpty()) {
-            val debridResults = coroutineScope {
-                debrid.map { candidate ->
-                    async {
-                        val resolved = resolveAudio(candidate.stream) ?: return@async null
-                        evaluateOne(resolved, candidate, videoUrl, videoHeaders, videoDurationMs, targetLanguage, videoChapters)
-                    }
-                }.awaitAll()
-            }.filterNotNull()
-            pickBest(debridResults)?.let { return it }
+                evaluatedHttp.add(evaluated)
+            }
         }
+        pickBest(evaluatedHttp)?.takeIf { !it.is4k }?.let { return it }
+
+        // 3) Debrid (priorizando fontes leves não-4k primeiro para evitar travamentos de rede):
+        val debridCandidates = ranked.filter { it.tier == Tier.DEBRID_RESOLVE }
+            .sortedWith(
+                compareBy<RankedCandidate> { if (it.is4k) 1 else 0 }
+                    .thenBy { if (isHeavyStream(it.stream)) 1 else 0 }
+            )
+            .take(MAX_DEBRID_RESOLVES)
+
+        val evaluatedDebrid = mutableListOf<Evaluated>()
+        for (candidate in debridCandidates) {
+            val resolved = resolveAudio(candidate.stream) ?: continue
+            val evaluated = evaluateOne(resolved, candidate, videoUrl, videoHeaders, videoDurationMs, targetLanguage, videoChapters, videoStreamTitle)
+            if (evaluated != null) {
+                if (!evaluated.is4k) {
+                    Log.i(
+                        TAG,
+                        "Early return: fonte Debrid ideal encontrada em ${candidate.stream.name} " +
+                            "(offset=${evaluated.decision.timeline.initialAudioOffsetMs}ms)"
+                    )
+                    return evaluated
+                }
+                evaluatedDebrid.add(evaluated)
+            }
+        }
+
+        pickBest(evaluatedHttp + evaluatedDebrid)?.let { return it }
 
         // 4) Torrent: último recurso.
         for (candidate in ranked.filter { it.tier == Tier.TORRENT }.take(1)) {
             val resolved = resolveAudio(candidate.stream) ?: continue
-            evaluateOne(resolved, candidate, videoUrl, videoHeaders, videoDurationMs, targetLanguage, videoChapters)?.let { return it }
+            evaluateOne(resolved, candidate, videoUrl, videoHeaders, videoDurationMs, targetLanguage, videoChapters, videoStreamTitle)?.let { return it }
         }
         return null
+    }
+
+    /**
+     * Pre-Flight Check Ultra-Rápido (800 ms):
+     * Faz requisição HTTP Range: bytes=0-1023 com timeout de conexão de 800 ms.
+     * Descarta instantaneamente candidatos com erro HTTP (>=400), HTML (text/html) ou timeout.
+     */
+    suspend fun quickPreFlightCheck(
+        url: String,
+        headers: Map<String, String>,
+        streamName: String = "",
+        addonName: String = ""
+    ): Boolean = withContext(Dispatchers.IO) {
+        if (!url.startsWith("http://", ignoreCase = true) && !url.startsWith("https://", ignoreCase = true)) {
+            return@withContext true
+        }
+        val startTime = android.os.SystemClock.elapsedRealtime()
+        val client = OkHttpClient.Builder()
+            .connectTimeout(800, TimeUnit.MILLISECONDS)
+            .readTimeout(800, TimeUnit.MILLISECONDS)
+            .callTimeout(800, TimeUnit.MILLISECONDS)
+            .followRedirects(true)
+            .followSslRedirects(true)
+            .build()
+        try {
+            val reqBuilder = Request.Builder()
+                .url(url)
+                .header("Range", "bytes=0-1023")
+            headers.forEach { (k, v) ->
+                if (!k.equals("Range", ignoreCase = true) && k.isNotBlank() && v.isNotBlank()) {
+                    reqBuilder.header(k, v)
+                }
+            }
+            if (headers.none { it.key.equals("User-Agent", ignoreCase = true) }) {
+                reqBuilder.header("User-Agent", "Mozilla/5.0 (Linux; Android 13; Android TV)")
+            }
+            client.newCall(reqBuilder.build()).execute().use { response ->
+                val elapsed = android.os.SystemClock.elapsedRealtime() - startTime
+                val code = response.code
+                val isSuccess = response.isSuccessful || code == 206 || code == 200
+                val contentType = response.header("Content-Type").orEmpty().lowercase()
+                val isHtml = contentType.contains("text/html")
+                val accepted = isSuccess && !isHtml
+                DubDiagnosticFileLogger.addDubCandidate(
+                    name = streamName,
+                    addon = addonName,
+                    url = url,
+                    responseMs = elapsed,
+                    statusCode = code,
+                    isChosen = false
+                )
+                if (!accepted) {
+                    Log.w(TAG, "Pre-flight falhou (HTTP $code, html=$isHtml) em ${elapsed}ms para $url")
+                    return@withContext false
+                }
+                true
+            }
+        } catch (e: Exception) {
+            val elapsed = android.os.SystemClock.elapsedRealtime() - startTime
+            DubDiagnosticFileLogger.addDubCandidate(
+                name = streamName,
+                addon = addonName,
+                url = url,
+                responseMs = elapsed,
+                statusCode = 0,
+                isChosen = false
+            )
+            Log.w(TAG, "Pre-flight timeout/erro (${elapsed}ms) para $url: ${e.message}")
+            false
+        }
     }
 
     private suspend fun evaluateOne(
@@ -272,21 +518,24 @@ object DubOrchestrator {
         videoHeaders: Map<String, String>,
         videoDurationMs: Long?,
         targetLanguage: String,
-        videoChapters: List<com.nuvio.tv.ui.screens.player.PlayerChapter> = emptyList()
+        videoChapters: List<com.nuvio.tv.ui.screens.player.PlayerChapter> = emptyList(),
+        videoStreamTitle: String? = null
     ): Evaluated? = withContext(Dispatchers.IO) {
+        // Pre-Flight Check Ultra-Rápido (<800 ms): descarta candidatos inacessíveis ou com bloqueio antes do player
+        if (!quickPreFlightCheck(resolved.url, resolved.headers, candidate.stream.name.orEmpty(), candidate.stream.addonName.orEmpty())) {
+            Log.w(TAG, "Candidato descartado pelo Pre-Flight Check (<800ms): ${candidate.stream.name}")
+            return@withContext null
+        }
+
         val probeDeferred = async { ContainerProbe.probeMedia(resolved.url, resolved.headers, PROBE_TIMEOUT_MS) }
         val audioChaptersDeferred = async {
             runCatching {
                 com.nuvio.tv.ui.screens.player.MatroskaChapterLoader.load(resolved.url, resolved.headers)
             }.getOrDefault(emptyList())
         }
-        val acousticMatchDeferred = async {
-            AcousticProbeHelper.matchAcousticOffset(videoUrl, videoHeaders, resolved.url, resolved.headers)
-        }
 
         val probe = probeDeferred.await()
         val audioChapters = audioChaptersDeferred.await()
-        val acousticMatch = acousticMatchDeferred.await()
 
         val decision = DubSyncEstimator.estimate(
             videoDurationMs = videoDurationMs,
@@ -294,9 +543,10 @@ object DubOrchestrator {
             targetLanguage = targetLanguage,
             audioChapters = audioChapters,
             videoChapters = videoChapters,
-            streamTitle = candidate.stream.name ?: candidate.stream.title,
-            acousticMatch = acousticMatch
+            streamTitle = extractStreamSearchText(candidate.stream, resolved.url),
+            videoStreamTitle = videoStreamTitle
         )
+
         if (decision == null) {
             Log.d(
                 TAG,
@@ -313,9 +563,69 @@ object DubOrchestrator {
         results.minWithOrNull(
             compareBy<Evaluated>(
                 { it.decision.approximate },
-                { it.tier.ordinal },
+                { if (it.is4k) 1 else 0 },
                 { it.decision.durationGapMs },
-                { it.is4k }
+                { it.tier.ordinal }
             )
         )
+
+    suspend fun evaluateCandidateDirect(
+        candidateStream: Stream,
+        videoStream: Stream,
+        videoUrl: String,
+        videoHeaders: Map<String, String>,
+        videoDurationMs: Long?,
+        targetLanguage: String,
+        videoStreamTitle: String? = null,
+        remainingList: List<Stream> = emptyList(),
+        resolveAudio: suspend (Stream) -> DubResolvedAudio?
+    ): DubPlan? = withContext(Dispatchers.IO) {
+        val tier = when {
+            !candidateStream.getStreamUrl().isNullOrBlank() -> Tier.HTTP
+            candidateStream.isDirectDebrid() || candidateStream.needsLocalDebridResolve() -> Tier.DEBRID_RESOLVE
+            candidateStream.isTorrent() -> Tier.TORRENT
+            else -> Tier.HTTP
+        }
+        val rankedCand = RankedCandidate(candidateStream, tier, ContainerProbe.inferInfo(candidateStream).is4kOrHigher)
+        val resolved = if (rankedCand.tier == Tier.HTTP && !candidateStream.getStreamUrl().isNullOrBlank()) {
+            DubResolvedAudio(
+                candidateStream,
+                candidateStream.getStreamUrl()!!,
+                candidateStream.behaviorHints?.proxyHeaders?.request.orEmpty(),
+                isTorrent = false
+            )
+        } else {
+            resolveAudio(candidateStream)
+        } ?: return@withContext null
+
+        val eval = evaluateOne(
+            resolved = resolved,
+            candidate = rankedCand,
+            videoUrl = videoUrl,
+            videoHeaders = videoHeaders,
+            videoDurationMs = videoDurationMs,
+            targetLanguage = targetLanguage,
+            videoStreamTitle = videoStreamTitle
+        ) ?: return@withContext null
+
+        val warnings = buildList {
+            if (eval.is4k) add(ForceDubWarningType.WARNING_4K_AUDIO)
+        }
+        DubPlan(
+            audio = eval.resolved,
+            timeline = eval.decision.timeline,
+            warnings = warnings,
+            videoCacheKey = stableKey(videoStream, videoUrl),
+            audioCacheKey = stableKey(eval.resolved.stream, eval.resolved.url),
+            audioFromCache = eval.fromCache,
+            methodName = eval.decision.methodName,
+            logicDescription = eval.decision.logicDescription,
+            videoStreamTitle = videoStreamTitle.orEmpty(),
+            tVideoMs = eval.decision.tVideoMs,
+            tAudioMs = eval.decision.tAudioMs,
+            acousticNccScore = eval.decision.acousticNccScore,
+            winningLayer = eval.decision.winningLayer,
+            remainingCandidates = remainingList
+        )
+    }
 }

@@ -1039,4 +1039,21 @@
     <string name="player_loading_dubbed">डब किया हुआ</string>
     <string name="playback_chapters_title">अध्याय</string>
     <string name="playback_chapters_sub">प्लेबैक बार पर अध्याय और मार्कर प्रदर्शित करें।</string>
+    <string name="series_force_dub_mode_default">डिफ़ॉल्ट (ऐप का पालन करें)</string>
+    <string name="series_force_dub_mode_enabled">हमेशा डब करें</string>
+    <string name="series_force_dub_mode_disabled">कभी डब न करें</string>
+    <string name="series_force_dub_select_language">इस श्रृंखला के लिए डबिंग भाषा</string>
+    <string name="series_force_dub_language_default">डिफ़ॉल्ट (ऐप का पालन करें)</string>
+    <string name="force_dub_lang_not_configured">कॉन्फ़िगर नहीं किया गया</string>
+    <string name="force_dub_no_target_lang_toast">जबरन डबिंग का उपयोग करने के लिए ऑडियो विकल्पों में एक लक्षित भाषा सेट करें</string>
+
+    <string name="debug_force_dub_stats_title">डबिंग डिबग आंकड़े</string>
+    <string name="debug_force_dub_stats_subtitle">प्लेयर में सिंक विधि, ऑफ़सेट, स्रोत और सक्रिय इंजीनियरिंग विवरण के साथ एक विस्तृत ओवरले प्रदर्शित करता है।</string>
+    <string name="audio_delay_preset_zero">Reset (0 ms)</string>
+    <string name="audio_delay_preset_bluray">Blu-ray (+2.1s)</string>
+    <string name="audio_delay_preset_minus_half_sec">-500 ms</string>
+    <string name="audio_delay_preset_plus_half_sec">+500 ms</string>
+    <string name="force_dub_offset_current">Dubbing Offset: %s</string>
+    <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
+    <string name="force_dub_incompatible">इस वीडियो के लिए असंगत डबिंग</string>
 </resources>

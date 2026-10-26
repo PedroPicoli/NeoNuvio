@@ -2053,6 +2053,13 @@ fun PlayerRuntimeController.onEvent(event: PlayerEvent) {
         PlayerEvent.OnDismissForceDubWarning -> {
             resolveForceDubWarning(continueWithDub = false)
         }
+        is PlayerEvent.OnSetForceDubOffsetMs -> {
+            manualApplyDubAudioOffset(event.offsetMs)
+        }
+        PlayerEvent.OnResetForceDubOffset -> {
+            resetForceDubOffset()
+            applyAudioDelay(0)
+        }
     }
 }
 

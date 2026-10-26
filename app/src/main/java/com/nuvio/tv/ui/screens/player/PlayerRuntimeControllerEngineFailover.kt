@@ -13,11 +13,68 @@ internal fun PlayerRuntimeController.maybeAutoSwitchInternalPlayerOnStartupError
     allowEngineFailover: Boolean
 ): Boolean {
     if (!allowEngineFailover) return false
-    if (isRestoringOriginalAfterDub || currentForceDubActive) return false
-    if (hasRenderedFirstFrame) return false
-    if (!autoSwitchInternalPlayerOnErrorEnabled) return false
-    if (startupEngineFailoverTriggered) return false
-    if (!isStartupPhaseForEngineFailover()) return false
+
+    // Quando o MediaCodec do dispositivo falha por exceder limites de hardware (ex: HEVC 4K AI Upscale L150)
+    // ou erro fatal de decodificador no ExoPlayer, o ExoPlayer NUNCA conseguirá decodificar.
+    // Nesses casos, o MPV Player é a única saída técnica viável e deve assumir automaticamente,
+    // mesmo se estiver restaurando de dublagem ou se a chave geral de auto-switch estiver desligada.
+    val isDecoderCapabilityError = currentInternalPlayerEngine != InternalPlayerEngine.MVP_PLAYER &&
+        (detailedError.contains("NO_EXCEEDS_CAPABILITIES", ignoreCase = true) ||
+         detailedError.contains("ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES", ignoreCase = true) ||
+         detailedError.contains("ERROR_CODE_DECODER_INIT_FAILED", ignoreCase = true) ||
+         detailedError.contains("ERROR_CODE_DECODING_FAILED", ignoreCase = true) ||
+         detailedError.contains("ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED", ignoreCase = true) ||
+         detailedError.contains("MediaCodecRenderer", ignoreCase = true) ||
+         detailedError.contains("av01", ignoreCase = true) ||
+         detailedError.contains("av1", ignoreCase = true) ||
+         detailedError.contains("renderer", ignoreCase = true))
+
+    if (!isDecoderCapabilityError) {
+        if (isRestoringOriginalAfterDub) return false
+        if (hasRenderedFirstFrame) return false
+        if (!autoSwitchInternalPlayerOnErrorEnabled) return false
+        if (startupEngineFailoverTriggered) return false
+        if (!isStartupPhaseForEngineFailover()) return false
+    } else {
+        if (startupEngineFailoverTriggered) return false
+        isRestoringOriginalAfterDub = false
+    }
+
+    val isDubActiveOrLoading = currentForceDubActive || _uiState.value.isForceDubLoading || _uiState.value.isForceDubActive
+    if (isDubActiveOrLoading) {
+        // Durante a dublagem forçada ou preparação do MergingMediaSource híbrido:
+        // NÃO dispare o failover global do vídeo para o Libmpv se a demora ou falha vier da track de áudio secundária ou de rede
+        val isExplicitVideoDecoderFailure = currentInternalPlayerEngine != InternalPlayerEngine.MVP_PLAYER &&
+            (detailedError.contains("video", ignoreCase = true) ||
+             detailedError.contains("hevc", ignoreCase = true) ||
+             detailedError.contains("avc", ignoreCase = true) ||
+             detailedError.contains("av01", ignoreCase = true) ||
+             detailedError.contains("MediaCodecVideoRenderer", ignoreCase = true)) &&
+            (detailedError.contains("NO_EXCEEDS_CAPABILITIES", ignoreCase = true) ||
+             detailedError.contains("ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES", ignoreCase = true) ||
+             detailedError.contains("ERROR_CODE_DECODER_INIT_FAILED", ignoreCase = true) ||
+             detailedError.contains("ERROR_CODE_DECODING_FAILED", ignoreCase = true))
+
+        if (!isExplicitVideoDecoderFailure) {
+            Log.w(
+                PlayerRuntimeController.TAG,
+                "Failover global de engine (ExoPlayer -> Libmpv) suprimido durante Forçar Dublagem: " +
+                    "erro ($detailedError) pertence à faixa secundária ou rede. Restaurando áudio nativo do vídeo."
+            )
+            failForceDub(restoreOriginal = true)
+            return false
+        }
+    }
+
+    // Se estiver migrando para o MPV e a dublagem forçada estiver ativa ou planejada,
+    // preservamos o plano para que o MPV o injete estritamente após MPV_EVENT_FILE_LOADED
+    val dubPlanToPreserve = currentForceDubPlan ?: forceDubPlanCache
+    if (dubPlanToPreserve != null) {
+        pendingMpvDubPlan = dubPlanToPreserve
+        Log.i(PlayerRuntimeController.TAG, "Auto-switch para MPV: preservando dublagem forçada ${dubPlanToPreserve.audio.stream.name} para injeção pós-FILE_LOADED")
+    }
+
+    com.nuvio.tv.core.dub.DubDiagnosticFileLogger.recordEngineFailover(detailedError)
 
     val targetEngine = when (currentInternalPlayerEngine) {
         InternalPlayerEngine.EXOPLAYER -> InternalPlayerEngine.MVP_PLAYER
@@ -38,6 +95,11 @@ internal fun PlayerRuntimeController.maybeAutoSwitchInternalPlayerOnStartupError
 
     hidePlayerEngineSwitchInfoJob?.cancel()
     showRecoveryOverlay()
+    val switchingToMpv = targetEngine == InternalPlayerEngine.MVP_PLAYER
+    pendingMpvHardRestartOnNextAttach = switchingToMpv
+    delayMpvResumeSeekUntilVideoTrack = switchingToMpv
+    releasePlayer(flushPlaybackState = false, keepTorrentStream = isTorrentStream, keepDubPlan = true)
+
     _uiState.update {
         it.copy(
             chapters = emptyList(),
@@ -47,11 +109,7 @@ internal fun PlayerRuntimeController.maybeAutoSwitchInternalPlayerOnStartupError
             playerEngineSwitchInfoText = switchMessage
         )
     }
-
-    val switchingToMpv = targetEngine == InternalPlayerEngine.MVP_PLAYER
-    pendingMpvHardRestartOnNextAttach = switchingToMpv
-    delayMpvResumeSeekUntilVideoTrack = switchingToMpv
-    releasePlayer(flushPlaybackState = false)
+    ensureNativeAudioRestored()
     initializePlayer(
         url = currentStreamUrl,
         headers = currentHeaders,
@@ -118,7 +176,7 @@ internal fun PlayerRuntimeController.switchToInternalPlayerEngine(
     pendingMpvHardRestartOnNextAttach = switchingToMpv
     delayMpvResumeSeekUntilVideoTrack = switchingToMpv
 
-    releasePlayer(flushPlaybackState = true, keepTorrentStream = true)
+    releasePlayer(flushPlaybackState = true, keepTorrentStream = true, keepDubPlan = true)
     initializePlayer(
         url = currentStreamUrl,
         headers = currentHeaders,

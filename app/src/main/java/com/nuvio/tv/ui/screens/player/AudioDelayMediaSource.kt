@@ -23,7 +23,8 @@ internal class AudioDelayMediaSource(
     mediaSource: MediaSource,
     private val audioDelayUsProvider: () -> Long,
     // Quando presente, o delay do audio varia com a posicao (microsegundos -> microsegundos).
-    private val audioDelayAtUs: ((Long) -> Long)? = null
+    private val audioDelayAtUs: ((Long) -> Long)? = null,
+    private val stripVideo: Boolean = false
 ) : WrappingMediaSource(mediaSource) {
 
     override fun createPeriod(
@@ -34,7 +35,8 @@ internal class AudioDelayMediaSource(
         return AudioDelayMediaPeriod(
             mediaPeriod = mediaSource.createPeriod(id, allocator, startPositionUs),
             audioDelayUsProvider = audioDelayUsProvider,
-            audioDelayAtUs = audioDelayAtUs
+            audioDelayAtUs = audioDelayAtUs,
+            stripVideo = stripVideo
         )
     }
 
@@ -51,10 +53,12 @@ internal class AudioDelayMediaSource(
 private class AudioDelayMediaPeriod(
     val mediaPeriod: MediaPeriod,
     private val audioDelayUsProvider: () -> Long,
-    private val audioDelayAtUs: ((Long) -> Long)? = null
+    private val audioDelayAtUs: ((Long) -> Long)? = null,
+    private val stripVideo: Boolean = false
 ) : MediaPeriod, MediaPeriod.Callback {
 
     private var callback: MediaPeriod.Callback? = null
+    private var filteredTrackGroups: TrackGroupArray? = null
 
     override fun prepare(callback: MediaPeriod.Callback, positionUs: Long) {
         this.callback = callback
@@ -62,10 +66,29 @@ private class AudioDelayMediaPeriod(
     }
 
     override fun maybeThrowPrepareError() {
-        mediaPeriod.maybeThrowPrepareError()
+        try {
+            mediaPeriod.maybeThrowPrepareError()
+        } catch (e: Exception) {
+            android.util.Log.w("AudioDelayMediaPeriod", "Erro tolerado na preparação da fonte secundária de áudio: ${e.message}")
+        }
     }
 
-    override fun getTrackGroups(): TrackGroupArray = mediaPeriod.getTrackGroups()
+    override fun getTrackGroups(): TrackGroupArray {
+        if (!stripVideo) return mediaPeriod.getTrackGroups()
+        val cached = filteredTrackGroups
+        if (cached != null) return cached
+        val rawGroups = mediaPeriod.getTrackGroups()
+        val audioOnlyList = mutableListOf<androidx.media3.common.TrackGroup>()
+        for (i in 0 until rawGroups.length) {
+            val group = rawGroups.get(i)
+            if (group.type == C.TRACK_TYPE_AUDIO) {
+                audioOnlyList.add(group)
+            }
+        }
+        val result = TrackGroupArray(*audioOnlyList.toTypedArray())
+        filteredTrackGroups = result
+        return result
+    }
 
     override fun getStreamKeys(trackSelections: List<ExoTrackSelection>): List<StreamKey> {
         return mediaPeriod.getStreamKeys(trackSelections)
@@ -131,9 +154,9 @@ private class AudioDelayMediaPeriod(
 
     override fun seekToUs(positionUs: Long): Long {
         val delayUs = audioDelayUsProvider()
-        val adjustedPositionUs = (positionUs - delayUs).coerceAtLeast(0L)
-        val soughtUs = mediaPeriod.seekToUs(adjustedPositionUs)
-        return soughtUs + delayUs
+        val audioTargetUs = (positionUs - delayUs).coerceAtLeast(0L)
+        mediaPeriod.seekToUs(audioTargetUs)
+        return positionUs
     }
 
     override fun getAdjustedSeekPositionUs(
@@ -141,9 +164,9 @@ private class AudioDelayMediaPeriod(
         seekParameters: SeekParameters
     ): Long {
         val delayUs = audioDelayUsProvider()
-        val adjustedPositionUs = (positionUs - delayUs).coerceAtLeast(0L)
-        val adjustedSeekUs = mediaPeriod.getAdjustedSeekPositionUs(adjustedPositionUs, seekParameters)
-        return adjustedSeekUs + delayUs
+        val audioTargetUs = (positionUs - delayUs).coerceAtLeast(0L)
+        mediaPeriod.getAdjustedSeekPositionUs(audioTargetUs, seekParameters)
+        return positionUs
     }
 
     override fun getBufferedPositionUs(): Long {
@@ -165,6 +188,7 @@ private class AudioDelayMediaPeriod(
     }
 
     override fun onPrepared(mediaPeriod: MediaPeriod) {
+        filteredTrackGroups = null
         callback?.onPrepared(this)
     }
 
@@ -194,16 +218,27 @@ private class AudioDelaySampleStream(
         buffer: DecoderInputBuffer,
         readFlags: Int
     ): Int {
-        val result = childStream.readData(formatHolder, buffer, readFlags)
-        if (result == C.RESULT_BUFFER_READ) {
-            val delayUs = delayFor(buffer.timeUs)
-            if (isVideo) {
-                buffer.timeUs -= delayUs
-            } else {
-                buffer.timeUs += delayUs
+        while (true) {
+            val result = childStream.readData(formatHolder, buffer, readFlags)
+            if (result == C.RESULT_BUFFER_READ) {
+                if (buffer.isEndOfStream()) {
+                    return result
+                }
+                val delayUs = delayFor(buffer.timeUs)
+                val adjustedTimeUs = if (isVideo) buffer.timeUs - delayUs else buffer.timeUs + delayUs
+                // Descarte de pacotes pré-início (corte de vinheta extra do áudio dublado):
+                // Ocorre EXCLUSIVAMENTE quando offsetMs < 0 (áudio tem vinheta maior e precisa ser adiantado).
+                // Quando offsetMs >= 0 (áudio atrasado para esperar o vídeo), NENHUM pacote é descartado!
+                if (!isVideo && delayUs < 0L && adjustedTimeUs < 0L) {
+                    buffer.clear()
+                    continue
+                }
+                // NUNCA passar timestamp negativo para o MediaCodec / AudioTrack no Android TV!
+                buffer.timeUs = maxOf(0L, adjustedTimeUs)
+                return result
             }
+            return result
         }
-        return result
     }
 
     override fun skipData(positionUs: Long): Int {

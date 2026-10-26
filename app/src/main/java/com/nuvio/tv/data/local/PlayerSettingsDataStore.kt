@@ -282,8 +282,9 @@ data class PlayerSettings(
     val preferredAudioLanguage: String = AudioLanguageOption.DEVICE,
     val secondaryPreferredAudioLanguage: String? = null,
     val forceDubEnabled: Boolean = false,
-    val forceDubTargetLanguage: String = "pt-BR",
+    val forceDubTargetLanguage: String = "",
     val forceDubAllowBlindSync: Boolean = false,
+    val forceDubStatsEnabled: Boolean = false,
     val loadingOverlayEnabled: Boolean = true,
     val showPlayerLoadingStatus: Boolean = true,
     val playbackIssueReportsEnabled: Boolean = false,
@@ -577,6 +578,7 @@ class PlayerSettingsDataStore @Inject constructor(
     private val forceDubEnabledKey = booleanPreferencesKey("force_dub_enabled")
     private val forceDubTargetLanguageKey = stringPreferencesKey("force_dub_target_language")
     private val forceDubAllowBlindSyncKey = booleanPreferencesKey("force_dub_allow_blind_sync")
+    private val forceDubStatsEnabledKey = booleanPreferencesKey("force_dub_stats_enabled")
     private val loadingOverlayEnabledKey = booleanPreferencesKey("loading_overlay_enabled")
     private val showPlayerLoadingStatusKey = booleanPreferencesKey("show_player_loading_status")
     private val playbackIssueReportsEnabledKey = booleanPreferencesKey("playback_issue_reports_enabled")
@@ -974,8 +976,9 @@ class PlayerSettingsDataStore @Inject constructor(
                 secondaryPreferredAudioLanguage = prefs[secondaryPreferredAudioLanguageKey]
                     ?.let(::normalizeSecondaryAudioLanguageCode),
                 forceDubEnabled = prefs[forceDubEnabledKey] ?: false,
-                forceDubTargetLanguage = prefs[forceDubTargetLanguageKey] ?: "pt-BR",
+                forceDubTargetLanguage = prefs[forceDubTargetLanguageKey] ?: "",
                 forceDubAllowBlindSync = prefs[forceDubAllowBlindSyncKey] ?: false,
+                forceDubStatsEnabled = prefs[forceDubStatsEnabledKey] ?: false,
                 loadingOverlayEnabled = prefs[loadingOverlayEnabledKey] ?: true,
                 showPlayerLoadingStatus = prefs[showPlayerLoadingStatusKey] ?: true,
                 playbackIssueReportsEnabled = prefs[playbackIssueReportsEnabledKey] ?: false,
@@ -1298,6 +1301,12 @@ class PlayerSettingsDataStore @Inject constructor(
     suspend fun setForceDubAllowBlindSync(allow: Boolean) {
         store().edit { prefs ->
             prefs[forceDubAllowBlindSyncKey] = allow
+        }
+    }
+
+    suspend fun setForceDubStatsEnabled(enabled: Boolean) {
+        store().edit { prefs ->
+            prefs[forceDubStatsEnabledKey] = enabled
         }
     }
 

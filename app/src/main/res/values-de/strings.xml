@@ -2314,4 +2314,21 @@
     <string name="player_loading_dubbed">Synchronisiert</string>
     <string name="playback_chapters_title">Kapitel</string>
     <string name="playback_chapters_sub">Kapitel und Markierungen in der Wiedergabeleiste anzeigen.</string>
+    <string name="series_force_dub_mode_default">Standard (App-Einstellung)</string>
+    <string name="series_force_dub_mode_enabled">Immer synchronisieren</string>
+    <string name="series_force_dub_mode_disabled">Nie synchronisieren</string>
+    <string name="series_force_dub_select_language">Synchronisationssprache für diese Serie</string>
+    <string name="series_force_dub_language_default">Standard (App-Einstellung)</string>
+    <string name="force_dub_lang_not_configured">Nicht konfiguriert</string>
+    <string name="force_dub_no_target_lang_toast">Legen Sie in den Audiooptionen eine Zielsprache fest, um erzwungene Synchronisation zu verwenden</string>
+
+    <string name="debug_force_dub_stats_title">Statistiken zur erzwungenen Synchronisation</string>
+    <string name="debug_force_dub_stats_subtitle">Zeigt im Player ein detailliertes Debug-Panel mit Synchronisationsmethode, Offset, Quellen und aktiver Technik an.</string>
+    <string name="audio_delay_preset_zero">Zurücksetzen (0 ms)</string>
+    <string name="audio_delay_preset_bluray">Blu-ray (+2.1s)</string>
+    <string name="audio_delay_preset_minus_half_sec">-500 ms</string>
+    <string name="audio_delay_preset_plus_half_sec">+500 ms</string>
+    <string name="force_dub_offset_current">Synchro-Versatz: %s</string>
+    <string name="force_dub_quick_sync_title">Schnell-Synchronisation</string>
+    <string name="force_dub_incompatible">Inkompatible Synchronisation für dieses Video</string>
 </resources>
