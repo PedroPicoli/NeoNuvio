@@ -70,6 +70,7 @@ object StreamAutoPlaySelector {
         preferredSeriesSourceAddon: String? = null,
         preferredSeriesLanguage: String? = null,
         isLiveTv: Boolean = false,
+        autoPlayLiveTv: Boolean = false,
         currentPlayingAddonName: String? = null,
         currentPlayingDescription: String? = null,
         currentPlayingStreamName: String? = null
@@ -77,7 +78,7 @@ object StreamAutoPlaySelector {
         if (streams.isEmpty()) return null
 
         // TV ao vivo com autoplay habilitado: ignora restrições de addons permitidos e toca a primeira fonte jogável disponível
-        if (isLiveTv && mode != StreamAutoPlayMode.MANUAL) {
+        if (isLiveTv && (autoPlayLiveTv || mode != StreamAutoPlayMode.MANUAL)) {
             val firstPlayable = streams.firstOrNull { isPlayable(it) }
             if (firstPlayable != null) return firstPlayable
         }

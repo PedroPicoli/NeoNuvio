@@ -2750,4 +2750,13 @@
     <string name="force_dub_offset_current">Offset da Dobragem: %s</string>
     <string name="force_dub_quick_sync_title">Ajuste Rápido de Sincronização</string>
     <string name="force_dub_incompatible">Dobragem incompatível para este vídeo</string>
+    <string name="autoplay_live_tv">Reprodução automática de TV em direto</string>
+    <string name="autoplay_live_tv_sub">Ao selecionar um canal de TV em direto, reproduz diretamente sem abrir o ecrã de detalhes ou de seleção de fontes.</string>
+
+    <string name="trakt_configure_credentials">Configurar Chaves da API</string>
+    <string name="trakt_configure_credentials_desc">Introduza o Client ID e Client Secret da API do Trakt (obtidos em trakt.tv/oauth/applications).</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">Guardar e Ligar</string>
+    <string name="trakt_missing_credentials_friendly">Para ligar ao Trakt, configure as suas chaves de API (Client ID e Secret) ou defina-as no local.properties.</string>
 </resources>

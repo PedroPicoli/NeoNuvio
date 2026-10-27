@@ -2760,4 +2760,13 @@
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">この動画と互換性のない吹き替えです</string>
+    <string name="autoplay_live_tv">ライブTVを自動再生</string>
+    <string name="autoplay_live_tv_sub">ライブTVチャンネル選択時に詳細やソース選択画面を開かず、直接再生を開始します。</string>
+
+    <string name="trakt_configure_credentials">APIキーの設定</string>
+    <string name="trakt_configure_credentials_desc">Trakt APIのClient IDとClient Secretを入力してください（trakt.tv/oauth/applicationsで取得可能）。</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">保存して接続</string>
+    <string name="trakt_missing_credentials_friendly">Traktに接続するには、APIキーを設定するか、local.propertiesに指定してください。</string>
 </resources>

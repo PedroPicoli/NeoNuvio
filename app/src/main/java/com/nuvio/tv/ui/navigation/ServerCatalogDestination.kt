@@ -12,7 +12,10 @@ import com.nuvio.tv.ui.screens.home.HomeViewModel
 @Composable
 internal fun ServerCatalogDestination(
     navController: NavHostController,
-    backStackEntry: NavBackStackEntry
+    backStackEntry: NavBackStackEntry,
+    onNavigateToDetail: (String, String, String?) -> Unit = { itemId, itemType, addonBaseUrl ->
+        navController.navigate(Screen.Detail.createRoute(itemId, itemType, addonBaseUrl))
+    }
 ) {
     val homeBackStackEntry = remember {
         runCatching { navController.getBackStackEntry(Screen.Home.route) }.getOrNull()
@@ -25,9 +28,7 @@ internal fun ServerCatalogDestination(
         type = "",
         serverCatalog = serverCatalog,
         viewModel = homeViewModel,
-        onNavigateToDetail = { itemId, itemType, addonBaseUrl ->
-            navController.navigate(Screen.Detail.createRoute(itemId, itemType, addonBaseUrl))
-        },
+        onNavigateToDetail = onNavigateToDetail,
         onBackPress = { navController.popBackStack() }
     )
 }

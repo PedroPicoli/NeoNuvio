@@ -1,5 +1,5 @@
 ﻿<resources>
-    <string name="app_name">Nuvio</string>
+    <string name="app_name">NeoNuvio</string>
     <string name="tv_channel_continue_watching">Megtekintés folytatása</string>
     <string name="type_movie">Film</string>
     <string name="type_movies">Filmek</string>
@@ -3413,4 +3413,13 @@
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">Nem kompatibilis szinkron ehhez a videóhoz</string>
+    <string name="autoplay_live_tv">Élő TV automatikus lejátszása</string>
+    <string name="autoplay_live_tv_sub">Élő TV-csatorna kiválasztásakor azonnal elindítja a lejátszást a részletek és a forrásválasztó képernyő kihagyásával.</string>
+
+    <string name="trakt_configure_credentials">API Kulcsok Konfigurálása</string>
+    <string name="trakt_configure_credentials_desc">Adja meg Trakt API Client ID és Client Secret adatait (a trakt.tv/oauth/applications oldalról).</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">Mentés és Csatlakozás</string>
+    <string name="trakt_missing_credentials_friendly">A Trakt csatlakozáshoz konfigurálja API kulcsait vagy adja meg a local.properties fájlban.</string>
 </resources>

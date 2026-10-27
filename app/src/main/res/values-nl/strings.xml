@@ -3202,4 +3202,13 @@
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">Incompatibele nasynchronisatie voor deze video</string>
+    <string name="autoplay_live_tv">Live-tv automatisch afspelen</string>
+    <string name="autoplay_live_tv_sub">Speelt live-tv-zenders direct af bij selectie, zonder detail- of bronselectiescherm te tonen.</string>
+
+    <string name="trakt_configure_credentials">API-sleutels Configureren</string>
+    <string name="trakt_configure_credentials_desc">Voer uw Trakt API Client ID en Client Secret in (verkregen via trakt.tv/oauth/applications).</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">Opslaan en Verbinden</string>
+    <string name="trakt_missing_credentials_friendly">Configureer uw API-sleutels of stel ze in local.properties in om met Trakt te verbinden.</string>
 </resources>

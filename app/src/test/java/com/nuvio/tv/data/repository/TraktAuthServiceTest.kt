@@ -32,7 +32,8 @@ class TraktAuthServiceTest {
                 context = mockk<Context>(relaxed = true),
                 traktApi = traktApi,
                 traktAuthDataStore = traktAuthDataStore,
-                authSessionNoticeDataStore = authSessionNoticeDataStore
+                authSessionNoticeDataStore = authSessionNoticeDataStore,
+                traktSettingsDataStore = io.mockk.mockk(relaxed = true)
             )
         )
         io.mockk.every { service.hasRequiredCredentials() } returns true

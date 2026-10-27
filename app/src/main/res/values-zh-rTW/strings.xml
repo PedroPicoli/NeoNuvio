@@ -3291,4 +3291,13 @@
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">此影片配音不相容</string>
+    <string name="autoplay_live_tv">自動播放電視直播</string>
+    <string name="autoplay_live_tv_sub">選取電視直播頻道時直接播放，略過詳細資訊與來源選擇畫面。</string>
+
+    <string name="trakt_configure_credentials">設定 API 金鑰</string>
+    <string name="trakt_configure_credentials_desc">輸入您的 Trakt API Client ID 與 Client Secret（可在 trakt.tv/oauth/applications 取得）。</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">儲存並連線</string>
+    <string name="trakt_missing_credentials_friendly">若要連線至 Trakt，請設定 API 金鑰或在 local.properties 中指定。</string>
 </resources>

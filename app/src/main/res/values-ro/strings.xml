@@ -888,4 +888,13 @@
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">Dublaj incompatibil pentru acest videoclip</string>
+    <string name="autoplay_live_tv">Redare automată TV în direct</string>
+    <string name="autoplay_live_tv_sub">La selectarea unui canal TV în direct, pornește direct redarea fără a deschide detaliile sau selecția surselor.</string>
+
+    <string name="trakt_configure_credentials">Configurare Chei API</string>
+    <string name="trakt_configure_credentials_desc">Introduceți Client ID și Client Secret pentru Trakt API (obținute la trakt.tv/oauth/applications).</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">Salvare și Conectare</string>
+    <string name="trakt_missing_credentials_friendly">Pentru a vă conecta la Trakt, configurați cheile API sau adăugați-le în local.properties.</string>
 </resources>

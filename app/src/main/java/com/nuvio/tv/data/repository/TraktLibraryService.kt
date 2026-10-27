@@ -10,6 +10,9 @@ import com.nuvio.tv.data.remote.api.TraktApi
 import com.nuvio.tv.data.remote.dto.trakt.TraktCreateOrUpdateListRequestDto
 import com.nuvio.tv.data.remote.dto.trakt.TraktIdsDto
 import com.nuvio.tv.data.remote.dto.trakt.TraktListItemDto
+import com.nuvio.tv.data.remote.dto.trakt.TraktMovieDto
+import com.nuvio.tv.data.remote.dto.trakt.TraktShowDto
+import com.nuvio.tv.data.remote.dto.trakt.TraktImagesDto
 import com.nuvio.tv.data.remote.dto.trakt.TraktListItemsMutationRequestDto
 import com.nuvio.tv.data.remote.dto.trakt.TraktListItemsMutationResponseDto
 import com.nuvio.tv.data.remote.dto.trakt.TraktListMovieRequestItemDto
@@ -433,6 +436,7 @@ class TraktLibraryService @Inject constructor(
 
     private suspend fun fetchSnapshot(): Snapshot {
         val watchlistEntries = fetchWatchlistEntries()
+        val historyEntries = fetchHistoryEntries()
 
         val personalLists = fetchPersonalLists()
         val personalTabs = personalLists.tabs
@@ -448,11 +452,25 @@ class TraktLibraryService @Inject constructor(
                     sortHow = "asc"
                 )
             )
+            if (historyEntries.isNotEmpty()) {
+                add(
+                    LibraryListTab(
+                        key = HISTORY_KEY,
+                        title = appContext.getString(R.string.library_status_completed),
+                        type = LibraryListTab.Type.STATUS,
+                        sortBy = "watched_at",
+                        sortHow = "desc"
+                    )
+                )
+            }
             addAll(personalTabs)
         }
 
         val rawEntriesByList = linkedMapOf<String, List<LibraryEntry>>().apply {
             put(WATCHLIST_KEY, watchlistEntries)
+            if (historyEntries.isNotEmpty()) {
+                put(HISTORY_KEY, historyEntries)
+            }
             personalTabs.forEach { tab ->
                 put(tab.key, personalEntriesByList[tab.key].orEmpty())
             }
@@ -630,58 +648,122 @@ class TraktLibraryService @Inject constructor(
         )
     }
 
+    private suspend fun fetchHistoryEntries(): List<LibraryEntry> {
+        val moviesResponse = runCatching {
+            traktAuthService.executeAuthorizedRequest { authHeader ->
+                traktApi.getWatched(
+                    authorization = authHeader,
+                    type = "movies",
+                    extended = "full",
+                    limit = 500
+                )
+            }
+        }.getOrNull()
+
+        val showsResponse = runCatching {
+            traktAuthService.executeAuthorizedRequest { authHeader ->
+                traktApi.getWatchedShows(
+                    authorization = authHeader,
+                    extended = "full",
+                    limit = 500
+                )
+            }
+        }.getOrNull()
+
+        val movieEntries = moviesResponse?.body().orEmpty().mapNotNull { item ->
+            val movie = item.movie ?: return@mapNotNull null
+            mapMediaToLibraryEntry(
+                listKey = HISTORY_KEY,
+                normalizedType = "movie",
+                movie = movie,
+                show = null,
+                listedAt = parseIsoToMillis(item.lastWatchedAt)
+            )
+        }
+
+        val showEntries = showsResponse?.body().orEmpty().mapNotNull { item ->
+            val show = item.show ?: return@mapNotNull null
+            mapMediaToLibraryEntry(
+                listKey = HISTORY_KEY,
+                normalizedType = "series",
+                movie = null,
+                show = show,
+                listedAt = parseIsoToMillis(item.lastWatchedAt)
+            )
+        }
+
+        return (movieEntries + showEntries).sortedByDescending { it.listedAt }
+    }
+
     private fun mapListItem(listKey: String, item: TraktListItemDto): LibraryEntry? {
-        val movie = item.movie
-        val show = item.show
         val normalizedType = when (item.type?.lowercase()) {
             "movie" -> "movie"
             "show" -> "series"
             else -> return null
         }
+        return mapMediaToLibraryEntry(
+            listKey = listKey,
+            normalizedType = normalizedType,
+            movie = item.movie,
+            show = item.show,
+            listedAt = parseIsoToMillis(item.listedAt),
+            rank = item.rank,
+            fallbackItemId = item.id?.let { "trakt-item:$it" }
+        )
+    }
 
-        val mediaTitle = when (normalizedType) {
+    private fun mapMediaToLibraryEntry(
+        listKey: String,
+        normalizedType: String,
+        movie: TraktMovieDto?,
+        show: TraktShowDto?,
+        listedAt: Long?,
+        rank: Int? = null,
+        fallbackItemId: String? = null
+    ): LibraryEntry? {
+        val mediaTitle: String? = when (normalizedType) {
             "movie" -> movie?.title
             else -> show?.title
         }
 
-        val mediaYear = when (normalizedType) {
+        val mediaYear: Int? = when (normalizedType) {
             "movie" -> movie?.year
             else -> show?.year
         }
 
-        val ids = when (normalizedType) {
+        val ids: TraktIdsDto? = when (normalizedType) {
             "movie" -> movie?.ids
             else -> show?.ids
         }
 
-        val images = when (normalizedType) {
+        val images: TraktImagesDto? = when (normalizedType) {
             "movie" -> movie?.images
             else -> show?.images
         }
 
-        val overview = when (normalizedType) {
+        val overview: String? = when (normalizedType) {
             "movie" -> movie?.overview
             else -> show?.overview
         }
 
-        val releaseDate = when (normalizedType) {
+        val releaseDate: String? = when (normalizedType) {
             "movie" -> movie?.released
             else -> show?.firstAired
         }
 
-        val rating = when (normalizedType) {
+        val rating: Double? = when (normalizedType) {
             "movie" -> movie?.rating
             else -> show?.rating
         }
 
-        val genres = when (normalizedType) {
-            "movie" -> movie?.genres
-            else -> show?.genres
+        val genres: List<String> = when (normalizedType) {
+            "movie" -> movie?.genres.orEmpty()
+            else -> show?.genres.orEmpty()
         }
 
         val fallbackId = when {
             ids?.trakt != null -> "trakt:${ids.trakt}"
-            item.id != null -> "trakt-item:${item.id}"
+            fallbackItemId != null -> fallbackItemId
             !mediaTitle.isNullOrBlank() -> "${normalizedType}:${mediaTitle.lowercase()}:${mediaYear ?: 0}"
             else -> null
         } ?: return null
@@ -699,11 +781,11 @@ class TraktLibraryService @Inject constructor(
             description = overview?.takeIf { it.isNotBlank() },
             releaseInfo = mediaYear?.toString() ?: releaseDate?.take(4),
             imdbRating = rating?.toFloat(),
-            genres = genres.orEmpty(),
+            genres = genres,
             addonBaseUrl = null,
             listKeys = setOf(listKey),
-            listedAt = parseIsoToMillis(item.listedAt),
-            traktRank = item.rank,
+            listedAt = listedAt ?: 0L,
+            traktRank = rank,
             imdbId = ids?.imdb?.takeIf { it.isNotBlank() },
             tmdbId = ids?.tmdb,
             traktId = ids?.trakt,
@@ -887,6 +969,7 @@ class TraktLibraryService @Inject constructor(
 
     companion object {
         const val WATCHLIST_KEY = "watchlist"
+        const val HISTORY_KEY = "history"
         const val PERSONAL_KEY_PREFIX = "personal:"
         private const val ME_PATH = "me"
     }

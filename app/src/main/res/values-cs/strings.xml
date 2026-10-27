@@ -2895,4 +2895,13 @@
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">Nekompatibilní dabing pro toto video</string>
+    <string name="autoplay_live_tv">Automaticky přehrávat živé vysílání</string>
+    <string name="autoplay_live_tv_sub">Při výběru kanálu živého vysílání spustí přehrávání přímo bez obrazovky s podrobnostmi či výběrem zdrojů.</string>
+
+    <string name="trakt_configure_credentials">Konfigurovat Klíče API</string>
+    <string name="trakt_configure_credentials_desc">Zadejte svůj Client ID a Client Secret pro Trakt API (získané na trakt.tv/oauth/applications).</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">Uložit a Připojit</string>
+    <string name="trakt_missing_credentials_friendly">Pro připojení k Trakt nakonfigurujte klíče API nebo je zadejte do local.properties.</string>
 </resources>

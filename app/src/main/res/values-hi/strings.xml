@@ -1056,4 +1056,13 @@
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">इस वीडियो के लिए असंगत डबिंग</string>
+    <string name="autoplay_live_tv">लाइव टीवी स्वतः चलाएं</string>
+    <string name="autoplay_live_tv_sub">लाइव टीवी चैनल चुनने पर विवरण या स्रोत चयन स्क्रीन को छोड़ते हुए सीधे प्लेबैक शुरू करें।</string>
+
+    <string name="trakt_configure_credentials">API कुंजियाँ कॉन्फ़िगर करें</string>
+    <string name="trakt_configure_credentials_desc">अपना Trakt API Client ID और Client Secret दर्ज करें (trakt.tv/oauth/applications से प्राप्त)।</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">सहेजें और कनेक्ट करें</string>
+    <string name="trakt_missing_credentials_friendly">Trakt से कनेक्ट करने के लिए, अपनी API कुंजियाँ सेट करें या local.properties में जोड़ें।</string>
 </resources>

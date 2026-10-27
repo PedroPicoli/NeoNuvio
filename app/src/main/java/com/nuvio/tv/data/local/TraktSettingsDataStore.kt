@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -76,6 +77,8 @@ class TraktSettingsDataStore @Inject constructor(
     private val rememberedLibrarySourceModeKey = stringPreferencesKey("remembered_library_source_mode")
     private val moreLikeThisSourceKey = stringPreferencesKey("more_like_this_source")
     private val simklAnimeIdPreferenceKey = stringPreferencesKey("simkl_anime_id_preference")
+    private val customTraktClientIdKey = stringPreferencesKey("custom_trakt_client_id")
+    private val customTraktClientSecretKey = stringPreferencesKey("custom_trakt_client_secret")
 
     val continueWatchingDaysCap: Flow<Int> = profileManager.activeProfileId.flatMapLatest { pid ->
         factory.get(pid, FEATURE).data.map { prefs ->
@@ -258,6 +261,35 @@ class TraktSettingsDataStore @Inject constructor(
     suspend fun setSimklAnimeIdPreference(preference: SimklAnimeIdPreference) {
         store().edit { prefs ->
             prefs[simklAnimeIdPreferenceKey] = preference.name
+        }
+    }
+
+    fun getCustomClientId(profileId: Int = profileManager.activeProfileId.value): String = runBlocking {
+        store(profileId).data.first()[customTraktClientIdKey].orEmpty()
+    }
+
+    suspend fun getCustomClientIdAsync(profileId: Int = profileManager.activeProfileId.value): String =
+        store(profileId).data.first()[customTraktClientIdKey].orEmpty()
+
+    fun getCustomClientSecret(profileId: Int = profileManager.activeProfileId.value): String = runBlocking {
+        store(profileId).data.first()[customTraktClientSecretKey].orEmpty()
+    }
+
+    suspend fun getCustomClientSecretAsync(profileId: Int = profileManager.activeProfileId.value): String =
+        store(profileId).data.first()[customTraktClientSecretKey].orEmpty()
+
+    val customCredentialsConfigured: Flow<Boolean> = profileManager.activeProfileId.flatMapLatest { pid ->
+        factory.get(pid, FEATURE).data.map { prefs ->
+            val id = prefs[customTraktClientIdKey].orEmpty()
+            val secret = prefs[customTraktClientSecretKey].orEmpty()
+            id.isNotBlank() && secret.isNotBlank()
+        }
+    }
+
+    suspend fun setCustomCredentials(clientId: String, clientSecret: String, profileId: Int = profileManager.activeProfileId.value) {
+        store(profileId).edit { prefs ->
+            prefs[customTraktClientIdKey] = clientId.trim()
+            prefs[customTraktClientSecretKey] = clientSecret.trim()
         }
     }
 }

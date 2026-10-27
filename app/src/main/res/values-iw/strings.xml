@@ -3438,4 +3438,13 @@
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">דיבוב אינו תואם לווידאו זה</string>
+    <string name="autoplay_live_tv">הפעלה אוטומטית של שידורים חיים</string>
+    <string name="autoplay_live_tv_sub">בעת בחירת ערוץ טלוויזיה חי, מפעיל מיד מבלי לפתוח את מסך הפרטים או בחירת המקורות.</string>
+
+    <string name="trakt_configure_credentials">הגדרת מפתחות API</string>
+    <string name="trakt_configure_credentials_desc">הזן את ה-Client ID וה-Client Secret של Trakt (מ-trakt.tv/oauth/applications).</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">שמור והתחבר</string>
+    <string name="trakt_missing_credentials_friendly">כדי להתחבר ל-Trakt, הגדר מפתחות API או ציין אותם ב-local.properties.</string>
 </resources>

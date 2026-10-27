@@ -154,32 +154,52 @@ class LibraryRepositoryImpl @Inject constructor(
         .distinctUntilChanged()
 
     override fun isInLibrary(itemId: String, itemType: String): Flow<Boolean> {
-        return sourceMode.flatMapLatest { mode ->
-            val provider = mode.providerId?.let(trackingProviders::provider)
-            if (provider != null) {
-                provider.observeMembership(itemId, itemType)
-                    .map { memberships -> memberships.isNotEmpty() }
-            } else {
-                libraryPreferences.isInLibrary(itemId = itemId, itemType = itemType)
+        val connectedProvidersFlow = combine(
+            trackingProviders.providers().map { provider ->
+                provider.isAuthenticated.flatMapLatest { authenticated ->
+                    if (authenticated) {
+                        provider.observeMembership(itemId, itemType)
+                            .map { memberships -> memberships.isNotEmpty() }
+                    } else {
+                        flowOf(false)
+                    }
+                }
             }
+        ) { results -> results.any { it } }
+
+        return combine(
+            connectedProvidersFlow,
+            libraryPreferences.isInLibrary(itemId = itemId, itemType = itemType)
+        ) { inAnyProvider, inLocal ->
+            inAnyProvider || inLocal
         }.distinctUntilChanged()
     }
 
     override fun isInWatchlist(itemId: String, itemType: String): Flow<Boolean> {
-        return sourceMode.flatMapLatest { mode ->
-            val provider = mode.providerId?.let(trackingProviders::provider)
-            if (provider != null) {
-                combine(
-                    provider.observeMembership(itemId, itemType),
-                    provider.tabs
-                ) { memberships, tabs ->
-                    tabs.any { tab ->
-                        tab.type == LibraryListTab.Type.WATCHLIST && tab.key in memberships
+        val connectedProvidersFlow = combine(
+            trackingProviders.providers().map { provider ->
+                provider.isAuthenticated.flatMapLatest { authenticated ->
+                    if (authenticated) {
+                        combine(
+                            provider.observeMembership(itemId, itemType),
+                            provider.tabs
+                        ) { memberships, tabs ->
+                            tabs.any { tab ->
+                                tab.type == LibraryListTab.Type.WATCHLIST && tab.key in memberships
+                            }
+                        }
+                    } else {
+                        flowOf(false)
                     }
                 }
-            } else {
-                libraryPreferences.isInLibrary(itemId = itemId, itemType = itemType)
             }
+        ) { results -> results.any { it } }
+
+        return combine(
+            connectedProvidersFlow,
+            libraryPreferences.isInLibrary(itemId = itemId, itemType = itemType)
+        ) { inAnyProviderWatchlist, inLocal ->
+            inAnyProviderWatchlist || inLocal
         }.distinctUntilChanged()
     }
 
@@ -187,47 +207,144 @@ class LibraryRepositoryImpl @Inject constructor(
         item: LibraryEntryInput,
         confirmedRemovalProviders: Set<TrackingProviderId>
     ): TrackingMembershipApplyResult {
-        val provider = sourceMode.first().providerId?.let(trackingProviders::provider)
-        if (provider != null) {
-            if (item.isServerItem) throw IllegalStateException(appContext.getString(R.string.library_server_title_unsupported))
-            val currentMembership = provider.getMembershipSnapshot(item).listMembership
-            val changes = ListMembershipChanges(
-                provider.toggledDefaultMembership(currentMembership)
-            )
-            val confirmation = provider.membershipRemovalConfirmation(item, changes)
-                ?.takeUnless { required ->
-                    required.providerId in confirmedRemovalProviders
-                }
-            if (confirmation != null) {
-                return TrackingMembershipApplyResult(listOf(confirmation))
-            }
-            provider.applyMembershipChanges(
-                item = item,
-                changes = changes,
-                destructiveRemovalConfirmed = provider.providerId in confirmedRemovalProviders
-            )
-            return TrackingMembershipApplyResult()
-        }
-
         val profileId = profileManager.activeProfileId.value
         val isInLocal = libraryPreferences.containsItem(
             itemId = item.itemId,
             itemType = item.itemType,
             profileId = profileId
         )
-        if (isInLocal) {
-            libraryPreferences.removeItem(
-                itemId = item.itemId,
-                itemType = item.itemType,
-                profileId = profileId
-            )
-        } else {
-            libraryPreferences.addItem(
-                item = item.toSavedLibraryItem(),
-                profileId = profileId
-            )
+
+        if (item.isServerItem) {
+            if (isInLocal) {
+                libraryPreferences.removeItem(
+                    itemId = item.itemId,
+                    itemType = item.itemType,
+                    profileId = profileId
+                )
+            } else {
+                libraryPreferences.addItem(
+                    item = item.toSavedLibraryItem(),
+                    profileId = profileId
+                )
+            }
+            triggerRemoteSync(profileId)
+            return TrackingMembershipApplyResult()
         }
-        triggerRemoteSync(profileId)
+
+        val authenticatedProviders = trackingProviders.providers().filter { it.isAuthenticated.first() }
+        if (authenticatedProviders.isEmpty()) {
+            if (isInLocal) {
+                libraryPreferences.removeItem(
+                    itemId = item.itemId,
+                    itemType = item.itemType,
+                    profileId = profileId
+                )
+            } else {
+                libraryPreferences.addItem(
+                    item = item.toSavedLibraryItem(),
+                    profileId = profileId
+                )
+            }
+            triggerRemoteSync(profileId)
+            return TrackingMembershipApplyResult()
+        }
+
+        val primaryMode = sourceMode.first()
+        val primaryProvider = primaryMode.providerId?.let(trackingProviders::provider)?.takeIf { it.isAuthenticated.first() }
+
+        val shouldAdd = if (primaryProvider != null) {
+            val primarySnapshot = primaryProvider.getMembershipSnapshot(item).listMembership
+            val primaryToggled = primaryProvider.toggledDefaultMembership(primarySnapshot)
+            val toggledKey = primaryToggled.keys.firstOrNull { key ->
+                primarySnapshot[key] != primaryToggled[key]
+            } ?: primaryToggled.keys.firstOrNull()
+            if (toggledKey != null) {
+                primaryToggled[toggledKey] == true
+            } else {
+                !isInLocal
+            }
+        } else {
+            val firstAuth = authenticatedProviders.firstOrNull()
+            if (firstAuth != null) {
+                val snapshot = firstAuth.getMembershipSnapshot(item).listMembership
+                val toggled = firstAuth.toggledDefaultMembership(snapshot)
+                val toggledKey = toggled.keys.firstOrNull { key ->
+                    snapshot[key] != toggled[key]
+                } ?: toggled.keys.firstOrNull()
+                if (toggledKey != null) {
+                    toggled[toggledKey] == true
+                } else {
+                    !isInLocal
+                }
+            } else {
+                !isInLocal
+            }
+        }
+
+        val providerChanges = authenticatedProviders.map { provider ->
+            val currentMembership = provider.getMembershipSnapshot(item).listMembership
+            val toggledMembership = provider.toggledDefaultMembership(currentMembership)
+
+            val toggledKey = toggledMembership.keys.firstOrNull { key ->
+                currentMembership[key] != toggledMembership[key]
+            } ?: toggledMembership.keys.firstOrNull()
+
+            val desiredMembership = if (toggledKey != null) {
+                if (shouldAdd) {
+                    if (toggledMembership[toggledKey] == true) {
+                        toggledMembership
+                    } else {
+                        currentMembership + (toggledKey to true)
+                    }
+                } else {
+                    if (toggledMembership[toggledKey] != true) {
+                        toggledMembership
+                    } else {
+                        currentMembership + (toggledKey to false)
+                    }
+                }
+            } else {
+                toggledMembership
+            }
+
+            provider to ListMembershipChanges(desiredMembership)
+        }
+
+        val requiredConfirmations = providerChanges.mapNotNull { (provider, changes) ->
+            provider.membershipRemovalConfirmation(item, changes)
+                ?.takeUnless { confirmation -> confirmation.providerId in confirmedRemovalProviders }
+        }
+        if (requiredConfirmations.isNotEmpty()) {
+            return TrackingMembershipApplyResult(requiredConfirmations)
+        }
+
+        if (shouldAdd) {
+            if (!isInLocal) {
+                libraryPreferences.addItem(
+                    item = item.toSavedLibraryItem(),
+                    profileId = profileId
+                )
+                triggerRemoteSync(profileId)
+            }
+        } else {
+            if (isInLocal) {
+                libraryPreferences.removeItem(
+                    itemId = item.itemId,
+                    itemType = item.itemType,
+                    profileId = profileId
+                )
+                triggerRemoteSync(profileId)
+            }
+        }
+
+        val failures = dispatchTrackingMembershipChanges(
+            item = item,
+            providerChanges = providerChanges,
+            confirmedRemovalProviders = confirmedRemovalProviders
+        )
+        if (failures.isNotEmpty()) {
+            throw TrackingMembershipMutationException(failures)
+        }
         return TrackingMembershipApplyResult()
     }
 

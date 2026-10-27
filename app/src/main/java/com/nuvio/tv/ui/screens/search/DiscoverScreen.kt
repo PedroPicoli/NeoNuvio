@@ -140,6 +140,9 @@ fun DiscoverScreen(
             onNavigateToDetail = { id, type, addonBaseUrl ->
                 pendingDiscoverRestoreOnResume = true
                 val clickedItem = uiState.discoverResults.firstOrNull { it.id == id }
+                if (clickedItem != null && com.nuvio.tv.core.util.LiveTvUtils.isLiveTv(clickedItem)) {
+                    com.nuvio.tv.core.util.LiveChannelClickState.lastClickedItem = clickedItem
+                }
                 HeroBackdropState.update(clickedItem?.backdropUrl)
                 onNavigateToDetail(id, type, addonBaseUrl)
             }

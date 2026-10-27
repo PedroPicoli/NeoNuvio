@@ -3442,4 +3442,13 @@
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">Lồng tiếng không tương thích cho video này</string>
+    <string name="autoplay_live_tv">Tự động phát TV trực tiếp</string>
+    <string name="autoplay_live_tv_sub">Khi chọn kênh truyền hình trực tiếp, phát ngay mà không mở màn hình chi tiết hoặc chọn nguồn.</string>
+
+    <string name="trakt_configure_credentials">Cấu hình Khóa API</string>
+    <string name="trakt_configure_credentials_desc">Nhập Client ID và Client Secret Trakt API của bạn (lấy từ trakt.tv/oauth/applications).</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">Lưu &amp; Kết nối</string>
+    <string name="trakt_missing_credentials_friendly">Để kết nối Trakt, hãy cấu hình khóa API hoặc thiết lập trong local.properties.</string>
 </resources>

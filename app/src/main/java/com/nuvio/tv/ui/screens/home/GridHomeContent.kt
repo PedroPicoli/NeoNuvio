@@ -507,6 +507,9 @@ fun GridHomeContent(
                                 },
                                 onItemClick = remember(onNavigateToDetail) {
                                     { item ->
+                                        if (com.nuvio.tv.core.util.LiveTvUtils.isLiveTv(item)) {
+                                            com.nuvio.tv.core.util.LiveChannelClickState.lastClickedItem = item
+                                        }
                                         onNavigateToDetail(
                                             item.id,
                                             item.apiType,
@@ -707,6 +710,9 @@ fun GridHomeContent(
                                 },
                                 onItemClick = remember(onNavigateToDetail) {
                                     { item ->
+                                        if (com.nuvio.tv.core.util.LiveTvUtils.isLiveTv(item)) {
+                                            com.nuvio.tv.core.util.LiveChannelClickState.lastClickedItem = item
+                                        }
                                         onNavigateToDetail(
                                             item.id,
                                             item.apiType,

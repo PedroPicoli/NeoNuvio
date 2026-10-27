@@ -1,5 +1,6 @@
 package com.nuvio.tv.updater
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -38,5 +39,21 @@ class VersionUtilsTest {
     @Test
     fun `current beta naming is recognized as prerelease`() {
         assertTrue(VersionUtils.isPrerelease("0.8.12-beta"))
+    }
+
+    @Test
+    fun `extractVersion handles github release names and tags correctly`() {
+        assertEquals("1.0.0", VersionUtils.extractVersion("NeoNuvio 1.0.0"))
+        assertEquals("1.0.0", VersionUtils.extractVersion("v1.0.0"))
+        assertEquals("1.0.0", VersionUtils.extractVersion("NeoNuvio-v1.0.0"))
+        assertEquals("1.0.0", VersionUtils.extractVersion("1.0.0"))
+        assertEquals("1.0.1-beta.1", VersionUtils.extractVersion("NeoNuvio 1.0.1-beta.1"))
+    }
+
+    @Test
+    fun `isRemoteNewer handles github release title formats`() {
+        assertTrue(VersionUtils.isRemoteNewer("NeoNuvio 1.0.1", "1.0.0"))
+        assertFalse(VersionUtils.isRemoteNewer("NeoNuvio 1.0.0", "1.0.0"))
+        assertFalse(VersionUtils.isRemoteNewer("v1.0.0", "1.0.0"))
     }
 }

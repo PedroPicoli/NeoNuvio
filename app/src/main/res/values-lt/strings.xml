@@ -1060,4 +1060,13 @@ Klaida: Bandomoji simuliuojama klaida — tai nėra tikras gedimas. Šaltinis gr
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">Šiam vaizdo įrašui nesuderinamas dubliavimas</string>
+    <string name="autoplay_live_tv">Automatiškai paleisti tiesioginę TV</string>
+    <string name="autoplay_live_tv_sub">Pasirinkus tiesioginės TV kanalą, iškart pradedamas atkūrimas neatveriant informacijos ar šaltinių pasirinkimo lango.</string>
+
+    <string name="trakt_configure_credentials">Konfigūruoti API raktus</string>
+    <string name="trakt_configure_credentials_desc">Įveskite savo „Trakt“ API „Client ID“ ir „Client Secret“ (iš trakt.tv/oauth/applications).</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">Išsaugoti ir prisijungti</string>
+    <string name="trakt_missing_credentials_friendly">Norėdami prisijungti prie „Trakt“, sukonfigūruokite API raktus arba nurodykite juos „local.properties“.</string>
 </resources>

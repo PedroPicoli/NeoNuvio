@@ -243,15 +243,18 @@ object NetworkModule {
     @Singleton
     @Named("trakt")
     fun provideTraktOkHttpClient(
-        okHttpClient: OkHttpClient
+        okHttpClient: OkHttpClient,
+        traktSettingsDataStore: com.nuvio.tv.data.local.TraktSettingsDataStore
     ): OkHttpClient = okHttpClient.newBuilder()
         .addInterceptor { chain ->
             val request = chain.request()
             val version = BuildConfig.VERSION_NAME.ifBlank { "dev" }
+            val customKey = runCatching { traktSettingsDataStore.getCustomClientId() }.getOrNull().orEmpty()
+            val traktApiKey = if (customKey.isNotBlank()) customKey else BuildConfig.TRAKT_CLIENT_ID
             val newRequest = request.newBuilder()
                 .header("Content-Type", "application/json")
                 .header("User-Agent", "NeoNuvio/$version")
-                .header("trakt-api-key", BuildConfig.TRAKT_CLIENT_ID)
+                .header("trakt-api-key", traktApiKey)
                 .header("trakt-api-version", "2")
                 .build()
 

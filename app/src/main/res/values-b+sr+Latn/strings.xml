@@ -3230,4 +3230,13 @@
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">Nekompatibilna sinhronizacija za ovaj video</string>
+    <string name="autoplay_live_tv">Automatska reprodukcija TV-a uživo</string>
+    <string name="autoplay_live_tv_sub">Prilikom izbora TV kanala uživo, pokreće reprodukciju direktno bez otvaranja detalja ili izbora izvora.</string>
+
+    <string name="trakt_configure_credentials">Konfiguriši API Ključeve</string>
+    <string name="trakt_configure_credentials_desc">Unesite Trakt API Client ID i Client Secret (sa trakt.tv/oauth/applications).</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">Sačuvaj i Poveži</string>
+    <string name="trakt_missing_credentials_friendly">Za povezivanje sa Traktom konfigurišite API ključeve ili ih postavite u local.properties.</string>
 </resources>

@@ -21,27 +21,34 @@
     <a href="https://ko-fi.com/pedropicoli"><img src="https://img.shields.io/badge/SUPPORT-KO--FI-ff5f5f?style=flat-square&logo=kofi&logoColor=white" alt="Support on Ko-fi" /></a>
   </p>
 
-  <p><b>Downloader code: 9305323</b></p>
+  <p><b>Downloader code: 9707828</b></p>
 
 </div>
 
 ---
 
-## 🆕 O que há de novo
+## 🆕 O que há de novo (baseado no Nuvio 1.1.0 – beta 8)
 
-**NeoNuvio v1.0.0 Lançamento Inicial (Baseado no Nuvio 1.1.0 - beta 7):**
-
-* 🎯 **Memória e Prioridade de Fontes em Séries:** Agora você pode marcar uma fonte favorita para a série. O próximo episódio busca e carrega automaticamente essa mesma fonte prioritária, sem saltar para opções aleatórias.
-* 🎨 **Todos os Temas e Cores 100% Desbloqueados:** Todas as variações visuais e temas estão completamente livres para todos os usuários, além do novo modo de cores imersivas que vai aplicar a cor em todos os elementos visuais do app, desde os botões até os menus. 
-* 🎛️ **Controles do Player Otimizados:** O menu inferior do player foi redesenhado: a visão padrão permanece limpa e focada na reprodução, enquanto a seta para a direita expande opções avançadas (Trocar Player, Selecionar Episódio e Watch Party).
-* 🔄 **Atualizador Integrado Inteligente:** Verificação direta pelo repositório GitHub do NeoNuvio com reconhecimento automático da arquitetura do aparelho (ARM64, ARMv7, x86, Universal), baixando e atualizando o APK.
-* ☕ **Doação Voluntária via Ko-fi:** Quem quiser apoiar o desenvolvimento contínuo pode fazer uma doação voluntária rápida via Ko-fi pelo QR Code direto na TV.
+*	Adicionado novo recurso inovador! Forçar dublagem (experimental). Ative nas configurações, selecione seu idioma-alvo e os conteúdos em língua estrangeira à sua serão dublados automaticamente.
+*	Corrigido ícone de alterar servidor duplicado e ícone de áudio/legendas desaparecendo ao alternar para Libmpv.
+*	Adicionado recurso de, ao segurar sobre o card de um conteúdo, nas opções que surgem, ao invés do botão gerenciar listas, agora é simplesmente adicionar à lista, caso o título ainda não esteja, e remover caso já esteja, mantendo sincronia com Simkl.
+*	Adicionada uma opção de habilitar/desabilitar capítulos.
+*	Redimensionada imagens de logo e banner para melhor adaptação em diferentes telas.
+*	Adicionada opção para auto reprodução de conteúdos de tv ao vivo (sem entrar nos detalhes).
+*	Corrigido número da versão correspondente.
+*	Corrigido erro do Trakt.
+*	Ajustado nome NeoNuvio em diferentes arquivos.
+*	Readme atualizado com créditos melhor descritos.
+*	Atualizado para a versão beta 8 do Nuvio, com traduções corrigidas.
 
 ---
 
 ## ✨ Funcionalidades (Features)
 
 Confira as funcionalidades e melhorias que tornam o **NeoNuvio** a melhor experiência de mídia para TVs:
+
+### 🎯 Forçar Dublagem (Experimental)
+* Ative nas configurações, selecione seu idioma-alvo e os conteúdos em língua estrangeira serão dublados automaticamente. Útil para usuários que desejam assistir conteúdos em alta qualidade (muitas vezes em língua que a eles é desconhecida) mas que desejam assistir em sua linguagem habitual.
 
 ### 🎬 Gestão Inteligente de Séries e Fontes
 * **Seleção de Fonte Preferida:** Marque a fonte que você prefere (ex: servidor de sua preferência) com um no botão de menu.
@@ -97,6 +104,14 @@ O NeoNuvio é construído utilizando tecnologias modernas para Android TV:
 * **Reprodução:** Jetpack Media3 (ExoPlayer) com extensões FFmpeg e decodificação avançada
 * **Arquitetura:** Clean Architecture com Jetpack Hilt (injeção de dependências) e Coroutines/Flow
 * **Processamento de Vídeo:** libdovi nativo para manipulação de metadados Dolby Vision
+
+---
+
+## 📖 Créditos
+O NeoNuvio possui funções que foram diretamente adaptadas de forks já existentes para o Nuvio. Dentre os forks utilizados, estão (créditos completos dentro do NeoNuvio):
+
+* **[NuvioTV](https://github.com/NuvioMedia/NuvioTV)** (Para o projeto original)
+* **[BetterNuvio](https://github.com/alenkpedro/better-nuvio)** (Obrigado ao meu conterrâneo e xará, alenkpedro) 
 
 ---
 

@@ -333,6 +333,7 @@ data class PlayerSettings(
     val nextEpisodeThresholdMinutesBeforeEnd: Float = 2f,
     val streamReuseLastLinkEnabled: Boolean = true,
     val streamReuseLastLinkCacheHours: Int = 1,
+    val autoPlayLiveTv: Boolean = true,
     val externalPlayerForwardSubtitles: Boolean = false,
     val externalPlayerSendSkipSegments: Boolean = false,
     val subtitleOrganizationMode: SubtitleOrganizationMode = SubtitleOrganizationMode.NONE,
@@ -630,6 +631,7 @@ class PlayerSettingsDataStore @Inject constructor(
     private val nextEpisodeThresholdMinutesBeforeEndKey = floatPreferencesKey("next_episode_threshold_minutes_before_end_v2")
     private val streamReuseLastLinkEnabledKey = booleanPreferencesKey("stream_reuse_last_link_enabled")
     private val streamReuseLastLinkCacheHoursKey = intPreferencesKey("stream_reuse_last_link_cache_hours")
+    private val autoPlayLiveTvKey = booleanPreferencesKey("autoplay_live_tv")
     private val externalPlayerForwardSubtitlesKey = booleanPreferencesKey("external_player_forward_subtitles")
     private val externalPlayerSendSkipSegmentsKey = booleanPreferencesKey("external_player_send_skip_segments")
     private val subtitleOrganizationModeKey = stringPreferencesKey("subtitle_organization_mode")
@@ -1060,6 +1062,7 @@ class PlayerSettingsDataStore @Inject constructor(
                 ),
                 streamReuseLastLinkEnabled = prefs[streamReuseLastLinkEnabledKey] ?: false,
                 streamReuseLastLinkCacheHours = (prefs[streamReuseLastLinkCacheHoursKey] ?: 24).coerceIn(1, 168),
+                autoPlayLiveTv = prefs[autoPlayLiveTvKey] ?: true,
                 externalPlayerForwardSubtitles = prefs[externalPlayerForwardSubtitlesKey] ?: false,
                 externalPlayerSendSkipSegments = prefs[externalPlayerSendSkipSegmentsKey] ?: false,
                 subtitleOrganizationMode = parseSubtitleOrganizationMode(prefs[subtitleOrganizationModeKey]),
@@ -1523,6 +1526,12 @@ class PlayerSettingsDataStore @Inject constructor(
     suspend fun setStreamReuseLastLinkEnabled(enabled: Boolean) {
         store().edit { prefs ->
             prefs[streamReuseLastLinkEnabledKey] = enabled
+        }
+    }
+
+    suspend fun setAutoPlayLiveTv(enabled: Boolean) {
+        store().edit { prefs ->
+            prefs[autoPlayLiveTvKey] = enabled
         }
     }
 

@@ -412,6 +412,11 @@ private fun ModernCatalogRowItem(
             when (payload) {
                 is ModernPayload.Catalog -> {
                     if (!payload.itemId.startsWith("__placeholder_")) {
+                        item.metaPreview?.let { preview ->
+                            if (com.nuvio.tv.core.util.LiveTvUtils.isLiveTv(preview)) {
+                                com.nuvio.tv.core.util.LiveChannelClickState.lastClickedItem = preview
+                            }
+                        }
                         onNavigateToDetail(
                             payload.itemId,
                             payload.itemType,

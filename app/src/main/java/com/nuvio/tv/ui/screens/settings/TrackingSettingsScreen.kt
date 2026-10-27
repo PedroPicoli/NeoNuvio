@@ -241,7 +241,10 @@ fun TrackingSettingsContent(
                     }
                     activeProvider = null
                     dismissOnConnected = null
-                }
+                },
+                onOpenCredentials = traktViewModel::onOpenCredentialsDialog,
+                onSaveCredentials = traktViewModel::onSaveCredentials,
+                onDismissCredentials = traktViewModel::onDismissCredentialsDialog
             )
         }
         TrackingProviderId.SIMKL -> {

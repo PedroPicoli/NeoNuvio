@@ -2331,4 +2331,13 @@
     <string name="force_dub_offset_current">Synchro-Versatz: %s</string>
     <string name="force_dub_quick_sync_title">Schnell-Synchronisation</string>
     <string name="force_dub_incompatible">Inkompatible Synchronisation für dieses Video</string>
+    <string name="autoplay_live_tv">Live-TV automatisch abspielen</string>
+    <string name="autoplay_live_tv_sub">Spielt Live-TV-Kanäle bei Auswahl direkt ab, ohne Detailansicht oder Quellenauswahl.</string>
+
+    <string name="trakt_configure_credentials">API-Schlüssel Konfigurieren</string>
+    <string name="trakt_configure_credentials_desc">Geben Sie Ihre Trakt API Client-ID und Ihr Client-Secret ein (unter trakt.tv/oauth/applications erhältlich).</string>
+    <string name="trakt_client_id_label">Client-ID</string>
+    <string name="trakt_client_secret_label">Client-Secret</string>
+    <string name="trakt_save_and_connect">Speichern &amp; Verbinden</string>
+    <string name="trakt_missing_credentials_friendly">Um eine Verbindung zu Trakt herzustellen, konfigurieren Sie Ihre API-Schlüssel oder tragen Sie sie in local.properties ein.</string>
 </resources>

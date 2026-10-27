@@ -44,23 +44,34 @@ internal data class SemanticVersion(
 }
 
 internal object VersionUtils {
-    private val versionPattern = Regex(
-        "^(\\d+)\\.(\\d+)\\.(\\d+)" +
-            "(?:-([0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?" +
-            "(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    private val versionExtractRegex = Regex(
+        """(\d+)\.(\d+)(?:\.(\d+))?(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"""
     )
+
+    fun extractVersion(raw: String?): String? {
+        if (raw.isNullOrBlank()) return null
+        val match = versionExtractRegex.find(raw) ?: return null
+        val major = match.groupValues[1]
+        val minor = match.groupValues[2]
+        val patch = match.groupValues[3].ifEmpty { "0" }
+        val prerelease = match.groupValues[4]
+        return if (prerelease.isNotEmpty()) "$major.$minor.$patch-$prerelease" else "$major.$minor.$patch"
+    }
 
     fun normalize(raw: String?): String {
         if (raw.isNullOrBlank()) return ""
+        val extracted = extractVersion(raw)
+        if (extracted != null) return extracted
         return raw.trim().removePrefix("v").removePrefix("V")
     }
 
     fun parse(raw: String?): SemanticVersion? {
-        val match = versionPattern.matchEntire(normalize(raw)) ?: return null
+        if (raw.isNullOrBlank()) return null
+        val match = versionExtractRegex.find(raw) ?: return null
         return SemanticVersion(
             major = match.groupValues[1].toLongOrNull() ?: return null,
             minor = match.groupValues[2].toLongOrNull() ?: return null,
-            patch = match.groupValues[3].toLongOrNull() ?: return null,
+            patch = match.groupValues[3].takeIf(String::isNotEmpty)?.toLongOrNull() ?: 0L,
             prerelease = match.groupValues[4]
                 .takeIf(String::isNotEmpty)
                 ?.split('.')
