@@ -50,6 +50,32 @@ class SimklProjectionsTest {
     }
 
     @Test
+    fun `shows in plan to watch use plantowatch_at timestamp and are ordered by newest first`() {
+        val olderShow = entry(
+            SimklMediaType.SHOWS,
+            SimklListStatus.PLAN_TO_WATCH,
+            1001,
+            "tt1001"
+        ).copy(planToWatchAt = "2024-01-01 10:00:00")
+
+        val newerShow = entry(
+            SimklMediaType.SHOWS,
+            SimklListStatus.PLAN_TO_WATCH,
+            1002,
+            "tt1002"
+        ).copy(planToWatchAt = "2026-10-27 15:30:00")
+
+        val projection = SimklSyncSnapshot(entries = listOf(olderShow, newerShow))
+            .toSimklLibraryProjection()
+
+        val planToWatchList = projection.itemsByStatus["simkl:status:plantowatch"].orEmpty()
+        assertEquals(2, planToWatchList.size)
+        assertEquals("tt1002", planToWatchList[0].id)
+        assertEquals("tt1001", planToWatchList[1].id)
+        assertTrue(planToWatchList[0].listedAt > planToWatchList[1].listedAt)
+    }
+
+    @Test
     fun `watched projection includes movie exact episodes and completed series marker`() {
         val movie = entry(
             SimklMediaType.MOVIES,

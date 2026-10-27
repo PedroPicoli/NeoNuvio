@@ -60,8 +60,8 @@ Confira as funcionalidades e melhorias que tornam o **NeoNuvio** a melhor experi
 ### 📅 Calendário de lançamentos
 * Ao colocar séries e filmes na lista de assistir mais tarde, ou apenas ao assistir seus episódios, no calendário aparecerá os próximos dias de lançamentos de episódios e estreias de filmes.
 
-### 📲 Integração total com SimKl
-Ao logar com sua conta do SimKl:
+### 📲 Integração total com SimKl, Traktv & MDBList
+Ao logar com sua conta do SimKl/Traktv/MDBList:
 * **Sincronia de Histórico:** Seus conteúdos assistidos vão para a seção de assistidos (ficando com o check) na parte da biblioteca.
 * **Assistir mais tarde:** O conteúdo entra automaticamente para a lista de assistir mais tarde na biblioteca.
 * **Dar notas:** As notas que você der para os filmes e séries (função nova implementada ao acessar detalhes de um conteúdo, liberada após assistir o conteúdo completo) serão salvas no SimKl e vice versa, para que possa acompanhar suas notas em ambos os apps.

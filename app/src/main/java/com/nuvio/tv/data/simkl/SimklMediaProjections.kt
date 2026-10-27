@@ -29,6 +29,7 @@ fun SimklSyncSnapshot.toSimklWatchedProjection(): SimklWatchedProjection {
         val title = media.title?.takeIf(String::isNotBlank) ?: contentId
         val watchedAt = parseSimklUtcEpochMs(entry.lastWatchedAt)
             ?: parseSimklUtcEpochMs(entry.lastWatched)
+            ?: parseSimklUtcEpochMs(entry.planToWatchAt)
             ?: parseSimklUtcEpochMs(entry.addedToWatchlistAt)
             ?: if (entry.status == SimklListStatus.COMPLETED || !entry.lastWatchedAt.isNullOrBlank() || !entry.lastWatched.isNullOrBlank()) 1L else 0L
 

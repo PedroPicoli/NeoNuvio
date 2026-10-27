@@ -38,7 +38,12 @@ private fun SimklSyncSnapshot.withListMutations(
             animeType = mutation.animeType ?: existing?.animeType,
             localPosterUrl = existing?.localPosterUrl
                 ?: mutation.request.posterUrl?.trim()?.takeIf(String::isNotBlank),
-            addedToWatchlistAt = existing?.addedToWatchlistAt ?: committedAt,
+            addedToWatchlistAt = if (mutation.status == SimklListStatus.PLAN_TO_WATCH) committedAt else (existing?.addedToWatchlistAt ?: committedAt),
+            planToWatchAt = if (mutation.status == SimklListStatus.PLAN_TO_WATCH) committedAt else (existing?.planToWatchAt ?: committedAt),
+            watchingAt = if (mutation.status == SimklListStatus.WATCHING) committedAt else existing?.watchingAt,
+            completedAt = if (mutation.status == SimklListStatus.COMPLETED) committedAt else existing?.completedAt,
+            holdAt = if (mutation.status == SimklListStatus.ON_HOLD) committedAt else existing?.holdAt,
+            droppedAt = if (mutation.status == SimklListStatus.DROPPED) committedAt else existing?.droppedAt,
             status = mutation.status,
             show = mergedMedia.takeIf { mediaType != SimklMediaType.MOVIES },
             movie = mergedMedia.takeIf { mediaType == SimklMediaType.MOVIES }

@@ -1246,7 +1246,11 @@ class LibraryViewModel @Inject constructor(
             movies.filter { entry -> entry.isInWatchlistKeys() }
         } else {
             movies.filter { entry -> entry.isInWatchlistKeys() || !isWatchedMovie(entry.id) }
-        }
+        }.sortedWith(
+            compareByDescending<LibraryEntry> { it.listedAt }
+                .thenBy(String.CASE_INSENSITIVE_ORDER) { it.name.ifBlank { it.id } }
+                .thenBy { it.id }
+        )
 
         // 2. Minha lista de séries (planejo assistir / watchlist / não totalmente assistidas - ignorando dropped e on hold)
         val series = allItems.filter { !it.type.equals("movie", ignoreCase = true) && !isDroppedOrOnHold(it) }
@@ -1254,7 +1258,11 @@ class LibraryViewModel @Inject constructor(
             series.filter { entry -> entry.isInWatchlistKeys() }
         } else {
             series.filter { entry -> entry.isInWatchlistKeys() || !isWatchedSeries(entry.id) }
-        }
+        }.sortedWith(
+            compareByDescending<LibraryEntry> { it.listedAt }
+                .thenBy(String.CASE_INSENSITIVE_ORDER) { it.name.ifBlank { it.id } }
+                .thenBy { it.id }
+        )
 
         // 3. Assistir novamente (conteúdos já assistidos pelo usuário - ignorando dropped e on hold)
         val rewatchItems = allItems.filter { entry ->
@@ -1264,7 +1272,11 @@ class LibraryViewModel @Inject constructor(
                 (isMovie && isWatchedMovie(entry.id)) ||
                 (!isMovie && isWatchedSeries(entry.id)) ||
                 entry.listKeys.any { it.contains("completed", ignoreCase = true) || it.contains("history", ignoreCase = true) }
-        }.sortedByDescending { it.listedAt }
+        }.sortedWith(
+            compareByDescending<LibraryEntry> { it.listedAt }
+                .thenBy(String.CASE_INSENSITIVE_ORDER) { it.name.ifBlank { it.id } }
+                .thenBy { it.id }
+        )
 
         // 4. Séries e filmes que você curtiu (nota >= 8 no Simkl - ignorando dropped e on hold)
         val likedItems = allItems.filter { entry ->
@@ -1272,19 +1284,18 @@ class LibraryViewModel @Inject constructor(
             val rating = simklSyncRepository.getEffectiveUserRating(entry.id)
                 ?: entry.imdbId?.let { simklSyncRepository.getEffectiveUserRating(it) }
             rating != null && rating >= 8
-        }.sortedByDescending { entry ->
-            simklSyncRepository.getEffectiveUserRating(entry.id)
-                ?: entry.imdbId?.let { simklSyncRepository.getEffectiveUserRating(it) } ?: 0
-        }
-
-        val recentGenres = rewatchItems.take(10).flatMap { it.genres }.toSet()
-
-        val rankedMovies = NeoLibraryRecommendationEngine.rank(watchlistMovies, recentGenres).withCustomPosterUrls(pattern)
-        val rankedSeries = NeoLibraryRecommendationEngine.rank(watchlistSeries, recentGenres).withCustomPosterUrls(pattern)
+        }.sortedWith(
+            compareByDescending<LibraryEntry> { entry ->
+                simklSyncRepository.getEffectiveUserRating(entry.id)
+                    ?: entry.imdbId?.let { simklSyncRepository.getEffectiveUserRating(it) } ?: 0
+            }.thenByDescending { it.listedAt }
+                .thenBy(String.CASE_INSENSITIVE_ORDER) { it.name.ifBlank { it.id } }
+                .thenBy { it.id }
+        )
 
         return copy(
-            neoWatchlistMovies = rankedMovies,
-            neoWatchlistSeries = rankedSeries,
+            neoWatchlistMovies = watchlistMovies.withCustomPosterUrls(pattern),
+            neoWatchlistSeries = watchlistSeries.withCustomPosterUrls(pattern),
             neoRewatchItems = rewatchItems.withCustomPosterUrls(pattern),
             neoLikedItems = likedItems.withCustomPosterUrls(pattern)
         )

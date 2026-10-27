@@ -127,10 +127,27 @@ private fun SimklLibraryEntry.toLibraryEntry(
         genres = emptyList(),
         addonBaseUrl = null,
         listKeys = setOf(listKey),
-        listedAt = parseSimklUtcEpochMs(addedToWatchlistAt)
-            ?: parseSimklUtcEpochMs(lastWatchedAt)
-            ?: lastSyncedAtEpochMs
-            ?: 0L,
+        listedAt = run {
+            val statusTimestamp = when (status) {
+                SimklListStatus.PLAN_TO_WATCH -> parseSimklUtcEpochMs(planToWatchAt) ?: parseSimklUtcEpochMs(addedToWatchlistAt)
+                SimklListStatus.WATCHING -> parseSimklUtcEpochMs(watchingAt) ?: parseSimklUtcEpochMs(lastWatchedAt) ?: parseSimklUtcEpochMs(lastWatched)
+                SimklListStatus.COMPLETED -> parseSimklUtcEpochMs(completedAt) ?: parseSimklUtcEpochMs(lastWatchedAt) ?: parseSimklUtcEpochMs(lastWatched)
+                SimklListStatus.ON_HOLD -> parseSimklUtcEpochMs(holdAt)
+                SimklListStatus.DROPPED -> parseSimklUtcEpochMs(droppedAt)
+                null -> null
+            }
+            statusTimestamp
+                ?: parseSimklUtcEpochMs(planToWatchAt)
+                ?: parseSimklUtcEpochMs(addedToWatchlistAt)
+                ?: parseSimklUtcEpochMs(lastWatchedAt)
+                ?: parseSimklUtcEpochMs(lastWatched)
+                ?: parseSimklUtcEpochMs(watchingAt)
+                ?: parseSimklUtcEpochMs(completedAt)
+                ?: parseSimklUtcEpochMs(updatedAt)
+                ?: parseSimklUtcEpochMs(createdAt)
+                ?: lastSyncedAtEpochMs
+                ?: 0L
+        },
         imdbId = media.ids.idValue("imdb"),
         tmdbId = media.ids.idValue("tmdb")?.toIntOrNull(),
         simklId = simklId,

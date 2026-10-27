@@ -60,8 +60,8 @@ Discover the features and enhancements that make **NeoNuvio** the ultimate media
 ### 📅 Release Calendar
 * By adding series and movies to your watch later list, or simply watching their episodes, the calendar displays upcoming episode release dates and movie premieres.
 
-### 📲 Full Simkl Integration
-When logging in with your Simkl account:
+### 📲 Full Simkl, Traktv & MDBList Integration
+When logging in with your Simkl/Trakt/MDBList account:
 * **Watch History Sync:** Your watched items are automatically marked as completed in your library.
 * **Watch Later:** Content automatically syncs to your library's watch later list.
 * **Ratings Sync:** Ratings you give to movies and series (a newly implemented feature accessible in the content details after fully watching) are saved to Simkl and vice versa, keeping your ratings in sync across platforms.

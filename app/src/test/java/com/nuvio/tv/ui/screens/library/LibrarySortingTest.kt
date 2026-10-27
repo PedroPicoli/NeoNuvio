@@ -242,4 +242,34 @@ class LibrarySortingTest {
         assertEquals(listOf("Zulu", "Alpha", "Bravo"), f.viewModel.uiState.value.visibleItems.map { it.name })
     }
 
+    @Test
+    fun `neo watchlist series and movies are ordered by listedAt descending`() = runTest {
+        val f = LibraryViewModelTestFixture()
+        fun createEntry(id: String, type: String, name: String, listedAt: Long) = com.nuvio.tv.domain.model.LibraryEntry(
+            id = id,
+            type = type,
+            name = name,
+            poster = null,
+            background = null,
+            logo = null,
+            description = null,
+            releaseInfo = null,
+            imdbRating = null,
+            genres = emptyList(),
+            addonBaseUrl = null,
+            listKeys = setOf("simkl:status:plantowatch"),
+            listedAt = listedAt
+        )
+
+        val seriesOld = createEntry("series:1", "series", "Old Series", 1_000_000L)
+        val seriesNew = createEntry("series:2", "series", "New Series", 2_000_000L)
+        val movieOld = createEntry("movie:1", "movie", "Old Movie", 1_500_000L)
+        val movieNew = createEntry("movie:2", "movie", "New Movie", 2_500_000L)
+
+        f.items.value = listOf(seriesOld, seriesNew, movieOld, movieNew)
+        runCurrent()
+        val state = f.viewModel.uiState.value
+        assertEquals(listOf("New Series", "Old Series"), state.neoWatchlistSeries.map { it.name })
+        assertEquals(listOf("New Movie", "Old Movie"), state.neoWatchlistMovies.map { it.name })
+    }
 }
