@@ -2318,4 +2318,13 @@
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">இந்த வீடியோவிற்கு பொருந்தாத டப்பிங்</string>
+    <string name="autoplay_live_tv">நேரலை டிவியை தானாக இயக்கு</string>
+    <string name="autoplay_live_tv_sub">நேரலை டிவி சேனலைத் தேர்ந்தெடுக்கும் போது விவரங்கள் அல்லது மூலத் தேர்வுத் திரையைத் தவிர்த்து நேரடியாக இயக்கவும்.</string>
+
+    <string name="trakt_configure_credentials">API விசைகளை உள்ளமைக்கவும்</string>
+    <string name="trakt_configure_credentials_desc">உங்கள் Trakt API Client ID மற்றும் Client Secret ஐ உள்ளிடவும் (trakt.tv/oauth/applications இலிருந்து பெறப்பட்டது).</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">சேமித்து இணைக்கவும்</string>
+    <string name="trakt_missing_credentials_friendly">Trakt உடன் இணைக்க API விசைகளை அமைக்கவும் அல்லது local.properties இல் குறிப்பிடவும்.</string>
 </resources>

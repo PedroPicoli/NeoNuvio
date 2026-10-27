@@ -1,5 +1,5 @@
 ﻿<resources>
-    <string name="app_name">Nuvio</string>
+    <string name="app_name">NeoNuvio</string>
     <string name="tv_channel_continue_watching">Pokračovať v sledovaní</string>
     <string name="type_movie">Film</string>
     <string name="type_movies">Filmy</string>
@@ -3454,4 +3454,13 @@
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">Nekompatibilný dabing pre toto video</string>
+    <string name="autoplay_live_tv">Automaticky prehrávať živé vysielanie</string>
+    <string name="autoplay_live_tv_sub">Pri výbere kanála živého vysielania spustí prehrávanie priamo bez obrazovky s podrobnosťami alebo výberom zdrojov.</string>
+
+    <string name="trakt_configure_credentials">Konfigurovať Kľúče API</string>
+    <string name="trakt_configure_credentials_desc">Zadajte svoj Client ID a Client Secret pre Trakt API (získané na trakt.tv/oauth/applications).</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">Uložiť a Pripojiť</string>
+    <string name="trakt_missing_credentials_friendly">Pre pripojenie k Trakt nakonfigurujte kľúče API alebo ich zadajte do local.properties.</string>
 </resources>

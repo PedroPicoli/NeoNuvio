@@ -585,6 +585,10 @@ class PlaybackSettingsViewModel @Inject constructor(
         playerSettingsDataStore.setNextEpisodeThresholdMinutesBeforeEnd(minutes)
     }
 
+    suspend fun setAutoPlayLiveTv(enabled: Boolean) {
+        playerSettingsDataStore.setAutoPlayLiveTv(enabled)
+    }
+
     suspend fun setStreamReuseLastLinkEnabled(enabled: Boolean) {
         playerSettingsDataStore.setStreamReuseLastLinkEnabled(enabled)
     }

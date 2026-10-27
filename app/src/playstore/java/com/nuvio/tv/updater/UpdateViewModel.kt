@@ -7,9 +7,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+data class PlaystoreAppUpdate(
+    val tag: String = "",
+    val title: String = "",
+    val version: String = ""
+)
+
 data class UpdateUiState(
     val isChecking: Boolean = false,
-    val update: Any? = null,
+    val update: PlaystoreAppUpdate? = null,
+    val latestRelease: PlaystoreAppUpdate? = null,
     val isUpdateAvailable: Boolean = false,
     val isDownloading: Boolean = false,
     val downloadProgress: Float? = null,
@@ -31,7 +38,11 @@ class UpdateViewModel @Inject constructor() : ViewModel() {
     private val _uiState = MutableStateFlow(UpdateUiState())
     val uiState: StateFlow<UpdateUiState> = _uiState.asStateFlow()
 
-    fun checkForUpdates(force: Boolean, showNoUpdateFeedback: Boolean) = Unit
+    fun checkForUpdates(
+        force: Boolean = false,
+        showNoUpdateFeedback: Boolean = false,
+        ignoreBannerSetting: Boolean = false
+    ) = Unit
 
     fun dismissBanner() = Unit
 

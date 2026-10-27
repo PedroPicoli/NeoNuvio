@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.navigation.NavHostController
@@ -79,6 +80,12 @@ fun NuvioNavHost(
     }
 }
 
+@dagger.hilt.EntryPoint
+@dagger.hilt.InstallIn(dagger.hilt.components.SingletonComponent::class)
+internal interface NavHostPlayerSettingsEntryPoint {
+    fun playerSettingsDataStore(): com.nuvio.tv.data.local.PlayerSettingsDataStore
+}
+
 @Composable
 private fun PlaybackNavHost(
     navController: NavHostController,
@@ -87,6 +94,68 @@ private fun PlaybackNavHost(
 ) {
     val playbackAvailability = LocalPlaybackAvailability.current
     val context = LocalContext.current
+    val playerSettingsDataStore = remember {
+        dagger.hilt.android.EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            NavHostPlayerSettingsEntryPoint::class.java
+        ).playerSettingsDataStore()
+    }
+    val playerSettings by playerSettingsDataStore.playerSettings.collectAsStateWithLifecycle(
+        initialValue = com.nuvio.tv.data.local.PlayerSettings()
+    )
+
+    fun handleDetailNavigation(
+        itemId: String,
+        itemType: String,
+        addonBaseUrl: String?,
+        heroBackdropUrl: String? = null,
+        season: Int? = null,
+        episode: Int? = null,
+        returnToHomeOnBack: Boolean = false
+    ) {
+        val liveItem = com.nuvio.tv.core.util.LiveChannelClickState.consume(itemId)
+        val isLive = com.nuvio.tv.core.util.LiveTvUtils.isLiveTv(
+            id = itemId,
+            contentType = itemType,
+            season = season,
+            episode = episode
+        ) || (liveItem != null && com.nuvio.tv.core.util.LiveTvUtils.isLiveTv(liveItem))
+
+        if (isLive && playerSettings.autoPlayLiveTv) {
+            val title = liveItem?.name.orEmpty()
+            val poster = liveItem?.poster
+            val backdrop = heroBackdropUrl ?: liveItem?.backdropUrl
+            val logo = liveItem?.logo
+            val genres = liveItem?.genres?.joinToString(" • ")
+            navController.navigate(
+                Screen.Stream.createRoute(
+                    videoId = itemId,
+                    contentType = itemType,
+                    title = title,
+                    poster = poster,
+                    backdrop = backdrop,
+                    logo = logo,
+                    genres = genres,
+                    contentId = itemId,
+                    contentName = title,
+                    returnToDetailOnBack = false,
+                    returnToHomeOnBack = returnToHomeOnBack
+                )
+            )
+        } else {
+            navController.navigate(
+                Screen.Detail.createRoute(
+                    itemId = itemId,
+                    itemType = itemType,
+                    addonBaseUrl = addonBaseUrl,
+                    returnFocusSeason = season,
+                    returnFocusEpisode = episode,
+                    returnToHomeOnBack = returnToHomeOnBack,
+                    heroBackdropUrl = heroBackdropUrl
+                )
+            )
+        }
+    }
     fun isStreamToPlayer(from: String, to: String): Boolean {
         return from.startsWith("stream/") && to.startsWith("player/")
     }
@@ -247,13 +316,11 @@ private fun PlaybackNavHost(
             HomeScreen(
                 onNavigateToDetail = { itemId, itemType, addonBaseUrl ->
                     val heroBackdrop = HeroBackdropState.consumeAndClear()
-                    navController.navigate(
-                        Screen.Detail.createRoute(
-                            itemId = itemId,
-                            itemType = itemType,
-                            addonBaseUrl = addonBaseUrl,
-                            heroBackdropUrl = heroBackdrop
-                        )
+                    handleDetailNavigation(
+                        itemId = itemId,
+                        itemType = itemType,
+                        addonBaseUrl = addonBaseUrl,
+                        heroBackdropUrl = heroBackdrop
                     )
                 },
                 onContinueWatchingClick = onContinueWatchingClick@{ item ->
@@ -334,7 +401,7 @@ private fun PlaybackNavHost(
         ) { backStackEntry ->
             val detailArgs = backStackEntry.arguments
             if (ServerCatalog.isCollection(detailArgs?.getString("itemId"), detailArgs?.getString("itemType"))) {
-                ServerCatalogDestination(navController, backStackEntry)
+                ServerCatalogDestination(navController, backStackEntry, onNavigateToDetail = { id, type, addon -> handleDetailNavigation(id, type, addon) })
                 return@composable
             }
             val savedState = backStackEntry.savedStateHandle
@@ -1169,13 +1236,11 @@ private fun PlaybackNavHost(
                 viewModel = searchViewModel,
                 onNavigateToDetail = { itemId, itemType, addonBaseUrl ->
                     val heroBackdrop = HeroBackdropState.consumeAndClear()
-                    navController.navigate(
-                        Screen.Detail.createRoute(
-                            itemId = itemId,
-                            itemType = itemType,
-                            addonBaseUrl = addonBaseUrl,
-                            heroBackdropUrl = heroBackdrop
-                        )
+                    handleDetailNavigation(
+                        itemId = itemId,
+                        itemType = itemType,
+                        addonBaseUrl = addonBaseUrl,
+                        heroBackdropUrl = heroBackdrop
                     )
                 },
                 onNavigateToSeeAll = { catalogId, addonId, type ->
@@ -1192,13 +1257,11 @@ private fun PlaybackNavHost(
                 showBuiltInHeader = !hideBuiltInHeaders,
                 onNavigateToDetail = { itemId, itemType, addonBaseUrl ->
                     val heroBackdrop = HeroBackdropState.consumeAndClear()
-                    navController.navigate(
-                        Screen.Detail.createRoute(
-                            itemId = itemId,
-                            itemType = itemType,
-                            addonBaseUrl = addonBaseUrl,
-                            heroBackdropUrl = heroBackdrop
-                        )
+                    handleDetailNavigation(
+                        itemId = itemId,
+                        itemType = itemType,
+                        addonBaseUrl = addonBaseUrl,
+                        heroBackdropUrl = heroBackdrop
                     )
                 }
             )
@@ -1208,7 +1271,11 @@ private fun PlaybackNavHost(
             LibraryScreen(
                 showBuiltInHeader = !hideBuiltInHeaders,
                 onNavigateToDetail = { itemId, itemType, addonBaseUrl ->
-                    navController.navigate(Screen.Detail.createRoute(itemId, itemType, addonBaseUrl))
+                    handleDetailNavigation(
+                        itemId = itemId,
+                        itemType = itemType,
+                        addonBaseUrl = addonBaseUrl
+                    )
                 },
                 onNavigateToCatalogSeeAll = { catalogId, addonId, type ->
                     navController.navigate(Screen.CatalogSeeAll.createRoute(catalogId, addonId, type))
@@ -1241,14 +1308,12 @@ private fun PlaybackNavHost(
             CalendarScreen(
                 showBuiltInHeader = !hideBuiltInHeaders,
                 onNavigateToDetail = { itemId, itemType, addonBaseUrl, season, episode ->
-                    navController.navigate(
-                        Screen.Detail.createRoute(
-                            itemId = itemId,
-                            itemType = itemType,
-                            addonBaseUrl = addonBaseUrl,
-                            returnFocusSeason = season,
-                            returnFocusEpisode = episode
-                        )
+                    handleDetailNavigation(
+                        itemId = itemId,
+                        itemType = itemType,
+                        addonBaseUrl = addonBaseUrl,
+                        season = season,
+                        episode = episode
                     )
                 }
             )
@@ -1258,14 +1323,12 @@ private fun PlaybackNavHost(
             CalendarScreen(
                 showBuiltInHeader = !hideBuiltInHeaders,
                 onNavigateToDetail = { itemId, itemType, addonBaseUrl, season, episode ->
-                    navController.navigate(
-                        Screen.Detail.createRoute(
-                            itemId = itemId,
-                            itemType = itemType,
-                            addonBaseUrl = addonBaseUrl,
-                            returnFocusSeason = season,
-                            returnFocusEpisode = episode
-                        )
+                    handleDetailNavigation(
+                        itemId = itemId,
+                        itemType = itemType,
+                        addonBaseUrl = addonBaseUrl,
+                        season = season,
+                        episode = episode
                     )
                 }
             )
@@ -1411,7 +1474,12 @@ private fun PlaybackNavHost(
             com.nuvio.tv.ui.screens.collection.FolderDetailScreen(
                 onNavigateToDetail = { itemId, itemType, addonBaseUrl ->
                     val heroBackdrop = HeroBackdropState.consumeAndClear()
-                    navController.navigate(Screen.Detail.createRoute(itemId, itemType, addonBaseUrl, heroBackdropUrl = heroBackdrop))
+                    handleDetailNavigation(
+                        itemId = itemId,
+                        itemType = itemType,
+                        addonBaseUrl = addonBaseUrl,
+                        heroBackdropUrl = heroBackdrop
+                    )
                 },
                 onBack = { navController.popBackStack() }
             )
@@ -1466,7 +1534,7 @@ private fun PlaybackNavHost(
             val type = backStackEntry.arguments?.getString("type") ?: ""
             val fromSearch = backStackEntry.arguments?.getBoolean("fromSearch") ?: false
             if (ServerCatalog.isServerAddonId(addonId) && !fromSearch) {
-                ServerCatalogDestination(navController, backStackEntry)
+                ServerCatalogDestination(navController, backStackEntry, onNavigateToDetail = { id, type, addon -> handleDetailNavigation(id, type, addon) })
                 return@composable
             }
 
@@ -1498,7 +1566,11 @@ private fun PlaybackNavHost(
                 searchViewModel = searchViewModel,
                 viewModel = homeViewModel,
                 onNavigateToDetail = { itemId, itemType, addonBaseUrl ->
-                    navController.navigate(Screen.Detail.createRoute(itemId, itemType, addonBaseUrl))
+                    handleDetailNavigation(
+                        itemId = itemId,
+                        itemType = itemType,
+                        addonBaseUrl = addonBaseUrl
+                    )
                 },
                 onBackPress = { navController.popBackStack() }
             )
@@ -1518,7 +1590,11 @@ private fun PlaybackNavHost(
             CastDetailScreen(
                 onBackPress = { navController.popBackStack() },
                 onNavigateToDetail = { itemId, itemType, addonBaseUrl ->
-                    navController.navigate(Screen.Detail.createRoute(itemId, itemType, addonBaseUrl))
+                    handleDetailNavigation(
+                        itemId = itemId,
+                        itemType = itemType,
+                        addonBaseUrl = addonBaseUrl
+                    )
                 }
             )
         }
@@ -1538,7 +1614,11 @@ private fun PlaybackNavHost(
             TmdbEntityBrowseScreen(
                 onBackPress = { navController.popBackStack() },
                 onNavigateToDetail = { itemId, itemType, addonBaseUrl ->
-                    navController.navigate(Screen.Detail.createRoute(itemId, itemType, addonBaseUrl))
+                    handleDetailNavigation(
+                        itemId = itemId,
+                        itemType = itemType,
+                        addonBaseUrl = addonBaseUrl
+                    )
                 }
             )
         }

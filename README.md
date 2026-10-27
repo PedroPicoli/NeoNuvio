@@ -21,27 +21,34 @@
     <a href="https://ko-fi.com/pedropicoli"><img src="https://img.shields.io/badge/SUPPORT-KO--FI-ff5f5f?style=flat-square&logo=kofi&logoColor=white" alt="Support on Ko-fi" /></a>
   </p>
 
-  <p><b>Downloader code: 9305323</b></p>
+  <p><b>Downloader code: 9707828</b></p>
 
 </div>
 
 ---
 
-## 🆕 What's New
+## 🆕 What's New (based on Nuvio 1.1.0 – beta 8)
 
-**NeoNuvio v1.0.0 Initial Release (Based on Nuvio 1.1.0 - beta 7):**
-
-* 🎯 **Source Memory & Priority for TV Series:** You can now pin a preferred stream source for any TV series. When advancing to the next episode, NeoNuvio automatically searches and plays that same preferred source without jumping to random streams.
-* 🎨 **All Themes & Colors 100% Unlocked:** Every visual style and theme is completely free for all users, including the new immersive color mode that adapts vibrant accents across all UI elements, from buttons to menus.
-* 🎛️ **Streamlined Player Controls:** The bottom control bar was redesigned: the default view remains clean and focused on playback, while pressing right expands advanced actions (Switch Player, Episode Selector, and Watch Party).
-* 🔄 **Integrated Smart In-App Updater:** Direct updates from NeoNuvio's GitHub repository with automatic CPU architecture detection (ARM64, ARMv7, x86, Universal), downloading and installing the APK directly on your device.
-* ☕ **Voluntary Support via Ko-fi:** Anyone who wishes to support continuous development can make a voluntary donation via Ko-fi using the QR code directly on TV.
+* Added an innovative new feature: Force Dubbing (experimental). Enable it in settings, select your target language, and foreign-language content will be automatically dubbed.
+* Fixed duplicated "change server" icon and audio/subtitles icon disappearing when switching to Libmpv.
+* Added a feature where long-pressing a content card replaces the "manage lists" button with a direct action: simply add to the list if the title isn't there yet, or remove it if it already is, keeping sync with Simkl.
+* Added an option to enable/disable chapters.
+* Resized logo and banner images for better scaling across different screens.
+* Added an option for auto-playing live TV content (skipping the details screen).
+* Fixed matching version number.
+* Fixed Trakt error.
+* Adjusted the name "NeoNuvio" across various files.
+* Updated README with better-detailed credits.
+* Updated to Nuvio beta 8, with corrected translations.
 
 ---
 
 ## ✨ Features
 
 Discover the features and enhancements that make **NeoNuvio** the ultimate media experience for TVs:
+
+### 🎯 Force Dubbing (Experimental)
+* Enable it in settings, select your target language, and foreign-language content will be dubbed automatically. Useful for users who want to watch high-quality content (often in an unfamiliar language) but prefer to enjoy it in their native tongue.
 
 ### 🎬 Smart Series & Stream Source Management
 * **Preferred Source Selection:** Pin your preferred source (e.g., your favorite server) with the menu button.
@@ -97,6 +104,14 @@ NeoNuvio is built using modern Android TV technologies:
 * **Playback:** Jetpack Media3 (ExoPlayer) with FFmpeg extensions and advanced decoders
 * **Architecture:** Clean Architecture with Jetpack Hilt (dependency injection) and Coroutines/Flow
 * **Video Processing:** Native libdovi for Dolby Vision metadata manipulation
+
+---
+
+## 📖 Credits
+NeoNuvio includes features directly adapted from existing Nuvio forks. The forks used include (full credits available inside NeoNuvio):
+
+* **[NuvioTV](https://github.com/NuvioMedia/NuvioTV)** (For the original project)
+* **[BetterNuvio](https://github.com/alenkpedro/better-nuvio)** (Thanks to my compatriot and namesake, alenkpedro)
 
 ---
 

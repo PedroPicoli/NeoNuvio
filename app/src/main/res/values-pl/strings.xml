@@ -1404,7 +1404,7 @@
     <string name="genre_war_politics">Wojna i polityka</string>
     <string name="genre_western">Western</string>
 
-    <string name="app_name">Nuvio</string>
+    <string name="app_name">NeoNuvio</string>
     <string name="type_unknown">Nieznany</string>
 
     <string name="cd_play">Odtwórz</string>
@@ -3525,4 +3525,13 @@
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">Niekompatybilny dubbing dla tego wideo</string>
+    <string name="autoplay_live_tv">Automatyczne odtwarzanie TV na żywo</string>
+    <string name="autoplay_live_tv_sub">Po wybraniu kanału TV na żywo uruchamia odtwarzanie bezpośrednio, pomijając szczegóły i wybór źródeł.</string>
+
+    <string name="trakt_configure_credentials">Skonfiguruj Klucze API</string>
+    <string name="trakt_configure_credentials_desc">Wprowadź Client ID i Client Secret Trakt API (z trakt.tv/oauth/applications).</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">Zapisz i Połącz</string>
+    <string name="trakt_missing_credentials_friendly">Aby połączyć się z Trakt, skonfiguruj klucze API (Client ID i Secret) lub zdefiniuj je w local.properties.</string>
 </resources>

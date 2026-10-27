@@ -61,6 +61,15 @@ import com.nuvio.tv.core.qr.QrCodeGenerator
 import com.nuvio.tv.data.repository.TraktProgressService
 import com.nuvio.tv.data.simkl.SIMKL_AUTOMATIC_REFRESH_INTERVAL_MINUTES
 import com.nuvio.tv.data.simkl.SimklConnectionMode
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.input.ImeAction
+import androidx.tv.material3.Card
+import androidx.tv.material3.CardDefaults
+import androidx.tv.material3.Border
 import com.nuvio.tv.ui.components.LoadingIndicator
 import com.nuvio.tv.ui.components.NuvioDialog
 import com.nuvio.tv.ui.theme.NuvioMotion
@@ -76,8 +85,20 @@ internal fun TraktAccountDialog(
     onStartConnection: () -> Unit,
     onRetryPolling: () -> Unit,
     onDisconnect: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onOpenCredentials: () -> Unit = {},
+    onSaveCredentials: (String, String) -> Unit = { _, _ -> },
+    onDismissCredentials: () -> Unit = {}
 ) {
+    if (state.showCredentialsDialog) {
+        TraktCredentialsDialog(
+            initialClientId = state.customClientId,
+            initialClientSecret = state.customClientSecret,
+            onSave = onSaveCredentials,
+            onDismiss = onDismissCredentials
+        )
+        return
+    }
     val logo = painterResource(R.drawable.trakt_logo_wordmark)
     if (state.mode == TraktConnectionMode.CONNECTED) {
         val glyph = rememberRawSvgPainter(R.raw.trakt_tv_favicon, 150.dp)
@@ -134,10 +155,11 @@ internal fun TraktAccountDialog(
                 credentialsConfigured = state.credentialsConfigured,
                 statusMessage = state.statusMessage,
                 errorMessage = state.errorMessage,
-                missingCredentialsMessage = stringResource(R.string.trakt_missing_credentials),
+                missingCredentialsMessage = stringResource(R.string.trakt_missing_credentials_friendly),
                 onStartConnection = onStartConnection,
                 onRetryPolling = onRetryPolling,
-                onDismiss = onDismiss
+                onDismiss = onDismiss,
+                onConfigureCredentials = onOpenCredentials
             )
         }
     }
@@ -287,7 +309,8 @@ internal fun TrackingDeviceAuthContent(
     onStartConnection: () -> Unit,
     onRetryPolling: () -> Unit,
     onDismiss: () -> Unit,
-    logoLabel: String? = null
+    logoLabel: String? = null,
+    onConfigureCredentials: (() -> Unit)? = null
 ) {
     TrackingProviderWordmark(logo, logoContentDescription, logoLabel)
     when {
@@ -426,7 +449,13 @@ internal fun TrackingDeviceAuthContent(
             text = stringResource(R.string.action_cancel),
             onClick = onDismiss
         )
-        if (!isLoading && userCode.isNullOrBlank()) {
+        if (!credentialsConfigured && onConfigureCredentials != null) {
+            SettingsDialogActionButton(
+                text = stringResource(R.string.trakt_configure_credentials),
+                onClick = onConfigureCredentials,
+                primary = true
+            )
+        } else if (!isLoading && userCode.isNullOrBlank()) {
             SettingsDialogActionButton(
                 text = stringResource(R.string.action_retry),
                 onClick = onStartConnection,
@@ -938,3 +967,146 @@ private const val SIMKL_WEBSITE_URL = "https://simkl.com"
 private const val SIMKL_SYNC_GUIDE_URL = "https://api.simkl.org/guides/sync"
 private val TrackingBrandButtonContent = Color(0xFF171717)
 private val TrackingBrandError = Color(0xFFFFDAD6)
+
+@Composable
+internal fun TraktCredentialsDialog(
+    initialClientId: String,
+    initialClientSecret: String,
+    onSave: (clientId: String, clientSecret: String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var clientId by rememberSaveable { mutableStateOf(initialClientId) }
+    var clientSecret by rememberSaveable { mutableStateOf(initialClientSecret) }
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
+
+    NuvioDialog(
+        onDismiss = onDismiss,
+        title = stringResource(R.string.trakt_configure_credentials),
+        subtitle = stringResource(R.string.trakt_configure_credentials_desc),
+        width = 680.dp
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(NuvioTheme.spacing.sm)
+        ) {
+            Text(
+                text = stringResource(R.string.trakt_client_id_label),
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                color = NuvioTheme.colors.TextPrimary
+            )
+            Card(
+                onClick = {},
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.colors(
+                    containerColor = NuvioTheme.colors.BackgroundElevated,
+                    focusedContainerColor = NuvioTheme.colors.BackgroundCard
+                ),
+                border = CardDefaults.border(
+                    focusedBorder = Border(
+                        border = NuvioTheme.focusRing.border(NuvioTheme.spacing.xxs),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                ),
+                shape = CardDefaults.shape(RoundedCornerShape(10.dp)),
+                scale = CardDefaults.scale(focusedScale = 1f)
+            ) {
+                Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = NuvioTheme.spacing.md)) {
+                    BasicTextField(
+                        value = clientId,
+                        onValueChange = { clientId = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(
+                            color = NuvioTheme.colors.TextPrimary
+                        ),
+                        cursorBrush = SolidColor(NuvioTheme.colors.Primary),
+                        decorationBox = { inner ->
+                            if (clientId.isBlank()) {
+                                Text(
+                                    text = "Client ID...",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = NuvioTheme.colors.TextTertiary
+                                )
+                            }
+                            inner()
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(NuvioTheme.spacing.xs))
+
+            Text(
+                text = stringResource(R.string.trakt_client_secret_label),
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                color = NuvioTheme.colors.TextPrimary
+            )
+            Card(
+                onClick = {},
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.colors(
+                    containerColor = NuvioTheme.colors.BackgroundElevated,
+                    focusedContainerColor = NuvioTheme.colors.BackgroundCard
+                ),
+                border = CardDefaults.border(
+                    focusedBorder = Border(
+                        border = NuvioTheme.focusRing.border(NuvioTheme.spacing.xxs),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                ),
+                shape = CardDefaults.shape(RoundedCornerShape(10.dp)),
+                scale = CardDefaults.scale(focusedScale = 1f)
+            ) {
+                Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = NuvioTheme.spacing.md)) {
+                    BasicTextField(
+                        value = clientSecret,
+                        onValueChange = { clientSecret = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(
+                            color = NuvioTheme.colors.TextPrimary
+                        ),
+                        cursorBrush = SolidColor(NuvioTheme.colors.Primary),
+                        decorationBox = { inner ->
+                            if (clientSecret.isBlank()) {
+                                Text(
+                                    text = "Client Secret...",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = NuvioTheme.colors.TextTertiary
+                                )
+                            }
+                            inner()
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(NuvioTheme.spacing.sm))
+
+            SettingsDialogActionRow(horizontalAlignment = Alignment.End) {
+                SettingsDialogActionButton(
+                    text = stringResource(R.string.action_cancel),
+                    onClick = onDismiss
+                )
+                SettingsDialogActionButton(
+                    text = stringResource(R.string.trakt_save_and_connect),
+                    onClick = {
+                        if (clientId.isNotBlank() && clientSecret.isNotBlank()) {
+                            onSave(clientId.trim(), clientSecret.trim())
+                        }
+                    },
+                    primary = true,
+                    enabled = clientId.isNotBlank() && clientSecret.isNotBlank()
+                )
+            }
+        }
+    }
+}

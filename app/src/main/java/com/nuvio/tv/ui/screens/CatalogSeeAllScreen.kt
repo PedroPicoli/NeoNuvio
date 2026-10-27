@@ -292,6 +292,9 @@ fun CatalogSeeAllScreen(
                             },
                             onClick = {
                                 focusedItemKey = itemFocusKey
+                                if (com.nuvio.tv.core.util.LiveTvUtils.isLiveTv(item)) {
+                                    com.nuvio.tv.core.util.LiveChannelClickState.lastClickedItem = item
+                                }
                                 onNavigateToDetail(
                                     item.id,
                                     item.apiType,

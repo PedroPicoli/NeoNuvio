@@ -368,6 +368,7 @@ private fun buildCompletedMovieProgress(item: MetaPreview): WatchProgress {
 }
 
 fun HomeViewModel.togglePosterSeriesWatched(item: MetaPreview) {
+    if (com.nuvio.tv.core.util.LiveTvUtils.isLiveTv(item)) return
     val isSeries = item.apiType.equals("series", ignoreCase = true) ||
         item.apiType.equals("tv", ignoreCase = true)
     if (!isSeries) return

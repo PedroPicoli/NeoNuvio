@@ -308,6 +308,10 @@ fun LibraryScreen(
                 viewModel.prefetchMetaOnFocus(item.id, item.type)
             },
             onItemClick = { item ->
+                val preview = item.toMetaPreview()
+                if (com.nuvio.tv.core.util.LiveTvUtils.isLiveTv(preview)) {
+                    com.nuvio.tv.core.util.LiveChannelClickState.lastClickedItem = preview
+                }
                 val backdrop = viewModel.getCachedBackdrop(item.id, item.type)
                 HeroBackdropState.update(backdrop)
                 onNavigateToDetail(item.id, item.type, item.addonBaseUrl)
@@ -519,6 +523,10 @@ fun LibraryScreen(
                     },
                     onClick = {
                         lastFocusedPosterKey = focusKey
+                        val preview = item.toMetaPreview()
+                        if (com.nuvio.tv.core.util.LiveTvUtils.isLiveTv(preview)) {
+                            com.nuvio.tv.core.util.LiveChannelClickState.lastClickedItem = preview
+                        }
                         val backdrop = viewModel.getCachedBackdrop(item.id, item.type)
                         HeroBackdropState.update(backdrop)
                         onNavigateToDetail(item.id, item.type, item.addonBaseUrl)

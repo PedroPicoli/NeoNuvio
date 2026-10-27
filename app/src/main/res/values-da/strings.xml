@@ -2759,4 +2759,13 @@
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">Inkompatibel synkronisering til denne video</string>
+    <string name="autoplay_live_tv">Afspil Live TV automatisk</string>
+    <string name="autoplay_live_tv_sub">Afspiller automatisk live TV-kanaler ved markering uden at åbne detalje- eller kildevalgsskærmen.</string>
+
+    <string name="trakt_configure_credentials">Konfigurer API-nøgler</string>
+    <string name="trakt_configure_credentials_desc">Indtast dit Trakt API Client ID og Client Secret (hentet fra trakt.tv/oauth/applications).</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">Gem og Forbind</string>
+    <string name="trakt_missing_credentials_friendly">For at forbinde til Trakt skal du konfigurere dine API-nøgler eller angive dem i local.properties.</string>
 </resources>

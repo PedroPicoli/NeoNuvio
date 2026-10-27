@@ -50,7 +50,10 @@ internal fun UpdateChannelSettings(
 
     val updateSubtitle = when {
         state.isChecking -> stringResource(R.string.update_checking)
-        state.isUpdateAvailable && state.update != null -> stringResource(R.string.update_available_title, state.update?.tag.orEmpty())
+        state.isUpdateAvailable && state.update != null -> stringResource(
+            R.string.update_available_title,
+            state.update?.version?.ifBlank { state.update?.tag }.orEmpty()
+        )
         else -> stringResource(R.string.about_check_updates_subtitle)
     }
 
@@ -94,7 +97,7 @@ internal fun UpdateChannelSettings(
 
     if (showConfirmUpdateDialog || state.isDownloading) {
         val update = state.update
-        val updateTag = update?.tag ?: ""
+        val updateTag = update?.version?.ifBlank { update.tag } ?: ""
         com.nuvio.tv.ui.components.NuvioDialog(
             onDismiss = {
                 if (!state.isDownloading) showConfirmUpdateDialog = false

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Nuvio</string>
+    <string name="app_name">NeoNuvio</string>
     <string name="tv_channel_continue_watching">Nastavi gledati</string>
     <string name="type_movie">Film</string>
     <string name="type_movies">Filmovi</string>
@@ -3359,4 +3359,13 @@
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">Nekompatibilna sinkronizacija za ovaj video</string>
+    <string name="autoplay_live_tv">Automatska reprodukcija TV-a uživo</string>
+    <string name="autoplay_live_tv_sub">Prilikom odabira TV kanala uživo, pokreće reprodukciju izravno bez otvaranja detalja ili odabira izvora.</string>
+
+    <string name="trakt_configure_credentials">Konfiguriraj API Ključeve</string>
+    <string name="trakt_configure_credentials_desc">Unesite Trakt API Client ID i Client Secret (preuzeto s trakt.tv/oauth/applications).</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">Spremi i Poveži</string>
+    <string name="trakt_missing_credentials_friendly">Za povezivanje s Traktom konfigurirajte API ključeve ili ih postavite u local.properties.</string>
 </resources>

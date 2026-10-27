@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Nuvio</string>
+    <string name="app_name">NeoNuvio</string>
     <string name="tv_channel_continue_watching">দেখা চালিয়ে যান</string>
     <string name="type_movie">মুভি</string>
     <string name="type_movies">সিনেমা</string>
@@ -3177,4 +3177,13 @@
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">এই ভিডিওর জন্য অসঙ্গতিপূর্ণ ডাবিং</string>
+    <string name="autoplay_live_tv">লাইভ টিভি স্বয়ংক্রিয় চালান</string>
+    <string name="autoplay_live_tv_sub">লাইভ টিভি চ্যানেল নির্বাচন করার সময় বিস্তারিত বা উৎস নির্বাচনের স্ক্রিন এড়িয়ে সরাসরি চালান।</string>
+
+    <string name="trakt_configure_credentials">API কী কনফিগার করুন</string>
+    <string name="trakt_configure_credentials_desc">আপনার Trakt API Client ID এবং Client Secret লিখুন (trakt.tv/oauth/applications থেকে প্রাপ্ত)।</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">সংরক্ষণ ও সংযোগ করুন</string>
+    <string name="trakt_missing_credentials_friendly">Trakt-এ সংযোগ করতে API কী কনফিগার করুন অথবা local.properties-এ সেট করুন।</string>
 </resources>

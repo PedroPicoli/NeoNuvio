@@ -11,6 +11,14 @@ import androidx.activity.compose.BackHandler
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.nuvio.tv.updater.UpdateViewModel
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.LaunchedEffect
+import com.nuvio.tv.updater.VersionUtils
+
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.BringIntoViewSpec
 import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
@@ -81,6 +89,10 @@ fun AboutSettingsContent(
         hiltViewModel(context)
     } else null
     val updateState = updateViewModel?.uiState?.collectAsStateWithLifecycle()?.value
+
+    LaunchedEffect(Unit) {
+        updateViewModel?.checkForUpdates(force = false, showNoUpdateFeedback = false, ignoreBannerSetting = true)
+    }
     val aboutScrollState = rememberScrollState()
     var firstRowFocused by remember { mutableStateOf(false) }
     val firstRowModifier = Modifier.onFocusChanged { firstRowFocused = it.isFocused }
@@ -139,22 +151,31 @@ fun AboutSettingsContent(
                                 textAlign = TextAlign.Center
                             )
 
-                            val versionStatus = when {
-                                updateState?.isUpdateAvailable == true && updateState.update != null -> {
-                                    stringResource(R.string.about_new_version_github, updateState.update.tag)
-                                }
-                                updateState != null && !updateState.isChecking && updateState.update == null && !updateState.isUpdateAvailable -> {
-                                    stringResource(R.string.about_latest_version)
-                                }
-                                else -> ""
+                            val currentVersion = VersionUtils.extractVersion(BuildConfig.VERSION_NAME) ?: BuildConfig.VERSION_NAME
+                            val isOutdated = updateState?.isUpdateAvailable == true
+                            val statusDotColor = if (isOutdated) {
+                                Color(0xFFFFC107) // Amarelo: desatualizado em relação à nova versão
+                            } else {
+                                Color(0xFF4CAF50) // Verde: versão mais recente disponível
                             }
 
-                            Text(
-                                text = "${stringResource(R.string.about_version, BuildConfig.VERSION_NAME)}$versionStatus",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = NuvioTheme.colors.TextSecondary,
-                                textAlign = TextAlign.Center
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.about_version, currentVersion),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = NuvioTheme.colors.TextSecondary,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(7.dp)
+                                        .background(statusDotColor, shape = CircleShape)
+                                )
+                            }
 
                             Spacer(modifier = Modifier.height(NuvioTheme.spacing.xxs))
 

@@ -254,6 +254,9 @@ internal fun DiscoverSection(
                     onLoadMore = onLoadMore,
                     onItemClick = { _, item ->
                         HeroBackdropState.update(item.backdropUrl)
+                        if (com.nuvio.tv.core.util.LiveTvUtils.isLiveTv(item)) {
+                            com.nuvio.tv.core.util.LiveChannelClickState.lastClickedItem = item
+                        }
                         onNavigateToDetail(
                             item.id,
                             item.apiType,

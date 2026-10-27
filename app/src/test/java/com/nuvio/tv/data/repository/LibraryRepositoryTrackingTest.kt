@@ -181,6 +181,25 @@ class LibraryRepositoryTrackingTest {
     }
 
     @Test
+    fun `default toggle synchronizes all authenticated tracking providers simultaneously`() = runTest {
+        val traktTab = tab("watchlist", TrackingProviderId.TRAKT)
+        val simklTab = tab("simkl:plantowatch", TrackingProviderId.SIMKL)
+        val trakt = FakeLibraryProvider(TrackingProviderId.TRAKT, traktTab, membership = emptyMap())
+        val simkl = FakeLibraryProvider(TrackingProviderId.SIMKL, simklTab, membership = emptyMap())
+        val sourceMode = MutableStateFlow(LibrarySourceMode.SIMKL)
+        val repository = repository(sourceMode, setOf(trakt, simkl))
+
+        val item = LibraryEntryInput("tt789", "movie", "Movie")
+        val addResult = repository.toggleDefault(item)
+
+        assertFalse(addResult.requiresRemovalConfirmation)
+        assertEquals(1, trakt.applyCalls)
+        assertEquals(1, simkl.applyCalls)
+        assertEquals(mapOf("watchlist" to true), trakt.lastChanges?.desiredMembership)
+        assertEquals(mapOf("simkl:plantowatch" to true), simkl.lastChanges?.desiredMembership)
+    }
+
+    @Test
     fun `MDBList participates in membership alongside both existing providers`() = runTest {
         val tabs = listOf(tab("watchlist", TrackingProviderId.TRAKT), tab("simkl:plantowatch", TrackingProviderId.SIMKL), tab("mdblist:watchlist", TrackingProviderId.MDBLIST))
         val providers = TrackingProviderId.entries.zip(tabs).map { (id, tab) -> FakeLibraryProvider(id, tab) }

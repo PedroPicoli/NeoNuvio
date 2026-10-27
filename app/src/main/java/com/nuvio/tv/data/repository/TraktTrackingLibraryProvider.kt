@@ -51,7 +51,7 @@ class TraktTrackingLibraryProvider @Inject constructor(
     }
 
     override fun recognizesListKey(key: String): Boolean =
-        key == TraktLibraryService.WATCHLIST_KEY || key.startsWith(TraktLibraryService.PERSONAL_KEY_PREFIX)
+        key == TraktLibraryService.WATCHLIST_KEY || key == TraktLibraryService.HISTORY_KEY || key.startsWith(TraktLibraryService.PERSONAL_KEY_PREFIX)
 
     override fun observeMembership(itemId: String, itemType: String) =
         service.observeMembership(itemId, itemType)

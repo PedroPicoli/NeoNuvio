@@ -24,6 +24,7 @@ import kotlinx.coroutines.withContext
 data class UpdateUiState(
     val isChecking: Boolean = false,
     val update: AppUpdate? = null,
+    val latestRelease: AppUpdate? = null,
     val isUpdateAvailable: Boolean = false,
     val isDownloading: Boolean = false,
     val downloadProgress: Float? = null,
@@ -70,14 +71,18 @@ class UpdateViewModel @Inject constructor(
             downloadStore.clearIfInstalled()
             consumeAutoInstalledUpdate()
             syncBackgroundJobs()
-            if (enabled && !BuildConfig.IS_DEBUG_BUILD) {
+            if (enabled) {
                 checkForUpdates(force = false, showNoUpdateFeedback = false)
             }
         }
     }
 
-    fun checkForUpdates(force: Boolean, showNoUpdateFeedback: Boolean) {
-        if (!force && !_uiState.value.updateBannerEnabled) return
+    fun checkForUpdates(
+        force: Boolean = false,
+        showNoUpdateFeedback: Boolean = false,
+        ignoreBannerSetting: Boolean = false
+    ) {
+        if (!force && !ignoreBannerSetting && !_uiState.value.updateBannerEnabled) return
 
         updateCheckJob?.cancel()
         updateCheckJob = viewModelScope.launch {
@@ -98,7 +103,7 @@ class UpdateViewModel @Inject constructor(
 
             result
                 .onSuccess { update ->
-                    val remoteNewer = VersionUtils.isRemoteNewer(update.tag, BuildConfig.VERSION_NAME)
+                    val remoteNewer = VersionUtils.isRemoteNewer(update.version.ifBlank { update.tag }, BuildConfig.VERSION_NAME)
                     val downloadedFile = if (remoteNewer) downloadStore.downloadedFileFor(update) else null
                     // The release just installed carries the notes the "updated" banner can show.
                     val installedUpdate = _uiState.value.installedUpdate?.let { installed ->
@@ -119,6 +124,7 @@ class UpdateViewModel @Inject constructor(
                         state.copy(
                             isChecking = false,
                             update = update.takeIf { remoteNewer },
+                            latestRelease = update,
                             isUpdateAvailable = remoteNewer,
                             isDownloading = false,
                             downloadProgress = null,
@@ -211,7 +217,7 @@ class UpdateViewModel @Inject constructor(
         viewModelScope.launch {
             updatePreferences.setUpdateBannerEnabled(enabled)
             syncBackgroundJobs()
-            if (enabled && changed && !BuildConfig.IS_DEBUG_BUILD) {
+            if (enabled && changed) {
                 checkForUpdates(force = false, showNoUpdateFeedback = false)
             }
         }

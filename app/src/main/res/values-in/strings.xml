@@ -2506,4 +2506,13 @@
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">Sulih suara tidak kompatibel untuk video ini</string>
+    <string name="autoplay_live_tv">Putar Otomatis TV Langsung</string>
+    <string name="autoplay_live_tv_sub">Saat memilih saluran TV langsung, putar langsung tanpa membuka layar detail atau pilihan sumber.</string>
+
+    <string name="trakt_configure_credentials">Konfigurasi Kunci API</string>
+    <string name="trakt_configure_credentials_desc">Masukkan Client ID dan Client Secret Trakt API Anda (didapatkan dari trakt.tv/oauth/applications).</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">Simpan &amp; Sambungkan</string>
+    <string name="trakt_missing_credentials_friendly">Untuk terhubung ke Trakt, konfigurasikan kunci API atau tentukan di local.properties.</string>
 </resources>

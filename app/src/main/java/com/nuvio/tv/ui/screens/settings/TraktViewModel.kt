@@ -46,7 +46,10 @@ data class TraktUiState(
     val connectedStats: TraktProgressService.TraktCachedStats? = null,
     val statusMessage: String? = null,
     val errorMessage: String? = null,
-    val moreLikeThisSource: MoreLikeThisSourcePreference = TraktSettingsDataStore.DEFAULT_MORE_LIKE_THIS_SOURCE
+    val moreLikeThisSource: MoreLikeThisSourcePreference = TraktSettingsDataStore.DEFAULT_MORE_LIKE_THIS_SOURCE,
+    val showCredentialsDialog: Boolean = false,
+    val customClientId: String = "",
+    val customClientSecret: String = ""
 )
 
 @HiltViewModel
@@ -109,12 +112,48 @@ class TraktViewModel @Inject constructor(
         }
     }
 
+    fun onOpenCredentialsDialog() {
+        viewModelScope.launch {
+            val id = traktSettingsDataStore.getCustomClientIdAsync()
+            val secret = traktSettingsDataStore.getCustomClientSecretAsync()
+            _uiState.update {
+                it.copy(
+                    showCredentialsDialog = true,
+                    customClientId = id,
+                    customClientSecret = secret
+                )
+            }
+        }
+    }
+
+    fun onDismissCredentialsDialog() {
+        _uiState.update { it.copy(showCredentialsDialog = false) }
+    }
+
+    fun onSaveCredentials(clientId: String, clientSecret: String) {
+        viewModelScope.launch {
+            traktSettingsDataStore.setCustomCredentials(clientId, clientSecret)
+            val configured = traktAuthService.hasRequiredCredentials()
+            _uiState.update {
+                it.copy(
+                    showCredentialsDialog = false,
+                    credentialsConfigured = configured,
+                    errorMessage = null
+                )
+            }
+            if (configured) {
+                onConnectClick()
+            }
+        }
+    }
+
     fun onConnectClick() {
         if (!traktAuthService.hasRequiredCredentials()) {
             _uiState.update {
                 it.copy(
-                    errorMessage = context.getString(R.string.trakt_missing_credentials),
-                    credentialsConfigured = false
+                    errorMessage = context.getString(R.string.trakt_missing_credentials_friendly),
+                    credentialsConfigured = false,
+                    showCredentialsDialog = true
                 )
             }
             return

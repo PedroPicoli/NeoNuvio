@@ -410,7 +410,14 @@ fun CatalogRowSection(
                 val isPlaceholder = item.id.startsWith("__placeholder_")
                 val isNonFirstPlaceholder = isPlaceholder && index > 0
                 val onItemClickStable = remember(item.id, catalogRow.addonBaseUrl) {
-                    { if (!isPlaceholder) latestOnItemClick(item.id, item.apiType, catalogRow.addonBaseUrl) }
+                    {
+                        if (!isPlaceholder) {
+                            if (com.nuvio.tv.core.util.LiveTvUtils.isLiveTv(item)) {
+                                com.nuvio.tv.core.util.LiveChannelClickState.lastClickedItem = item
+                            }
+                            latestOnItemClick(item.id, item.apiType, catalogRow.addonBaseUrl)
+                        }
+                    }
                 }
                 val onItemLongPressStable = remember(item.id, catalogRow.addonBaseUrl) {
                     { if (!isPlaceholder) latestOnItemLongPress(item, catalogRow.addonBaseUrl) }

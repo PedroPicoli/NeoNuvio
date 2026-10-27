@@ -3092,4 +3092,13 @@
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">الدبلجة غير متوافقة مع هذا الفيديو</string>
+    <string name="autoplay_live_tv">تشغيل البث المباشر تلقائيًا</string>
+    <string name="autoplay_live_tv_sub">عند اختيار قناة بث مباشر، يتم تشغيلها مباشرة دون فتح شاشة التفاصيل أو اختيار المصادر.</string>
+
+    <string name="trakt_configure_credentials">تهيئة مفاتيح API</string>
+    <string name="trakt_configure_credentials_desc">أدخل معرف العميل والرمز السري لـ Trakt API (المستخرجة من trakt.tv/oauth/applications).</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">حفظ واتصال</string>
+    <string name="trakt_missing_credentials_friendly">للاتصال بـ Trakt، قم بتهيئة مفاتيح API الخاصة بك أو حددها في local.properties.</string>
 </resources>

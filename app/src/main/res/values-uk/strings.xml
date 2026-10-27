@@ -2793,4 +2793,13 @@
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">Несумісний дубляж для этого відео</string>
+    <string name="autoplay_live_tv">Автовідтворення прямого ефіру</string>
+    <string name="autoplay_live_tv_sub">При виборі телеканалу одразу запускає відтворення, оминаючи екрани опису та вибору джерел.</string>
+
+    <string name="trakt_configure_credentials">Налаштувати API ключі</string>
+    <string name="trakt_configure_credentials_desc">Введіть Client ID та Client Secret Trakt API (отримані на trakt.tv/oauth/applications).</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">Зберегти та підключити</string>
+    <string name="trakt_missing_credentials_friendly">Щоб підключитися до Trakt, налаштуйте API ключі (Client ID та Secret) або вкажіть їх у local.properties.</string>
 </resources>

@@ -1,5 +1,5 @@
 ﻿<resources>
-    <string name="app_name">Nuvio</string>
+    <string name="app_name">NeoNuvio</string>
     <string name="tv_channel_continue_watching">Continuer à regarder</string>
     <string name="type_movie">Film</string>
     <string name="type_movies">Films</string>
@@ -3432,4 +3432,13 @@
     <string name="force_dub_offset_current">Décalage du doublage : %s</string>
     <string name="force_dub_quick_sync_title">Préréglages de synchro rapide</string>
     <string name="force_dub_incompatible">Doublage incompatible pour cette vidéo</string>
+    <string name="autoplay_live_tv">Lecture automatique de la TV en direct</string>
+    <string name="autoplay_live_tv_sub">Lors de la sélection d\'une chaîne de TV en direct, lance directement la lecture sans passer par les détails ou le choix des sources.</string>
+
+    <string name="trakt_configure_credentials">Configurer les Clés d\'API</string>
+    <string name="trakt_configure_credentials_desc">Saisissez votre Client ID et Client Secret Trakt (obtenus sur trakt.tv/oauth/applications).</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">Enregistrer et Connecter</string>
+    <string name="trakt_missing_credentials_friendly">Pour vous connecter à Trakt, configurez vos clés d\'API (Client ID et Secret) ou définissez-les dans local.properties.</string>
 </resources>

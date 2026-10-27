@@ -3619,4 +3619,13 @@
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">Incompatible dubbing for this video</string>
+    <string name="autoplay_live_tv">Auto-play Live TV</string>
+    <string name="autoplay_live_tv_sub">Automatically plays live TV channels upon selection, bypassing details and stream selection screens.</string>
+
+    <string name="trakt_configure_credentials">Configure API Keys</string>
+    <string name="trakt_configure_credentials_desc">Enter your Trakt API Client ID and Client Secret (obtained from trakt.tv/oauth/applications).</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">Save &amp; Connect</string>
+    <string name="trakt_missing_credentials_friendly">To connect Trakt, configure your API keys (Client ID and Secret) or set them in local.properties.</string>
 </resources>

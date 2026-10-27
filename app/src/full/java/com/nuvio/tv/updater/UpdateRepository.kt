@@ -64,14 +64,20 @@ class UpdateRepository @Inject constructor(
                 ?: dto.name?.takeIf { it.isNotBlank() }
                 ?: error("Release has no tag/name")
 
+            val title = dto.name?.takeIf { it.isNotBlank() } ?: tag
+            val cleanVersion = VersionUtils.extractVersion(tag)
+                ?: VersionUtils.extractVersion(title)
+                ?: VersionUtils.normalize(tag)
+
             AppUpdate(
                 tag = tag,
-                title = dto.name?.takeIf { it.isNotBlank() } ?: tag,
+                title = title,
                 notes = dto.body.orEmpty(),
                 releaseUrl = dto.htmlUrl,
                 assetName = asset.name,
                 assetUrl = asset.browserDownloadUrl,
-                assetSizeBytes = asset.size
+                assetSizeBytes = asset.size,
+                version = cleanVersion
             )
         }
     }

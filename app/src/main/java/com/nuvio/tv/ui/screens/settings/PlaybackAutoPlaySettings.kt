@@ -91,6 +91,13 @@ internal fun PlaybackStreamSelectionSection(
         onClick = { onOpenDialog(PlaybackDialog.STREAM_AUTO_PLAY_MODE) }
     )
 
+    SettingsToggleRow(
+        title = stringResource(R.string.autoplay_live_tv),
+        subtitle = stringResource(R.string.autoplay_live_tv_sub),
+        checked = settings.autoPlayLiveTv,
+        onToggle = { onUpdate { setAutoPlayLiveTv(!settings.autoPlayLiveTv) } }
+    )
+
     if (settings.streamAutoPlayMode == StreamAutoPlayMode.REGEX_MATCH) {
         SettingsActionRow(
             title = stringResource(R.string.autoplay_regex_title),

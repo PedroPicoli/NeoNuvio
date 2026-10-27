@@ -1043,6 +1043,9 @@ fun SearchScreen(
                                     lastFocusedRowKey = catalogKey
                                     saveSearchFocusForDetail(catalogKey)
                                     val clickedItem = catalogRow.items.firstOrNull { it.id == id }
+                                    if (clickedItem != null && com.nuvio.tv.core.util.LiveTvUtils.isLiveTv(clickedItem)) {
+                                        com.nuvio.tv.core.util.LiveChannelClickState.lastClickedItem = clickedItem
+                                    }
                                     val backdrop = viewModel.getCachedBackdrop(id, type)
                                         ?: clickedItem?.backdropUrl
                                     HeroBackdropState.update(backdrop)
@@ -1118,6 +1121,9 @@ fun SearchScreen(
                 .flatMap { it.items }
                 .firstOrNull { it.id == id }
                 ?: uiState.discoverResults.firstOrNull { it.id == id }
+            if (clickedItem != null && com.nuvio.tv.core.util.LiveTvUtils.isLiveTv(clickedItem)) {
+                com.nuvio.tv.core.util.LiveChannelClickState.lastClickedItem = clickedItem
+            }
             HeroBackdropState.update(clickedItem?.backdropUrl)
             onNavigateToDetail(id, type, addonBaseUrl)
         }
@@ -1685,6 +1691,9 @@ private fun BetterNuvioRecommendationsSection(
                                 index
                             )
                             onMarkNavigatingToDetail()
+                            if (com.nuvio.tv.core.util.LiveTvUtils.isLiveTv(item)) {
+                                com.nuvio.tv.core.util.LiveChannelClickState.lastClickedItem = item
+                            }
                             HeroBackdropState.update(item.backdropUrl)
                             onNavigateToDetail(item.id, item.apiType, "")
                         },

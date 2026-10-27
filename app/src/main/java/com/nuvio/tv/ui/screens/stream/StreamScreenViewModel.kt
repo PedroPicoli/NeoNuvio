@@ -153,16 +153,12 @@ class StreamScreenViewModel @Inject constructor(
         ?: false
     private val streamCacheKey: String = "${contentType.lowercase()}|$videoId"
     val isLiveTv: Boolean
-        get() = !contentType.equals("movie", ignoreCase = true) &&
-            (season == null || season == 0) &&
-            (episode == null || episode == 0) &&
-            (
-                contentType.equals("channel", ignoreCase = true) ||
-                contentType.equals("tv", ignoreCase = true) ||
-                contentType.equals("live", ignoreCase = true) ||
-                contentType.equals("iptv", ignoreCase = true) ||
-                contentType.equals("tv_channel", ignoreCase = true)
-            )
+        get() = com.nuvio.tv.core.util.LiveTvUtils.isLiveTv(
+            id = videoId,
+            contentType = contentType,
+            season = season,
+            episode = episode
+        )
     private val partyKey: String = com.nuvio.tv.core.party.partyMediaKey(
         metaType = contentType,
         metaId = contentId ?: videoId.substringBefore(":"),
@@ -392,8 +388,11 @@ class StreamScreenViewModel @Inject constructor(
 
     private fun shouldUseDirectAutoPlayFlow(
         playerPreference: PlayerPreference,
-        streamAutoPlayMode: StreamAutoPlayMode
+        streamAutoPlayMode: StreamAutoPlayMode,
+        isLiveTv: Boolean = false,
+        autoPlayLiveTv: Boolean = true
     ): Boolean {
+        if (isLiveTv && autoPlayLiveTv) return true
         return streamAutoPlayMode != StreamAutoPlayMode.MANUAL
     }
 
@@ -420,7 +419,9 @@ class StreamScreenViewModel @Inject constructor(
             } else if (!directAutoPlayModeInitializedForSession) {
                 directAutoPlayFlowEnabledForSession = shouldUseDirectAutoPlayFlow(
                     playerPreference = playerSettings.playerPreference,
-                    streamAutoPlayMode = playerSettings.streamAutoPlayMode
+                    streamAutoPlayMode = playerSettings.streamAutoPlayMode,
+                    isLiveTv = isLiveTv,
+                    autoPlayLiveTv = playerSettings.autoPlayLiveTv
                 )
                 val isSeries = !isLiveTv && (contentType.equals("series", ignoreCase = true) || contentType.equals("tv", ignoreCase = true))
                 val targetSeriesId = contentId?.takeIf { it.isNotBlank() }
@@ -646,7 +647,7 @@ class StreamScreenViewModel @Inject constructor(
                 val availableAddons = mergedAddonStreams.map { it.addonName }
 
                 // 1. Early TV ao vivo: toca imediatamente a primeira fonte disponível sem esperar outros addons
-                val earlyLiveTvMatch = if (isLiveTv && !autoPlayHandledForSession && !resolvedAutoPlayTarget && playerSettings.streamAutoPlayMode != StreamAutoPlayMode.MANUAL) {
+                val earlyLiveTvMatch = if (isLiveTv && !autoPlayHandledForSession && !resolvedAutoPlayTarget && (playerSettings.autoPlayLiveTv || playerSettings.streamAutoPlayMode != StreamAutoPlayMode.MANUAL)) {
                     allStreams.firstOrNull { StreamAutoPlaySelector.isPlayable(it) }
                 } else null
 
@@ -726,7 +727,7 @@ class StreamScreenViewModel @Inject constructor(
                 // configured timeout has elapsed. This gives slower addons a
                 // chance to return higher-quality streams before the selector
                 // picks from whatever is available.
-                val shouldAutoSelect = !autoPlayHandledForSession && !resolvedAutoPlayTarget && isAllLoaded
+                val shouldAutoSelect = !autoPlayHandledForSession && !resolvedAutoPlayTarget && (isAllLoaded || (isLiveTv && playerSettings.autoPlayLiveTv))
                 val selectedAutoPlayStream = earlyLiveTvMatch
                     ?: earlySeriesPreferredMatch
                     ?: earlyBingeGroupMatch
@@ -746,7 +747,8 @@ class StreamScreenViewModel @Inject constructor(
                             preferredSeriesSourceKey = seriesPreferredSourceKey,
                             preferredSeriesSourceAddon = seriesPreferredSourceAddon,
                             preferredSeriesLanguage = seriesPreferredLanguage,
-                            isLiveTv = isLiveTv
+                            isLiveTv = isLiveTv,
+                            autoPlayLiveTv = playerSettings.autoPlayLiveTv
                         )
                     }
                 if (selectedAutoPlayStream != null) {
@@ -957,7 +959,8 @@ class StreamScreenViewModel @Inject constructor(
                                     preferredBingeGroup = persistedBingeGroup,
                                     preferBingeGroupInSelection = true,
                                     bingeGroupOnly = true,
-                                    isLiveTv = isLiveTv
+                                    isLiveTv = isLiveTv,
+                                    autoPlayLiveTv = playerSettings.autoPlayLiveTv
                                 )
                                 if (earlyMatch != null) {
                                     resolvedAutoPlayTarget = true
@@ -1334,6 +1337,7 @@ class StreamScreenViewModel @Inject constructor(
             val metaRuntime = extractRuntimeMinutes(meta)
 
             _uiState.update { state ->
+                val titleValue = state.title.ifBlank { meta.name }
                 val posterValue = state.poster ?: meta.poster
                 val backdropValue = state.backdrop ?: meta.backdropUrl
                 val logoValue = state.logo ?: meta.logo
@@ -1350,6 +1354,7 @@ class StreamScreenViewModel @Inject constructor(
                     state
                 } else {
                     state.copy(
+                        title = titleValue,
                         poster = posterValue,
                         backdrop = backdropValue,
                         logo = logoValue,

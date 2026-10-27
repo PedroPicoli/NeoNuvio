@@ -2953,4 +2953,13 @@
     <string name="force_dub_offset_current">Dubbing Offset: %s</string>
     <string name="force_dub_quick_sync_title">Quick Sync Presets</string>
     <string name="force_dub_incompatible">Dublim i papajtueshëm për këtë video</string>
+    <string name="autoplay_live_tv">Luaj automatikisht TV drejtpërdrejt</string>
+    <string name="autoplay_live_tv_sub">Kur zgjidhni një kanal TV drejtpërdrejt, fillon luajtjen menjëherë pa hapur detajet ose zgjedhjen e burimeve.</string>
+
+    <string name="trakt_configure_credentials">Konfiguro Çelësat API</string>
+    <string name="trakt_configure_credentials_desc">Vendosni Client ID dhe Client Secret të Trakt API (nga trakt.tv/oauth/applications).</string>
+    <string name="trakt_client_id_label">Client ID</string>
+    <string name="trakt_client_secret_label">Client Secret</string>
+    <string name="trakt_save_and_connect">Ruaj dhe Lidhu</string>
+    <string name="trakt_missing_credentials_friendly">Për t\'u lidhur me Trakt, konfiguroni çelësat tuaj API ose vendosini në local.properties.</string>
 </resources>

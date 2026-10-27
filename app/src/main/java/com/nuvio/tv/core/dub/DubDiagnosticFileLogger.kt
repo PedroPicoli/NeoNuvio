@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Environment
 import android.os.SystemClock
 import android.util.Log
+import com.nuvio.tv.BuildConfig
 import com.nuvio.tv.ui.screens.player.SubtitleSyncCue
 import org.json.JSONArray
 import org.json.JSONObject
@@ -24,6 +25,9 @@ import kotlin.math.sqrt
  * 4. Auditoria de legendas embutidas vs externas (primeiras 20 falas).
  * 5. Motores de correlação com Top 10 lags, ZNCC e PSR de cada camada.
  * 6. Linha do tempo cronológica com marcos de tempo em milissegundos (+0ms, +140ms...).
+ *
+ * IMPORTANTE: Ativo estritamente em compilações DEBUG (BuildConfig.DEBUG == true).
+ * Em builds RELEASE, todos os métodos são no-ops imediatos com overhead zero e nenhum arquivo no disco.
  */
 object DubDiagnosticFileLogger {
 
@@ -85,6 +89,8 @@ object DubDiagnosticFileLogger {
         targetLang: String,
         engine: String
     ) {
+        if (!BuildConfig.DEBUG) return
+
         timelineEvents.clear()
         sessionStartTimeMs = SystemClock.elapsedRealtime()
         contentId = id
@@ -120,6 +126,7 @@ object DubDiagnosticFileLogger {
     }
 
     fun recordTimelineEvent(tag: String, message: String) {
+        if (!BuildConfig.DEBUG) return
         val elapsed = if (sessionStartTimeMs > 0L) SystemClock.elapsedRealtime() - sessionStartTimeMs else 0L
         val entry = "+${elapsed}ms [$tag] $message"
         timelineEvents.add(entry)
@@ -127,6 +134,7 @@ object DubDiagnosticFileLogger {
     }
 
     fun recordEngineFailover(reason: String) {
+        if (!BuildConfig.DEBUG) return
         engineFailoverOccurred = true
         engineFailoverReason = reason
         recordTimelineEvent("FAILOVER", "Engine failover acionado: $reason")
@@ -138,6 +146,7 @@ object DubDiagnosticFileLogger {
         mpvView: com.nuvio.tv.ui.screens.player.NuvioMpvSurfaceView?,
         activeAudioUrl: String?
     ) {
+        if (!BuildConfig.DEBUG) return
         var androidVol = -1
         var androidMute = false
         runCatching {
@@ -199,6 +208,7 @@ object DubDiagnosticFileLogger {
         avSync: Double? = null,
         audioUrl: String?
     ) {
+        if (!BuildConfig.DEBUG) return
         androidVolume = androidVol
         androidMuted = androidMute
         exoVolume = exoVol ?: 1.0f
@@ -214,6 +224,7 @@ object DubDiagnosticFileLogger {
     }
 
     fun setVideoSourceMetadata(name: String, addon: String, url: String, responseMs: Long, statusCode: Int) {
+        if (!BuildConfig.DEBUG) return
         videoSourceJson = JSONObject().apply {
             put("name", name)
             put("addon", addon)
@@ -226,6 +237,7 @@ object DubDiagnosticFileLogger {
 
     @Synchronized
     fun addDubCandidate(name: String, addon: String, url: String, responseMs: Long, statusCode: Int, isChosen: Boolean) {
+        if (!BuildConfig.DEBUG) return
         val obj = JSONObject().apply {
             put("name", name)
             put("addon", addon)
@@ -244,6 +256,7 @@ object DubDiagnosticFileLogger {
         audios: List<Map<String, Any?>>,
         subs: List<Map<String, Any?>>
     ) {
+        if (!BuildConfig.DEBUG) return
         videoTracksList.clear()
         audioTracksList.clear()
         subtitleTracksList.clear()
@@ -276,6 +289,7 @@ object DubDiagnosticFileLogger {
         envelope: FloatArray?,
         speechEnvelope: FloatArray? = null
     ) {
+        if (!BuildConfig.DEBUG) return
         val stats = calculateStats(envelope)
         val obj = JSONObject().apply {
             put("extractor", extractor)
@@ -313,6 +327,7 @@ object DubDiagnosticFileLogger {
         chosenLang: String,
         cues: List<SubtitleSyncCue>
     ) {
+        if (!BuildConfig.DEBUG) return
         embeddedSubsCount = embeddedCount
         externalSubsCount = externalCount
         chosenSubOrigin = chosenOrigin
@@ -345,6 +360,7 @@ object DubDiagnosticFileLogger {
         passed: Boolean,
         decisionReason: String
     ) {
+        if (!BuildConfig.DEBUG) return
         val lagsArray = JSONArray()
         topLags.take(10).forEach { lag ->
             lagsArray.put(JSONObject().apply {
@@ -375,6 +391,7 @@ object DubDiagnosticFileLogger {
         appliedOffsetMs: Long,
         confidence: Float
     ): String {
+        if (!BuildConfig.DEBUG) return ""
         recordTimelineEvent("FINAL_DECISION", "Vencedora: $winningLayer | Offset=${appliedOffsetMs}ms | Conf=${(confidence * 100).toInt()}%")
 
         val root = JSONObject()
