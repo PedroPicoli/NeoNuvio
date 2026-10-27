@@ -2393,6 +2393,7 @@
     <!-- Contributor role badges -->
     <string name="contributor_role_translator">Penerjemah</string>
     <string name="contributor_role_maintainer">Pemelihara</string>
+    <string name="contributor_role_creator">Pencipta</string>
 
     <!-- Network / safe API errors -->
     <string name="network_error_empty_response_body">Isi respons kosong</string>

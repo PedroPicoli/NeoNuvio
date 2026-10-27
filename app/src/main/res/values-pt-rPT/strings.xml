@@ -2336,6 +2336,7 @@
     <!-- Contributor role badges -->
     <string name="contributor_role_translator">Tradutor</string>
     <string name="contributor_role_maintainer">Mantenedor</string>
+    <string name="contributor_role_creator">Criador</string>
     <!-- Network / safe API errors -->
     <string name="network_error_empty_response_body">Corpo da resposta vazio</string>
     <string name="network_error_unknown">Ocorreu um erro desconhecido</string>

@@ -2933,6 +2933,7 @@
     <!-- 貢獻者角色標章 -->
     <string name="contributor_role_translator">翻譯者</string>
     <string name="contributor_role_maintainer">維護者</string>
+    <string name="contributor_role_creator">創作者</string>
 
     <!-- 網路 / 安全 API 錯誤 -->
     <string name="network_error_empty_response_body">空回應主體</string>

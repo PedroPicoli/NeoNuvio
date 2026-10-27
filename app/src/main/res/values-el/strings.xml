@@ -2765,6 +2765,7 @@
   <!-- Contributor role badges -->
   <string name="contributor_role_translator">Μεταφραστής</string>
   <string name="contributor_role_maintainer">Συντηρητής</string>
+    <string name="contributor_role_creator">Δημιουργός</string>
   <!-- Network / safe API errors -->
   <string name="network_error_empty_response_body">Κενό σώμα απάντησης</string>
   <string name="network_error_unknown">Προέκυψε άγνωστο σφάλμα</string>

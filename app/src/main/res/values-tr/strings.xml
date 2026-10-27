@@ -3165,6 +3165,7 @@
     <!-- Supporters / contributors / sponsors errors -->
     <string name="contributor_role_translator">Çevirmen</string>
     <string name="contributor_role_maintainer">Geliştirici</string>
+    <string name="contributor_role_creator">Yaratıcı</string>
     <string name="supporters_error_load">Destekleyenler yüklenemedi.</string>
     <string name="contributors_error_load">Katkıda bulunanlar yüklenemedi.</string>
     <string name="sponsors_error_load">Sponsorlar yüklenemedi.</string>

@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="app_name">NeoNuvio</string>
     <string name="tv_channel_continue_watching">Continuer à regarder</string>
     <string name="type_movie">Film</string>
@@ -3040,6 +3040,7 @@
     <!-- Contributor role badges -->
     <string name="contributor_role_translator">Traducteur</string>
     <string name="contributor_role_maintainer">Mainteneur</string>
+    <string name="contributor_role_creator">Créateur</string>
 
     <!-- Network / safe API errors -->
     <string name="network_error_empty_response_body">Réponse vide</string>

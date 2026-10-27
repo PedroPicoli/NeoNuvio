@@ -3046,6 +3046,7 @@
     <!-- Contributor role badges -->
     <string name="contributor_role_translator">מתרגם/ת</string>
     <string name="contributor_role_maintainer">מתחזק/ת</string>
+    <string name="contributor_role_creator">יוצר</string>
 
     <!-- Network / safe API errors -->
     <string name="network_error_empty_response_body">גוף תגובה ריק</string>

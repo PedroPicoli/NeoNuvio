@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="app_name">NeoNuvio</string>
     <string name="tv_channel_continue_watching">Продължи гледането</string>
     <string name="type_movie">Филм</string>
@@ -2429,6 +2429,7 @@
     <!-- Contributor role badges -->
     <string name="contributor_role_translator">Преводач</string>
     <string name="contributor_role_maintainer">Поддръжник</string>
+    <string name="contributor_role_creator">Създател</string>
 
     <!-- Network / safe API errors -->
     <string name="network_error_empty_response_body">Празно тяло на отговора</string>

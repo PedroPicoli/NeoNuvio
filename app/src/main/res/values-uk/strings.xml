@@ -2432,6 +2432,7 @@
     <!-- Contributor role badges -->
     <string name="contributor_role_translator">Перекладач</string>
     <string name="contributor_role_maintainer">Мейнтейнер</string>
+    <string name="contributor_role_creator">Творець</string>
 
     <!-- Network / safe API errors -->
     <string name="network_error_empty_response_body">Порожнє тіло відповіді</string>

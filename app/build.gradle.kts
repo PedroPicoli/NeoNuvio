@@ -138,11 +138,11 @@ android {
         targetSdk = 36
         val appVersion = providers.gradleProperty("appVersion").orNull
             ?: env("APP_VERSION")
-            ?: "1.0.0"
-        versionName = appVersion
+            ?: "1.1.0"
+        versionName = appVersion // versionName = "1.1.0"
         versionCode = providers.gradleProperty("appVersionCode").orNull?.toIntOrNull()
             ?: env("APP_VERSION_CODE")?.toIntOrNull()
-            ?: 10000
+            ?: 10100 // versionCode = 10100
 
         buildConfigField("String", "PARENTAL_GUIDE_API_URL", "\"${localProperties.getProperty("PARENTAL_GUIDE_API_URL", "")}\"")
         buildConfigField("String", "INTRODB_API_URL", "\"${localProperties.getProperty("INTRODB_API_URL", "")}\"")

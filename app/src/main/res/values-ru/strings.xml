@@ -2855,6 +2855,7 @@
     <string name="sponsors_error_api_http">Ошибка API спонсоров: %1$d</string>
     <string name="contributor_role_translator">Переводчик</string>
     <string name="contributor_role_maintainer">Мейнтейнер</string>
+    <string name="contributor_role_creator">Создатель</string>
     <string name="network_error_empty_response_body">Пустое тело ответа</string>
     <string name="network_error_unknown">Неизвестная ошибка сети</string>
     <string name="network_fast_error_script_path_missing">Отсутствует путь скрипта fast.com</string>

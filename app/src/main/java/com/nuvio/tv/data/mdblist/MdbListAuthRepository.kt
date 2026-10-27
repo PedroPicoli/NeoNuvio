@@ -24,7 +24,14 @@ class MdbListAuthRepository(
         if (!hasRequiredCredentials()) throw MdbListAuthException(MdbListAuthError.MISSING_CLIENT_ID)
         check(!state.value.isAuthenticated)
         val response = oauth("/oauth/device-authorization/", mapOf("scope" to "write"), scope)
-        if (response.status !in 200..299) throw MdbListApiException(response.status, response.errorCode())
+        if (response.status !in 200..299) {
+            val err = response.errorCode()
+            if (err in setOf("invalid_client", "unauthorized_client") ||
+                (response.status == 400 && err == "invalid_request")) {
+                throw MdbListAuthException(MdbListAuthError.MISSING_CLIENT_ID)
+            }
+            throw MdbListApiException(response.status, response.errorCode())
+        }
         val payload = decode<MdbListDeviceResponse>(response.body)
         val deviceCode = payload.deviceCode?.takeIf(String::isNotBlank) ?: invalidResponse()
         val userCode = payload.userCode?.takeIf(String::isNotBlank) ?: invalidResponse()

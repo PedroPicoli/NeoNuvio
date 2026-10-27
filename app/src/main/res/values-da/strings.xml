@@ -2438,6 +2438,7 @@
     <!-- Contributor role badges -->
     <string name="contributor_role_translator">Oversætter</string>
     <string name="contributor_role_maintainer">Vedligeholder</string>
+    <string name="contributor_role_creator">Skaber</string>
 
     <!-- Network / safe API errors -->
     <string name="network_error_empty_response_body">Tom svartekst</string>

@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="type_movie">Film</string>
     <string name="type_series">Serial</string>
 
@@ -2250,6 +2250,7 @@
     <string name="collections_import_error_source_required_fields">Kolekcja \"%1$s\", folder \"%2$s\", źródło %3$d: brak wymaganych pól</string>
     <string name="collections_import_error_sources_array">Kolekcja \"%1$s\", folder \"%2$s\": \"sources\" musi być tablicą</string>
     <string name="contributor_role_maintainer">Opiekun</string>
+    <string name="contributor_role_creator">Twórca</string>
     <string name="contributor_role_translator">Tłumacz</string>
     <string name="contributors_error_api_http">Błąd API współtwórców: %1$d</string>
     <string name="contributors_error_api_not_configured">API współtwórców nie jest skonfigurowane.</string>

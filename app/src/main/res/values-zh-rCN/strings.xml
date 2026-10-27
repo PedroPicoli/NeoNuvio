@@ -2933,6 +2933,7 @@
     <!-- 贡献者角色徽章 -->
     <string name="contributor_role_translator">翻译者</string>
     <string name="contributor_role_maintainer">维护者</string>
+    <string name="contributor_role_creator">创建者</string>
 
     <!-- 网络 / 安全 API 错误 -->
     <string name="network_error_empty_response_body">空响应主体</string>

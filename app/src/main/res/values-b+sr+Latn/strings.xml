@@ -2879,6 +2879,7 @@
     <!-- Contributor role badges -->
     <string name="contributor_role_translator">Prevodilac</string>
     <string name="contributor_role_maintainer">Održavalac</string>
+    <string name="contributor_role_creator">Tvorac</string>
 
     <!-- Network / safe API errors -->
     <string name="network_error_empty_response_body">Prazno telo odgovora</string>

@@ -18,7 +18,7 @@ class GitHubContributorsRepositoryTest {
     private val context = io.mockk.mockk<Context>(relaxed = true)
 
     @Test
-    fun `uses contributions from github api and sorts descending`() = runTest {
+    fun `pins owner to top even if not in api results`() = runTest {
         val repository = GitHubContributorsRepository(
             appContext = context,
             gitHubReleaseApi = FakeGitHubReleaseApi(
@@ -30,7 +30,62 @@ class GitHubContributorsRepositoryTest {
                     )
                 )
             )
-        )
+        ).apply {
+            targetOwner = "PedroPicoli"
+            targetRepo = "NeoNuvio"
+        }
+
+        val result = repository.getContributors()
+
+        assertTrue(result.isSuccess)
+        val contributors = result.getOrThrow()
+        assertEquals(listOf("Pedro Picoli", "alice", "charlie", "bob"), contributors.map { it.name })
+        assertEquals("PedroPicoli", contributors.first().githubLogin)
+        assertEquals("Pedro Picoli", contributors.first().name)
+    }
+
+    @Test
+    fun `moves owner to top when already present in api results`() = runTest {
+        val repository = GitHubContributorsRepository(
+            appContext = context,
+            gitHubReleaseApi = FakeGitHubReleaseApi(
+                contributorsResponse = Response.success(
+                    listOf(
+                        GitHubContributorDto(login = "bob", contributions = 3),
+                        GitHubContributorDto(login = "PedroPicoli", contributions = 7),
+                        GitHubContributorDto(login = "alice", contributions = 12)
+                    )
+                )
+            )
+        ).apply {
+            targetOwner = "PedroPicoli"
+            targetRepo = "NeoNuvio"
+        }
+
+        val result = repository.getContributors()
+
+        assertTrue(result.isSuccess)
+        val contributors = result.getOrThrow()
+        assertEquals(listOf("PedroPicoli", "alice", "bob"), contributors.map { it.name })
+        assertEquals(7, contributors.first().totalContributions)
+    }
+
+    @Test
+    fun `uses contributions from github api and sorts descending when owner is generic`() = runTest {
+        val repository = GitHubContributorsRepository(
+            appContext = context,
+            gitHubReleaseApi = FakeGitHubReleaseApi(
+                contributorsResponse = Response.success(
+                    listOf(
+                        GitHubContributorDto(login = "bob", contributions = 3),
+                        GitHubContributorDto(login = "alice", contributions = 12),
+                        GitHubContributorDto(login = "charlie", contributions = 4)
+                    )
+                )
+            )
+        ).apply {
+            targetOwner = ""
+        }
 
         val result = repository.getContributors()
 
@@ -53,7 +108,9 @@ class GitHubContributorsRepositoryTest {
                     )
                 )
             )
-        )
+        ).apply {
+            targetOwner = ""
+        }
 
         val contributors = repository.getContributors().getOrThrow()
 

@@ -2439,6 +2439,7 @@
     <!-- Contributor role badges -->
     <string name="contributor_role_translator">翻訳者</string>
     <string name="contributor_role_maintainer">メンテナー</string>
+    <string name="contributor_role_creator">作成者</string>
 
     <!-- Network / safe API errors -->
     <string name="network_error_empty_response_body">空の応答本文</string>

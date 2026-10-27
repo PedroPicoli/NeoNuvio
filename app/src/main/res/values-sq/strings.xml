@@ -2628,6 +2628,7 @@
     <!-- Contributor role badges -->
     <string name="contributor_role_translator">Përkthyes</string>
     <string name="contributor_role_maintainer">Mirëmbajtës</string>
+    <string name="contributor_role_creator">Krijues</string>
     <!-- Network / safe API errors -->
     <string name="network_error_empty_response_body">Trup përgjigjeje bosh</string>
     <string name="network_error_unknown">Ndodhi një gabim i panjohur</string>

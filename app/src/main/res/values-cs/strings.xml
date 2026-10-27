@@ -2543,6 +2543,7 @@
     <!-- Contributor role badges -->
     <string name="contributor_role_translator">Překladatel</string>
     <string name="contributor_role_maintainer">Správce</string>
+    <string name="contributor_role_creator">Tvůrce</string>
 
     <!-- Network / safe API errors -->
     <string name="network_error_empty_response_body">Prázdné tělo odpovědi</string>

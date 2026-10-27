@@ -2980,6 +2980,7 @@
     <!-- Oznake uloga suradnika -->
     <string name="contributor_role_translator">Prevoditelj</string>
     <string name="contributor_role_maintainer">Održavatelj</string>
+    <string name="contributor_role_creator">Stvoritelj</string>
 
     <!-- Mrežne / API pogreške -->
     <string name="network_error_empty_response_body">Prazno tijelo odgovora</string>

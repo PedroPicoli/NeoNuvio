@@ -5,6 +5,8 @@
 
 package com.nuvio.tv.ui.screens.player
 
+import com.nuvio.tv.BuildConfig
+
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.layout.boundsInWindow
 import com.nuvio.tv.ui.screens.detail.formatPlaybackTime
@@ -1360,7 +1362,8 @@ fun PlayerScreen(
         )
 
         // Force Dubbing Debug Stats overlay (top-right corner)
-        if (uiState.forceDubStatsEnabled && uiState.error == null) {
+        // Strictly debug-only: never shown in release builds, and in debug builds only when explicitly enabled AND active
+        if (BuildConfig.IS_DEBUG_BUILD && uiState.forceDubStatsEnabled && (uiState.forceDubDebugInfo.isEnabled || uiState.forceDubDebugInfo.isActive) && uiState.error == null) {
             ForceDubDebugStatsOverlay(
                 info = uiState.forceDubDebugInfo,
                 modifier = Modifier

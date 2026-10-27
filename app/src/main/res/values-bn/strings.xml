@@ -2835,6 +2835,7 @@
     <string name="sponsors_error_api_http">Sponsors API এরর: %1$d</string>
     <string name="contributor_role_translator">ট্রান্সলেটর</string>
     <string name="contributor_role_maintainer">মেইনটেইনার</string>
+    <string name="contributor_role_creator">নির্মাতা</string>
     <string name="network_error_empty_response_body">খালি রেসপন্স বডি</string>
     <string name="network_error_unknown">অজানা এরর ঘটেছে</string>
     <string name="network_fast_error_script_path_missing">fast.com: স্ক্রিপ্ট পাথ পাওয়া যায়নি</string>

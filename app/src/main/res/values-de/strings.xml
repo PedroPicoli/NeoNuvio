@@ -2218,6 +2218,7 @@
     <!-- Contributor role badges -->
     <string name="contributor_role_translator">Translator</string>
     <string name="contributor_role_maintainer">Maintainer</string>
+    <string name="contributor_role_creator">Schöpfer</string>
 
     <!-- Network / safe API errors -->
     <string name="network_error_empty_response_body">Empty response body</string>

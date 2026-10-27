@@ -503,7 +503,7 @@ private fun ContributorDetailsDialog(
 
 @Composable
 private fun contributorRoleLabel(login: String): String? = when (login.lowercase(Locale.ROOT)) {
-    "pedropicoli" -> "Criador"
+    "pedropicoli" -> stringResource(R.string.contributor_role_creator)
     "milicevicivan" -> stringResource(R.string.contributor_role_translator)
     "tapframe" -> stringResource(R.string.contributor_role_maintainer)
     else -> null

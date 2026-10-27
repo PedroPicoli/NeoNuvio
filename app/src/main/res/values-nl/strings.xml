@@ -2852,6 +2852,7 @@
     <!-- Contributor role badges -->
     <string name="contributor_role_translator">Vertaler</string>
     <string name="contributor_role_maintainer">Beheerder</string>
+    <string name="contributor_role_creator">Maker</string>
 
     <!-- Network / safe API errors -->
     <string name="network_error_empty_response_body">Lege antwoordinhoud</string>

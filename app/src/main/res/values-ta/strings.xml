@@ -2205,6 +2205,7 @@
     <!-- Contributor role badges -->
     <string name="contributor_role_translator">மொழிபெயர்ப்பாளர்</string>
     <string name="contributor_role_maintainer">பராமரிப்பாளர்</string>
+    <string name="contributor_role_creator">உருவாக்கியவர்</string>
 
     <!-- Network / safe API errors -->
     <string name="network_error_empty_response_body">காலியான பதில் உட்பொருள்</string>

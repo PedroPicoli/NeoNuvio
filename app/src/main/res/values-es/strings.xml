@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">NeoNuvio</string>
     <string name="tv_channel_continue_watching">Continuar viendo</string>
@@ -3077,6 +3077,7 @@ Utilizas esta función bajo tu entera responsabilidad. P2P se puede desactivar e
     <!-- Contributor role badges -->
     <string name="contributor_role_translator">Traductor</string>
     <string name="contributor_role_maintainer">Mantenedor</string>
+    <string name="contributor_role_creator">Creador</string>
 
     <!-- Network / safe API errors -->
     <string name="network_error_empty_response_body">Cuerpo de respuesta vacío</string>

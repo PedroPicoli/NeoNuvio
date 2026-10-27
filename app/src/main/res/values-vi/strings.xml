@@ -3067,6 +3067,7 @@
     <!-- Contributor role badges -->
     <string name="contributor_role_translator">Người dịch</string>
     <string name="contributor_role_maintainer">Người bảo trì</string>
+    <string name="contributor_role_creator">Người tạo</string>
 
     <!-- Network / safe API errors -->
     <string name="network_error_empty_response_body">Nội dung phản hồi trống</string>

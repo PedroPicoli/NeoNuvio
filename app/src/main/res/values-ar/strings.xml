@@ -2447,6 +2447,7 @@
     <!-- Contributor role badges -->
     <string name="contributor_role_translator">مترجم</string>
     <string name="contributor_role_maintainer">قائم على المشروع</string>
+    <string name="contributor_role_creator">المنشئ</string>
 
     <!-- Network / safe API errors -->
     <string name="network_error_empty_response_body">استجابة الشبكة فارغة</string>

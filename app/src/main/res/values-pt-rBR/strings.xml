@@ -3095,6 +3095,7 @@
     <!-- Contributor role badges -->
     <string name="contributor_role_translator">Tradutor</string>
     <string name="contributor_role_maintainer">Mantenedor</string>
+    <string name="contributor_role_creator">Criador</string>
 
     <!-- Network / safe API errors -->
     <string name="network_error_empty_response_body">Corpo de resposta vazio</string>

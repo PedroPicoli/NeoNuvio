@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="app_name">NeoNuvio</string>
     <string name="tv_channel_continue_watching">Pokračovať v sledovaní</string>
     <string name="type_movie">Film</string>
@@ -2398,6 +2398,7 @@
     
     <string name="contributor_role_translator">Prekladateľ</string>
     <string name="contributor_role_maintainer">Správca</string>
+    <string name="contributor_role_creator">Tvorca</string>
 
     
     <string name="network_error_empty_response_body">Prázdne telo odpovede</string>
