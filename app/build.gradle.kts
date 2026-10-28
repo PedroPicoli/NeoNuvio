@@ -12,6 +12,7 @@ plugins {
 import com.android.build.gradle.internal.tasks.CompileArtProfileTask
 import com.android.build.gradle.internal.tasks.L8DexDesugarLibTask
 import java.io.File
+import java.io.ByteArrayOutputStream
 import java.util.Properties
 
 // Copies the per-API dex metadata (.dm) files AGP builds next to the binary ART profile into the APK's assets, so the
@@ -126,6 +127,34 @@ val releaseKeyPasswordValue = env("NUVIO_RELEASE_KEY_PASSWORD")
 val releaseStorePasswordValue = env("NUVIO_RELEASE_STORE_PASSWORD")
     ?: localProperties.getProperty("NUVIO_RELEASE_STORE_PASSWORD", "815787")
 
+fun getGitTagVersion(): String? {
+    return runCatching {
+        val stdout = ByteArrayOutputStream()
+        providers.exec {
+            commandLine("git", "describe", "--tags", "--abbrev=0")
+            standardOutput = stdout
+            isIgnoreExitValue = true
+        }.result.get()
+        val output = stdout.toString().trim()
+        if (output.isNotEmpty() && !output.startsWith("fatal:") && !output.contains(" ")) {
+            output.removePrefix("v").removePrefix("V")
+        } else null
+    }.getOrNull()
+}
+
+fun computeVersionCodeFromSemVer(version: String?): Int? {
+    if (version.isNullOrBlank()) return null
+    val regex = Regex("""^(\d+)\.(\d+)(?:\.(\d+))?(?:-([a-zA-Z0-9.-]+))?""")
+    val match = regex.find(version.trim()) ?: return null
+    val major = match.groupValues[1].toIntOrNull() ?: 0
+    val minor = match.groupValues[2].toIntOrNull() ?: 0
+    val patch = match.groupValues[3].takeIf { it.isNotEmpty() }?.toIntOrNull() ?: 0
+    val prerelease = match.groupValues[4]
+    val base = major * 10000 + minor * 100 + patch
+    val prereleaseNum = Regex("""\d+""").findAll(prerelease).lastOrNull()?.value?.toIntOrNull() ?: 0
+    return base + (if (prerelease.isNotEmpty()) prereleaseNum else 0)
+}
+
 android {
     namespace = "com.nuvio.tv"
     compileSdk = 36
@@ -136,13 +165,21 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         minSdk = 24
         targetSdk = 36
-        val appVersion = providers.gradleProperty("appVersion").orNull
+        versionCode = 10101
+        versionName = "1.1.1"
+
+        val resolvedVersionName = providers.gradleProperty("appVersion").orNull
             ?: env("APP_VERSION")
-            ?: "1.1.0"
-        versionName = appVersion // versionName = "1.1.0"
-        versionCode = providers.gradleProperty("appVersionCode").orNull?.toIntOrNull()
+            ?: getGitTagVersion()
+            ?: versionName
+
+        val resolvedVersionCode = providers.gradleProperty("appVersionCode").orNull?.toIntOrNull()
             ?: env("APP_VERSION_CODE")?.toIntOrNull()
-            ?: 10100 // versionCode = 10100
+            ?: computeVersionCodeFromSemVer(resolvedVersionName)
+            ?: versionCode
+
+        versionName = resolvedVersionName
+        versionCode = resolvedVersionCode
 
         buildConfigField("String", "PARENTAL_GUIDE_API_URL", "\"${localProperties.getProperty("PARENTAL_GUIDE_API_URL", "")}\"")
         buildConfigField("String", "INTRODB_API_URL", "\"${localProperties.getProperty("INTRODB_API_URL", "")}\"")
