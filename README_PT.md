@@ -29,17 +29,12 @@
 
 ## 🆕 O que há de novo (baseado no Nuvio 1.1.0 – beta 8)
 
-*	Adicionado novo recurso inovador! Forçar dublagem (experimental). Ative nas configurações, selecione seu idioma-alvo e os conteúdos em língua estrangeira à sua serão dublados automaticamente.
-*	Corrigido ícone de alterar servidor duplicado e ícone de áudio/legendas desaparecendo ao alternar para Libmpv.
-*	Adicionado recurso de, ao segurar sobre o card de um conteúdo, nas opções que surgem, ao invés do botão gerenciar listas, agora é simplesmente adicionar à lista, caso o título ainda não esteja, e remover caso já esteja, mantendo sincronia com Simkl.
-*	Adicionada uma opção de habilitar/desabilitar capítulos.
-*	Redimensionada imagens de logo e banner para melhor adaptação em diferentes telas.
-*	Adicionada opção para auto reprodução de conteúdos de tv ao vivo (sem entrar nos detalhes).
-*	Corrigido número da versão correspondente.
-*	Corrigido erro do Trakt.
-*	Ajustado nome NeoNuvio em diferentes arquivos.
-*	Readme atualizado com créditos melhor descritos.
-*	Atualizado para a versão beta 8 do Nuvio, com traduções corrigidas.
+*	Corrigido HUD de logs do forçar dublagem aparecendo mesmo quando desligado.
+* Corrigido loop de atualização.
+*	Corrigido erro de falha do MDBList.
+*	Corrigida ordem de exibição da lista de séries.
+*	Corrigido histórico do projeto.
+
 
 ---
 

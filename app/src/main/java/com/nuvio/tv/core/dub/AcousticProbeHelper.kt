@@ -26,35 +26,31 @@ import com.nuvio.tv.ui.screens.player.SubtitleSyncCue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.abs
 import kotlin.math.log10
-import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.sqrt
 
 /**
  * Utilitário de alta performance para extração acústica universal.
  *
  * Arquitetura em Camadas:
- * 1. Ancoragem Absoluta por Timestamp (presentationTimeUs em array de 4000 bins = 0s..40s).
- * 2. Seek Rápido (8s com janela de até 15s sem download integral).
- * 3. Camada A: Decodificação PCM via MediaCodec em loop multi-track com cancelamento de voz (Surround 5.1/7.1 sem canal central, Estéreo Side+Mid notch)
+ * 1. Ancoragem Absoluta por Timestamp (presentationTimeUs em array de 4500 bins = 0s..45s).
+ * 2. Camada A: Decodificação PCM via MediaCodec em loop multi-track com cancelamento de voz (Surround 5.1/7.1 sem canal central, Estéreo Side+Mid notch)
  *    e geração simultânea do vetor vocal centralizado (Band-Pass 300Hz-2800Hz) para Cross-Modal Sub-to-Dub VAD.
- * 4. Camada B: Bitstream Frame Energy Parser para formatos de cinema sem MediaCodec nativo (DTS, DTS-HD, TrueHD),
- *    utilizando Entropia de Shannon / Variância dos Bytes dos sub-blocos + tamanho do frame.
- * 5. Extrator de Software do Media3 (MatroskaExtractor) como fallback universal quando o Stagefright omitir faixas do container.
- * 6. Telemetria diagnóstica detalhada por fonte.
+ * 3. Camada B: Bitstream Frame Energy Parser para formatos de cinema sem MediaCodec nativo (DTS, DTS-HD, TrueHD).
+ * 4. Extrator de Software do Media3 (MatroskaExtractor) como fallback universal quando o Stagefright omitir faixas do container.
+ * 5. Telemetria diagnóstica detalhada por fonte e verificação de cancelamento cooperativa (isActive) para evitar contenção de CPU em TV Box / Fire TV.
  */
 object AcousticProbeHelper {
 
     private const val TAG = "AcousticProbeHelper"
     private const val TOTAL_BINS = 4500 // 45 segundos com resolução de 10ms (100 Hz = 4500 bins)
-    private const val SOURCE_READ_TIMEOUT_MS = 3_200L // Máximo 3.2s de leitura contínua por fonte (relógio real)
-    private const val SAMPLE_WINDOW_US = 22_000_000L // 22s de amostras contínuas desde 0.0s (suficiente e ultra-rápido)
+    private const val SOURCE_READ_TIMEOUT_MS = 2_800L // Máximo 2.8s de leitura contínua por fonte (relógio real)
+    private const val SAMPLE_WINDOW_US = 20_000_000L // 20s de amostras contínuas desde 0.0s (suficiente e ultra-rápido)
 
     @Volatile
     private var cachedVideoUrl: String? = null
@@ -264,7 +260,7 @@ object AcousticProbeHelper {
                         Log.d(TAG, "Usando envelope acústico de vídeo em cache: $diag")
                         ProbeResult(cached, diag)
                     } else {
-                        val res = extractAdaptiveAudioEnvelope(videoUrl, videoHeaders, isVideo = true, onStatusUpdate)
+                        val res = extractAdaptiveAudioEnvelope(videoUrl, videoHeaders, isVideo = true, onStatusUpdate) { isActive }
                         if (res.data != null) {
                             cachedVideoUrl = videoUrl
                             cachedVideoData = res.data
@@ -274,7 +270,7 @@ object AcousticProbeHelper {
                 }
 
                 val dubDeferred = async {
-                    extractAdaptiveAudioEnvelope(dubAudioUrl, dubAudioHeaders, isVideo = false, onStatusUpdate)
+                    extractAdaptiveAudioEnvelope(dubAudioUrl, dubAudioHeaders, isVideo = false, onStatusUpdate) { isActive }
                 }
 
                 videoDeferred.await() to dubDeferred.await()
@@ -334,6 +330,8 @@ object AcousticProbeHelper {
             val effectiveEndMs = commonEndBin.toLong() * 10L
 
             // 3. Correlação Cruzada ZNCC na janela útil com busca de lag de -5000ms a +5000ms
+            // Jamais validar correlação M&E quando um dos lados veio apenas de tamanho de pacotes Bitstream comprimidos!
+            val isBothPcm = videoData.methodType == "PCM" && dubData.methodType == "PCM"
             val match = AcousticSyncMatcher.findCrossCorrelationLag(
                 origEnvelope = videoData.envelope,
                 dubEnvelope = dubData.envelope,
@@ -346,9 +344,8 @@ object AcousticProbeHelper {
             )
 
             // 4. Detecção de Bumper nos primeiros 10s para confirmação determinística
-            // Proibição Absoluta em Bitstream: jamais executar em envelopes Bitstream comprimidos (!isPcmDecoded)
             val isVideoBitstream = videoData.methodType != "PCM"
-            val bumperOffsetMs = if (!isVideoBitstream && dubData.methodType == "PCM") {
+            val bumperOffsetMs = if (isBothPcm) {
                 AcousticSyncMatcher.estimateBumperOffsetMs(
                     videoEnvelope = videoData.envelope,
                     dubEnvelope = dubData.envelope,
@@ -360,8 +357,11 @@ object AcousticProbeHelper {
             }
 
             if (match != null) {
-                Log.i(TAG, "Resultado Acústico: offset=${match.offsetMs}ms zncc=${match.maxZncc} psr=${match.psr} valid=${match.isValid}")
+                val effectiveValid = match.isValid && isBothPcm
+                Log.i(TAG, "Resultado Acústico: offset=${match.offsetMs}ms zncc=${match.maxZncc} psr=${match.psr} valid=$effectiveValid (bothPcm=$isBothPcm)")
                 match.copy(
+                    isValid = effectiveValid,
+                    confidence = if (effectiveValid) match.confidence else minOf(match.confidence, 0.50f),
                     silenceOffsetMs = bumperOffsetMs,
                     dubSpeechEnvelope = dubData.speechEnvelope,
                     dubMime = dubData.mime
@@ -397,16 +397,19 @@ object AcousticProbeHelper {
     }
 
     /**
-     * Extrai envelope com Nova Regra de Seek Rápido (8s), suporte Multi-Track MediaCodec (Camada A)
+     * Extrai envelope com suporte Multi-Track MediaCodec (Camada A)
      * e fallback transparente para Bitstream Frame Energy Parser (Camada B).
      */
     private fun extractAdaptiveAudioEnvelope(
         url: String,
         headers: Map<String, String>,
         isVideo: Boolean,
-        onStatusUpdate: ((String) -> Unit)?
+        onStatusUpdate: ((String) -> Unit)?,
+        isActiveProvider: () -> Boolean = { true }
     ): ProbeResult {
+        if (!isActiveProvider()) return ProbeResult(null, "Cancelado")
         val extractor = MediaExtractor()
+        var matroskaTried = false
         try {
             val effectiveHeaders = LinkedHashMap<String, String>()
             headers.forEach { (k, v) ->
@@ -419,6 +422,7 @@ object AcousticProbeHelper {
             }
             val startTime = android.os.SystemClock.elapsedRealtime()
             extractor.setDataSource(url, effectiveHeaders)
+            if (!isActiveProvider()) return ProbeResult(null, "Cancelado")
 
             if (isVideo) {
                 runCatching {
@@ -451,7 +455,8 @@ object AcousticProbeHelper {
             val candidates = getAudioTrackCandidates(extractor)
             if (candidates.isEmpty()) {
                 Log.w(TAG, "android.media.MediaExtractor retornou 0 faixas de áudio. Acionando Extrator de Software do Media3 (MatroskaExtractor)...")
-                val media3Result = extractAudioViaMedia3Matroska(url, effectiveHeaders, isVideo)
+                matroskaTried = true
+                val media3Result = extractAudioViaMedia3Matroska(url, effectiveHeaders, isVideo, isActiveProvider)
                 if (media3Result != null) {
                     DubDiagnosticFileLogger.setExtractionTelemetry(
                         isVideo = isVideo,
@@ -477,7 +482,8 @@ object AcousticProbeHelper {
             // CAMADA A: MediaCodec PCM em Loop Multi-Track
             // ==========================================
             for (candidate in candidates) {
-                val pcmResult = tryDecodePcmCandidate(extractor, candidate, isVideo)
+                if (!isActiveProvider()) return ProbeResult(null, "Cancelado")
+                val pcmResult = tryDecodePcmCandidate(extractor, candidate, isVideo, isActiveProvider)
                 if (pcmResult != null) {
                     val shortMime = candidate.mime.substringAfter('/')
                     val diag = "$shortMime/${pcmResult.channels}ch/${pcmResult.validBins}b"
@@ -499,13 +505,15 @@ object AcousticProbeHelper {
                 }
             }
 
+            if (!isActiveProvider()) return ProbeResult(null, "Cancelado")
+
             // ==========================================
             // CAMADA B: Bitstream Frame Energy Parser
             // ==========================================
             val bestCandidate = candidates.first()
             val shortMime = bestCandidate.mime.substringAfter('/')
             Log.i(TAG, "MediaCodec PCM indisponível para todas as faixas. Acionando Camada B (Bitstream Parser) para $shortMime")
-            val bitstreamResult = tryExtractBitstreamEnergy(extractor, bestCandidate)
+            val bitstreamResult = tryExtractBitstreamEnergy(extractor, bestCandidate, isActiveProvider)
             if (bitstreamResult != null) {
                 val diag = "$shortMime(Bitstream)/${bitstreamResult.validBins}b"
                 Log.i(TAG, "Camada B (Bitstream) bem sucedida: $diag")
@@ -526,22 +534,25 @@ object AcousticProbeHelper {
             }
 
             // Fallback final para o Extrator Media3
-            val media3Fallback = extractAudioViaMedia3Matroska(url, effectiveHeaders, isVideo)
-            if (media3Fallback != null) {
-                DubDiagnosticFileLogger.setExtractionTelemetry(
-                    isVideo = isVideo,
-                    extractor = "Media3 MatroskaExtractor",
-                    mode = "Software_Matroska_Fallback",
-                    timeSpentMs = android.os.SystemClock.elapsedRealtime() - startTime,
-                    firstPtsMs = media3Fallback.data?.firstValidBin?.toLong()?.times(10L) ?: 0L,
-                    lastPtsMs = media3Fallback.data?.lastValidBin?.toLong()?.times(10L) ?: 0L,
-                    totalBins = TOTAL_BINS,
-                    filledBins = media3Fallback.data?.validBins ?: 0,
-                    zeroBins = TOTAL_BINS - (media3Fallback.data?.validBins ?: 0),
-                    envelope = media3Fallback.data?.envelope,
-                    speechEnvelope = media3Fallback.data?.speechEnvelope
-                )
-                return media3Fallback
+            if (isActiveProvider() && !matroskaTried) {
+                matroskaTried = true
+                val media3Fallback = extractAudioViaMedia3Matroska(url, effectiveHeaders, isVideo, isActiveProvider)
+                if (media3Fallback != null) {
+                    DubDiagnosticFileLogger.setExtractionTelemetry(
+                        isVideo = isVideo,
+                        extractor = "Media3 MatroskaExtractor",
+                        mode = "Software_Matroska_Fallback",
+                        timeSpentMs = android.os.SystemClock.elapsedRealtime() - startTime,
+                        firstPtsMs = media3Fallback.data?.firstValidBin?.toLong()?.times(10L) ?: 0L,
+                        lastPtsMs = media3Fallback.data?.lastValidBin?.toLong()?.times(10L) ?: 0L,
+                        totalBins = TOTAL_BINS,
+                        filledBins = media3Fallback.data?.validBins ?: 0,
+                        zeroBins = TOTAL_BINS - (media3Fallback.data?.validBins ?: 0),
+                        envelope = media3Fallback.data?.envelope,
+                        speechEnvelope = media3Fallback.data?.speechEnvelope
+                    )
+                    return media3Fallback
+                }
             }
 
             val failDiag = "$shortMime/Sem Dados"
@@ -549,10 +560,12 @@ object AcousticProbeHelper {
 
         } catch (e: Exception) {
             val msg = e.message ?: e.javaClass.simpleName
-            Log.w(TAG, "Falha de extração via MediaExtractor para $url: $msg. Tentando Media3 MatroskaExtractor...", e)
-            val media3Fallback = extractAudioViaMedia3Matroska(url, headers, isVideo)
-            if (media3Fallback != null) {
-                return media3Fallback
+            if (isActiveProvider() && !matroskaTried) {
+                Log.w(TAG, "Falha de extração via MediaExtractor para $url: $msg. Tentando Media3 MatroskaExtractor...", e)
+                val media3Fallback = extractAudioViaMedia3Matroska(url, headers, isVideo, isActiveProvider)
+                if (media3Fallback != null) {
+                    return media3Fallback
+                }
             }
             return ProbeResult(null, "HTTP/IO: $msg")
         } finally {
@@ -566,7 +579,8 @@ object AcousticProbeHelper {
     private fun tryDecodePcmCandidate(
         extractor: MediaExtractor,
         candidate: TrackCandidate,
-        isVideo: Boolean
+        isVideo: Boolean,
+        isActiveProvider: () -> Boolean = { true }
     ): ExtractedAudioData? {
         var codec: MediaCodec? = null
         try {
@@ -585,9 +599,7 @@ object AcousticProbeHelper {
             extractor.selectTrack(candidate.index)
 
             // UNIFICAÇÃO OBRIGATÓRIA DE JANELA TEMPORAL: Leitura estritamente desde 0.0s (sem seekTo)
-            // A dublagem é leve e lê continuamente até 45.0s (para o novo VAD Morfológico Alass/FFSubSync).
-            // O vídeo lê continuamente até pelo menos 30.0s.
-            val targetEndPtsUs = if (isVideo) 30_000_000L else 45_000_000L
+            val targetEndPtsUs = if (isVideo) 26_000_000L else 36_000_000L
             val startTimeWallMs = System.currentTimeMillis()
 
             val binSumSquares = DoubleArray(TOTAL_BINS)
@@ -602,14 +614,15 @@ object AcousticProbeHelper {
                 audioFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)
             } else 48000
 
-            var bandStop = AcousticSyncMatcher.BandStopFilter(actualSampleRate)
-            var bandPass = if (!isVideo) AcousticSyncMatcher.BandPassFilter(actualSampleRate) else null
+            var frameStep = if (actualSampleRate >= 44100) 2 else 1
+            var bandStop = AcousticSyncMatcher.BandStopFilter((actualSampleRate / frameStep).coerceAtLeast(8000))
+            var bandPass = if (!isVideo) AcousticSyncMatcher.BandPassFilter((actualSampleRate / frameStep).coerceAtLeast(8000)) else null
 
             val bufferInfo = MediaCodec.BufferInfo()
             var isEos = false
             var maxPtsReachedUs = 0L
 
-            while (!isEos && maxPtsReachedUs < targetEndPtsUs && (System.currentTimeMillis() - startTimeWallMs) < SOURCE_READ_TIMEOUT_MS) {
+            while (!isEos && isActiveProvider() && maxPtsReachedUs < targetEndPtsUs && (System.currentTimeMillis() - startTimeWallMs) < SOURCE_READ_TIMEOUT_MS) {
                 val inIndex = codec.dequeueInputBuffer(8_000L)
                 if (inIndex >= 0) {
                     val inBuffer = codec.getInputBuffer(inIndex)
@@ -634,9 +647,11 @@ object AcousticProbeHelper {
                     }
                     if (newFormat.containsKey(MediaFormat.KEY_SAMPLE_RATE)) {
                         actualSampleRate = newFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)
-                        bandStop = AcousticSyncMatcher.BandStopFilter(actualSampleRate)
+                        frameStep = if (actualSampleRate >= 44100) 2 else 1
+                        val effectiveFilterRate = (actualSampleRate / frameStep).coerceAtLeast(8000)
+                        bandStop = AcousticSyncMatcher.BandStopFilter(effectiveFilterRate)
                         if (!isVideo) {
-                            bandPass = AcousticSyncMatcher.BandPassFilter(actualSampleRate)
+                            bandPass = AcousticSyncMatcher.BandPassFilter(effectiveFilterRate)
                         }
                     }
                 } else if (outIndex >= 0) {
@@ -649,10 +664,6 @@ object AcousticProbeHelper {
                         val totalFrames = totalShorts / actualChannels
                         val basePtsUs = bufferInfo.presentationTimeUs
 
-                        // Fatiamento exato a cada 10ms (100 Hz):
-                        // Um buffer AAC decodificado contém 1024 frames (~21.33ms), cobrindo mais de 2 bins de 10ms!
-                        // Dividimos a leitura em fatias exatas de framesPer10ms = actualSampleRate / 100,
-                        // preenchendo sequencialmente cada bin de 10ms sem deixar nenhum buraco intercalado.
                         val framesPer10ms = (actualSampleRate / 100).coerceAtLeast(1)
                         val startBin = (basePtsUs / 10_000L).toInt()
                         val totalSlices = (totalFrames + framesPer10ms - 1) / framesPer10ms
@@ -668,13 +679,10 @@ object AcousticProbeHelper {
                             var sliceSpeechSumSq = 0.0
                             var sliceCount = 0
 
-                            for (f in sliceStartFrame until sliceEndFrame) {
+                            var f = sliceStartFrame
+                            while (f < sliceEndFrame) {
                                 val sampleOffset = f * actualChannels
 
-                                // Isolamento Espacial M&E:
-                                // Surround 5.1/7.1 descarta o Canal Central (short[2] vocal)
-                                // Estéreo 2.0 combina Side (|L-R|) + 0.25*Mid filtrado
-                                // Mono aplica Band-Stop completo
                                 val meSample = when {
                                     actualChannels >= 6 -> {
                                         val fl = shortBuf.get(sampleOffset) / 32768.0f
@@ -698,7 +706,6 @@ object AcousticProbeHelper {
                                 }
                                 sliceMeSumSq += meSample.toDouble() * meSample.toDouble()
 
-                                // Vetor de Atividade Vocal da Dublagem (Mid = 0.5*(L+R) filtrado em 300Hz-2800Hz)
                                 if (!isVideo && speechSumSquares != null && bandPass != null) {
                                     val midVocal = when {
                                         actualChannels >= 2 -> {
@@ -712,6 +719,7 @@ object AcousticProbeHelper {
                                     sliceSpeechSumSq += speechFiltered.toDouble() * speechFiltered.toDouble()
                                 }
                                 sliceCount++
+                                f += frameStep
                             }
 
                             if (sliceCount > 0) {
@@ -736,6 +744,8 @@ object AcousticProbeHelper {
                     break
                 }
             }
+
+            if (!isActiveProvider()) return null
 
             var firstValidBin = -1
             var lastValidBin = -1
@@ -797,12 +807,12 @@ object AcousticProbeHelper {
      */
     private fun tryExtractBitstreamEnergy(
         extractor: MediaExtractor,
-        candidate: TrackCandidate
+        candidate: TrackCandidate,
+        isActiveProvider: () -> Boolean = { true }
     ): ExtractedAudioData? {
         try {
             extractor.selectTrack(candidate.index)
-            // UNIFICAÇÃO TEMPORAL: Leitura estritamente desde 0.0s (sem seekTo) até pelo menos 30.0s
-            val targetEndPtsUs = 30_000_000L
+            val targetEndPtsUs = 25_000_000L
             val startTimeWallMs = System.currentTimeMillis()
 
             val binSumSquares = DoubleArray(TOTAL_BINS)
@@ -812,7 +822,7 @@ object AcousticProbeHelper {
             val rawSamples = mutableListOf<Triple<Long, Int, Double>>()
             var sampleCount = 0
             var maxPtsReachedUs = 0L
-            while (maxPtsReachedUs < targetEndPtsUs && (System.currentTimeMillis() - startTimeWallMs) < SOURCE_READ_TIMEOUT_MS) {
+            while (isActiveProvider() && maxPtsReachedUs < targetEndPtsUs && (System.currentTimeMillis() - startTimeWallMs) < SOURCE_READ_TIMEOUT_MS) {
                 val sampleSize = extractor.readSampleData(buffer, 0)
                 if (sampleSize < 0) break
 
@@ -837,6 +847,8 @@ object AcousticProbeHelper {
                 }
                 extractor.advance()
             }
+
+            if (!isActiveProvider()) return null
 
             // Piso mínimo do frame (Core) na janela para extrair o excesso VBR da extensão HD
             val validSizes = rawSamples.map { it.second }.filter { it > 64 }
@@ -882,9 +894,7 @@ object AcousticProbeHelper {
             }
 
             val finalEnvelope = normalizeEnergyEnvelope(binSumSquares, binSampleCounts)
-            // Interpolação linear anti-buracos obrigatória
             interpolateHoles(finalEnvelope, firstValidBin, lastValidBin)
-            // Re-escala dinâmica Percentil 10-95 no Bitstream (remove piso do DTS-HD e estende picos)
             rescalePercentile10To95(finalEnvelope, startBin = 250, endBin = lastValidBin)
 
             var validBins = 0
@@ -926,8 +936,10 @@ object AcousticProbeHelper {
     private fun extractAudioViaMedia3Matroska(
         url: String,
         headers: Map<String, String>,
-        isVideo: Boolean
+        isVideo: Boolean,
+        isActiveProvider: () -> Boolean = { true }
     ): ProbeResult? {
+        if (!isActiveProvider()) return null
         var dataSource: DefaultHttpDataSource? = null
         try {
             val httpHeaders = LinkedHashMap<String, String>()
@@ -943,15 +955,15 @@ object AcousticProbeHelper {
             dataSource = DefaultHttpDataSource.Factory()
                 .setUserAgent("Mozilla/5.0 (Linux; Android 13; Android TV)")
                 .setDefaultRequestProperties(httpHeaders)
-                .setConnectTimeoutMs(6000)
-                .setReadTimeoutMs(6000)
+                .setConnectTimeoutMs(3500)
+                .setReadTimeoutMs(3500)
                 .setAllowCrossProtocolRedirects(true)
                 .createDataSource()
 
             val uri = Uri.parse(url)
             val dataSpec = DataSpec.Builder()
                 .setUri(uri)
-                .setLength(64L * 1024L * 1024L)
+                .setLength(16L * 1024L * 1024L)
                 .build()
 
             val openLen = dataSource.open(dataSpec)
@@ -971,7 +983,7 @@ object AcousticProbeHelper {
             val positionHolder = PositionHolder()
             val startWallMs = System.currentTimeMillis()
 
-            while ((System.currentTimeMillis() - startWallMs) < SOURCE_READ_TIMEOUT_MS) {
+            while (isActiveProvider() && (System.currentTimeMillis() - startWallMs) < SOURCE_READ_TIMEOUT_MS) {
                 val res = extractor.read(extractorInput, positionHolder)
                 if (res == Extractor.RESULT_END_OF_INPUT) break
 
@@ -981,6 +993,8 @@ object AcousticProbeHelper {
                     if (lastPts >= SAMPLE_WINDOW_US) break
                 }
             }
+
+            if (!isActiveProvider()) return null
 
             // Registra detalhadamente as faixas de vídeo, áudio e legendas descobertas pelo MatroskaExtractor
             val discoveredVideos = mutableListOf<Map<String, Any?>>()
@@ -1092,9 +1106,7 @@ object AcousticProbeHelper {
             }
 
             val finalEnvelope = normalizeEnergyEnvelope(binSumSquares, binSampleCounts)
-            // Interpolação linear anti-buracos obrigatória
             interpolateHoles(finalEnvelope, firstValidBin, lastValidBin)
-            // Re-escala dinâmica Percentil 10-95 no Bitstream
             rescalePercentile10To95(finalEnvelope, startBin = 250, endBin = lastValidBin)
 
             var validBins = 0
@@ -1127,6 +1139,7 @@ object AcousticProbeHelper {
             runCatching { dataSource?.close() }
         }
     }
+
     /**
      * Interpolação linear anti-buracos obrigatória:
      * Preenche qualquer bin isolado ou sequência de até 4 bins (40ms) que tenha ficado com 0.0f
@@ -1225,20 +1238,9 @@ object AcousticProbeHelper {
         return finalEnvelope
     }
 
-    private fun skipDataReader(input: DataReader, length: Int) {
-        var remaining = length
-        val discard = ByteArray(minOf(remaining, 4096))
-        while (remaining > 0) {
-            val read = input.read(discard, 0, minOf(remaining, discard.size))
-            if (read <= 0) break
-            remaining -= read
-        }
-    }
-
     private data class Media3CapturedSample(
         val timeUs: Long,
-        val size: Int,
-        val headerBytes: ByteArray
+        val size: Int
     )
 
     @UnstableApi
@@ -1246,8 +1248,6 @@ object AcousticProbeHelper {
         var format: Format? = null
         val samples = mutableListOf<Media3CapturedSample>()
         val textCues = mutableListOf<SubtitleSyncCue>()
-        private val headerBuf = ByteArray(256)
-        private var headerPos = 0
         private var textBuf = ByteArray(4096)
         private var textPos = 0
 
@@ -1271,55 +1271,18 @@ object AcousticProbeHelper {
                 return if (read > 0) read else length
             }
 
-            // DESCARTE INSTANTÂNEO DE VÍDEO 4K:
-            // Faixas de vídeo são puladas imediatamente sem nenhuma alocação de heap
-            if (trackType != C.TRACK_TYPE_AUDIO) {
-                if (input is ExtractorInput) {
-                    input.skipFully(length)
-                } else {
-                    var remaining = length
-                    while (remaining > 0) {
-                        val read = input.read(DISCARD_BUFFER, 0, minOf(remaining, DISCARD_BUFFER.size))
-                        if (read <= 0) break
-                        remaining -= read
-                    }
-                }
-                return length
-            }
-
-            val toCopy = minOf(length, 256 - headerPos)
-            if (toCopy > 0) {
-                val read = input.read(headerBuf, headerPos, toCopy)
-                if (read > 0) {
-                    headerPos += read
-                    val left = length - read
-                    if (left > 0) {
-                        if (input is ExtractorInput) {
-                            input.skipFully(left)
-                        } else {
-                            var remaining = left
-                            while (remaining > 0) {
-                                val r = input.read(DISCARD_BUFFER, 0, minOf(remaining, DISCARD_BUFFER.size))
-                                if (r <= 0) break
-                                remaining -= r
-                            }
-                        }
-                    }
-                }
-                return length
+            // Descarte sem alocação de heap para faixas de vídeo e áudio comprimido
+            if (input is ExtractorInput) {
+                input.skipFully(length)
             } else {
-                if (input is ExtractorInput) {
-                    input.skipFully(length)
-                } else {
-                    var remaining = length
-                    while (remaining > 0) {
-                        val read = input.read(DISCARD_BUFFER, 0, minOf(remaining, DISCARD_BUFFER.size))
-                        if (read <= 0) break
-                        remaining -= read
-                    }
+                var remaining = length
+                while (remaining > 0) {
+                    val read = input.read(DISCARD_BUFFER, 0, minOf(remaining, DISCARD_BUFFER.size))
+                    if (read <= 0) break
+                    remaining -= read
                 }
-                return length
             }
+            return length
         }
 
         override fun sampleData(data: ParsableByteArray, length: Int, sampleDataPart: Int) {
@@ -1331,19 +1294,7 @@ object AcousticProbeHelper {
                 textPos += length
                 return
             }
-
-            if (trackType != C.TRACK_TYPE_AUDIO) {
-                data.skipBytes(length)
-                return
-            }
-            val toCopy = minOf(length, 256 - headerPos)
-            if (toCopy > 0) {
-                data.readBytes(headerBuf, headerPos, toCopy)
-                headerPos += toCopy
-                if (length > toCopy) data.skipBytes(length - toCopy)
-            } else {
-                data.skipBytes(length)
-            }
+            data.skipBytes(length)
         }
 
         override fun sampleMetadata(
@@ -1364,9 +1315,7 @@ object AcousticProbeHelper {
                 return
             }
             if (trackType != C.TRACK_TYPE_AUDIO) return
-            val bytes = headerBuf.copyOf(minOf(headerPos, size))
-            samples.add(Media3CapturedSample(timeUs = timeUs, size = size, headerBytes = bytes))
-            headerPos = 0
+            samples.add(Media3CapturedSample(timeUs = timeUs, size = size))
         }
     }
 
@@ -1393,4 +1342,3 @@ object AcousticProbeHelper {
         )
     }
 }
-

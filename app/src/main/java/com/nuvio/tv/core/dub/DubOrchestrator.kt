@@ -1,16 +1,23 @@
 package com.nuvio.tv.core.dub
 
 import android.util.Log
+import com.nuvio.tv.core.network.NoDelaySocketFactory
 import com.nuvio.tv.domain.model.Stream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Response
+import java.io.IOException
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
 
 /** Áudio já resolvido para uma URL reproduzível. */
 data class DubResolvedAudio(
@@ -54,19 +61,39 @@ sealed class DubOutcome {
 object DubOrchestrator {
 
     private const val TAG = "DubOrchestrator"
-    private const val MAX_HTTP_PROBES = 3
+    private const val MAX_HTTP_PROBES = 4
     private const val MAX_DEBRID_RESOLVES = 2
     private const val PROBE_TIMEOUT_MS = 2_500L
 
     const val STARTUP_BUDGET_MS = 16_000L
     const val MENU_BUDGET_MS = 25_000L
 
+    private val preFlightHttpClient = OkHttpClient.Builder()
+        .socketFactory(NoDelaySocketFactory)
+        .connectTimeout(2500, TimeUnit.MILLISECONDS)
+        .readTimeout(2500, TimeUnit.MILLISECONDS)
+        .callTimeout(3200, TimeUnit.MILLISECONDS)
+        .followRedirects(true)
+        .followSslRedirects(true)
+        .build()
+
     private enum class Tier { HTTP, DEBRID_RESOLVE, TORRENT }
 
     private fun isHeavyStream(stream: Stream): Boolean {
-        val text = (stream.name.orEmpty() + " " + stream.title.orEmpty()).lowercase()
+        val text = (stream.name.orEmpty() + " " + stream.title.orEmpty() + " " + stream.description.orEmpty()).lowercase()
         return text.contains("4k") || text.contains("2160p") || text.contains("remux") ||
                text.contains("uhd") || text.contains("bdrip") || text.contains("bluray")
+    }
+
+    private fun streamBandwidthRank(stream: Stream): Int {
+        val text = (stream.name.orEmpty() + " " + stream.title.orEmpty() + " " + stream.description.orEmpty()).lowercase()
+        return when {
+            text.contains("480p") || text.contains("360p") -> 0
+            text.contains("720p") -> 1
+            text.contains("1080p") -> 2
+            text.contains("2160p") || text.contains("4k") -> 4
+            else -> 2
+        }
     }
 
     private data class RankedCandidate(
@@ -142,10 +169,12 @@ object DubOrchestrator {
         val outcome = withTimeoutOrNull(totalBudgetMs) {
             coroutineScope {
                 val videoProbeDeferred = async(Dispatchers.IO) {
-                    ContainerProbe.probeMedia(videoUrl, videoHeaders)
+                    ContainerProbe.probeMedia(videoUrl, videoHeaders, timeoutMs = 3_000L)
                 }
                 val videoChaptersDeferred = async(Dispatchers.IO) {
-                    runCatching { com.nuvio.tv.ui.screens.player.MatroskaChapterLoader.load(videoUrl, videoHeaders) }.getOrDefault(emptyList())
+                    withTimeoutOrNull(2_000L) {
+                        runCatching { com.nuvio.tv.ui.screens.player.MatroskaChapterLoader.load(videoUrl, videoHeaders) }.getOrDefault(emptyList())
+                    } ?: emptyList()
                 }
                 val streams = fetchStreams()
 
@@ -161,6 +190,40 @@ object DubOrchestrator {
                     videoProbeDeferred.cancel()
                     videoChaptersDeferred.cancel()
                     return@coroutineScope DubOutcome.NoCandidate
+                }
+
+                val videoKey = stableKey(videoStream, videoUrl)
+
+                // Fast-path: verifica cache de episódio ou Season Pack ANTES de bloquear em probes de vídeo
+                val cachedEval = evaluateFromCacheOnly(
+                    ranked = ranked,
+                    videoKey = videoKey,
+                    videoStreamTitle = videoSearchText,
+                    seriesId = seriesId,
+                    season = season,
+                    resolveAudio = resolveAudio
+                )
+                if (cachedEval != null) {
+                    videoProbeDeferred.cancel()
+                    videoChaptersDeferred.cancel()
+                    val warnings = buildList {
+                        if (cachedEval.is4k) add(ForceDubWarningType.WARNING_4K_AUDIO)
+                    }
+                    val remaining = ranked.map { it.stream }.filter { it != cachedEval.resolved.stream }
+                    return@coroutineScope DubOutcome.Ready(
+                        DubPlan(
+                            audio = cachedEval.resolved,
+                            timeline = cachedEval.decision.timeline,
+                            warnings = warnings,
+                            videoCacheKey = videoKey,
+                            audioCacheKey = stableKey(cachedEval.resolved.stream, cachedEval.resolved.url),
+                            audioFromCache = true,
+                            methodName = cachedEval.decision.methodName,
+                            logicDescription = cachedEval.decision.logicDescription,
+                            videoStreamTitle = videoSearchText,
+                            remainingCandidates = remaining
+                        )
+                    )
                 }
 
                 val videoProbe = videoProbeDeferred.await()
@@ -185,7 +248,6 @@ object DubOrchestrator {
                     }
                 }
                 val videoDurationMs = videoDurationHintMs?.takeIf { it > 0L } ?: videoProbe?.durationMs
-                val videoKey = stableKey(videoStream, videoUrl)
                 val best = evaluate(
                     ranked = ranked,
                     videoKey = videoKey,
@@ -197,6 +259,7 @@ object DubOrchestrator {
                     videoStreamTitle = videoSearchText,
                     seriesId = seriesId,
                     season = season,
+                    isStartup = totalBudgetMs <= STARTUP_BUDGET_MS,
                     resolveAudio = resolveAudio
                 ) ?: return@coroutineScope DubOutcome.NoCandidate
 
@@ -286,6 +349,8 @@ object DubOrchestrator {
                 list.sortedWith(
                     compareBy<RankedCandidate> { if (it.is4k) 1 else 0 }
                         .thenBy { if (isHeavyStream(it.stream)) 1 else 0 }
+                        .thenBy { streamBandwidthRank(it.stream) }
+                        .thenBy { it.stream.behaviorHints?.videoSize ?: Long.MAX_VALUE }
                 )
             }
             .values
@@ -306,27 +371,19 @@ object DubOrchestrator {
         return result
     }
 
-    private suspend fun evaluate(
+    private suspend fun evaluateFromCacheOnly(
         ranked: List<RankedCandidate>,
         videoKey: String,
-        videoUrl: String,
-        videoHeaders: Map<String, String>,
-        videoDurationMs: Long?,
-        targetLanguage: String,
-        videoChapters: List<com.nuvio.tv.ui.screens.player.PlayerChapter> = emptyList(),
         videoStreamTitle: String? = null,
         seriesId: String? = null,
         season: Int? = null,
         resolveAudio: suspend (Stream) -> DubResolvedAudio?
     ): Evaluated? {
-        // 1) Cache individual do episódio ou Season Pack Cache (0 ms instantâneo)
         for (candidate in ranked) {
             val url = candidate.stream.getStreamUrl()
             val audioKey = stableKey(candidate.stream, url)
             val candidateSearchText = extractStreamSearchText(candidate.stream, url)
 
-            // Se o candidato possuir um bumper evidente (como Adult Swim de 5.1s) e o vídeo não possuir (ou vice-versa),
-            // verificamos se o cache possui 0L cego e, se tiver, descartamos a entrada antiga contaminada
             val videoBumper = DubSyncEstimator.detectStreamingBumper(videoStreamTitle)
             val audioBumper = DubSyncEstimator.detectStreamingBumper(candidateSearchText)
             val hasExplicitBumper = (videoBumper != null || audioBumper != null)
@@ -383,6 +440,27 @@ object DubOrchestrator {
                 fromCache = true
             )
         }
+        return null
+    }
+
+    private suspend fun evaluate(
+        ranked: List<RankedCandidate>,
+        videoKey: String,
+        videoUrl: String,
+        videoHeaders: Map<String, String>,
+        videoDurationMs: Long?,
+        targetLanguage: String,
+        videoChapters: List<com.nuvio.tv.ui.screens.player.PlayerChapter> = emptyList(),
+        videoStreamTitle: String? = null,
+        seriesId: String? = null,
+        season: Int? = null,
+        isStartup: Boolean = false,
+        resolveAudio: suspend (Stream) -> DubResolvedAudio?
+    ): Evaluated? {
+        // 1) Cache individual do episódio ou Season Pack Cache (0 ms instantâneo)
+        evaluateFromCacheOnly(ranked, videoKey, videoStreamTitle, seriesId, season, resolveAudio)?.let {
+            return it
+        }
 
         // 2) Fontes HTTP diretas com Early Return
         val httpCandidates = ranked.filter { it.tier == Tier.HTTP }.take(MAX_HTTP_PROBES)
@@ -411,6 +489,8 @@ object DubOrchestrator {
             .sortedWith(
                 compareBy<RankedCandidate> { if (it.is4k) 1 else 0 }
                     .thenBy { if (isHeavyStream(it.stream)) 1 else 0 }
+                    .thenBy { streamBandwidthRank(it.stream) }
+                    .thenBy { it.stream.behaviorHints?.videoSize ?: Long.MAX_VALUE }
             )
             .take(MAX_DEBRID_RESOLVES)
 
@@ -433,17 +513,21 @@ object DubOrchestrator {
 
         pickBest(evaluatedHttp + evaluatedDebrid)?.let { return it }
 
-        // 4) Torrent: último recurso.
+        // 4) Torrent: último recurso (com timeout curto no startup para evitar travar carregamento em Fire TV).
         for (candidate in ranked.filter { it.tier == Tier.TORRENT }.take(1)) {
-            val resolved = resolveAudio(candidate.stream) ?: continue
+            val resolved = if (isStartup) {
+                withTimeoutOrNull(4_500L) { resolveAudio(candidate.stream) }
+            } else {
+                resolveAudio(candidate.stream)
+            } ?: continue
             evaluateOne(resolved, candidate, videoUrl, videoHeaders, videoDurationMs, targetLanguage, videoChapters, videoStreamTitle)?.let { return it }
         }
         return null
     }
 
     /**
-     * Pre-Flight Check Ultra-Rápido (800 ms):
-     * Faz requisição HTTP Range: bytes=0-1023 com timeout de conexão de 800 ms.
+     * Pre-Flight Check Rápido com cliente OkHttp compartilhado (pool de conexões + DNS + TLS session reuse):
+     * Faz requisição HTTP Range: bytes=0-1023 com timeout resiliente para Wi-Fi de Android TV / Fire TV.
      * Descarta instantaneamente candidatos com erro HTTP (>=400), HTML (text/html) ou timeout.
      */
     suspend fun quickPreFlightCheck(
@@ -456,58 +540,68 @@ object DubOrchestrator {
             return@withContext true
         }
         val startTime = android.os.SystemClock.elapsedRealtime()
-        val client = OkHttpClient.Builder()
-            .connectTimeout(800, TimeUnit.MILLISECONDS)
-            .readTimeout(800, TimeUnit.MILLISECONDS)
-            .callTimeout(800, TimeUnit.MILLISECONDS)
-            .followRedirects(true)
-            .followSslRedirects(true)
-            .build()
-        try {
-            val reqBuilder = Request.Builder()
-                .url(url)
-                .header("Range", "bytes=0-1023")
-            headers.forEach { (k, v) ->
-                if (!k.equals("Range", ignoreCase = true) && k.isNotBlank() && v.isNotBlank()) {
-                    reqBuilder.header(k, v)
+        val reqBuilder = Request.Builder()
+            .url(url)
+            .header("Range", "bytes=0-1023")
+            .header("Accept-Encoding", "identity")
+        headers.forEach { (k, v) ->
+            if (!k.equals("Range", ignoreCase = true) && !k.equals("Accept-Encoding", ignoreCase = true) && k.isNotBlank() && v.isNotBlank()) {
+                reqBuilder.header(k, v)
+            }
+        }
+        if (headers.none { it.key.equals("User-Agent", ignoreCase = true) }) {
+            reqBuilder.header("User-Agent", "Mozilla/5.0 (Linux; Android 13; Android TV)")
+        }
+
+        suspendCancellableCoroutine { cont ->
+            val call = preFlightHttpClient.newCall(reqBuilder.build())
+            cont.invokeOnCancellation { runCatching { call.cancel() } }
+            call.enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    val elapsed = android.os.SystemClock.elapsedRealtime() - startTime
+                    DubDiagnosticFileLogger.addDubCandidate(
+                        name = streamName,
+                        addon = addonName,
+                        url = url,
+                        responseMs = elapsed,
+                        statusCode = 0,
+                        isChosen = false
+                    )
+                    Log.w(TAG, "Pre-flight timeout/erro (${elapsed}ms) para $url: ${e.message}")
+                    if (cont.isActive) cont.resume(false)
                 }
-            }
-            if (headers.none { it.key.equals("User-Agent", ignoreCase = true) }) {
-                reqBuilder.header("User-Agent", "Mozilla/5.0 (Linux; Android 13; Android TV)")
-            }
-            client.newCall(reqBuilder.build()).execute().use { response ->
-                val elapsed = android.os.SystemClock.elapsedRealtime() - startTime
-                val code = response.code
-                val isSuccess = response.isSuccessful || code == 206 || code == 200
-                val contentType = response.header("Content-Type").orEmpty().lowercase()
-                val isHtml = contentType.contains("text/html")
-                val accepted = isSuccess && !isHtml
-                DubDiagnosticFileLogger.addDubCandidate(
-                    name = streamName,
-                    addon = addonName,
-                    url = url,
-                    responseMs = elapsed,
-                    statusCode = code,
-                    isChosen = false
-                )
-                if (!accepted) {
-                    Log.w(TAG, "Pre-flight falhou (HTTP $code, html=$isHtml) em ${elapsed}ms para $url")
-                    return@withContext false
+
+                override fun onResponse(call: Call, response: Response) {
+                    try {
+                        response.use { resp ->
+                            val elapsed = android.os.SystemClock.elapsedRealtime() - startTime
+                            val code = resp.code
+                            val isSuccess = resp.isSuccessful || code == 206 || code == 200
+                            val contentType = resp.header("Content-Type").orEmpty().lowercase()
+                            val isHtml = contentType.contains("text/html")
+                            val accepted = isSuccess && !isHtml
+                            if (code == 200) {
+                                // Cancela imediatamente para o OkHttp não drenar gigabytes no close()
+                                runCatching { call.cancel() }
+                            }
+                            DubDiagnosticFileLogger.addDubCandidate(
+                                name = streamName,
+                                addon = addonName,
+                                url = url,
+                                responseMs = elapsed,
+                                statusCode = code,
+                                isChosen = false
+                            )
+                            if (!accepted) {
+                                Log.w(TAG, "Pre-flight falhou (HTTP $code, html=$isHtml) em ${elapsed}ms para $url")
+                            }
+                            if (cont.isActive) cont.resume(accepted)
+                        }
+                    } catch (e: Throwable) {
+                        if (cont.isActive) cont.resume(false)
+                    }
                 }
-                true
-            }
-        } catch (e: Exception) {
-            val elapsed = android.os.SystemClock.elapsedRealtime() - startTime
-            DubDiagnosticFileLogger.addDubCandidate(
-                name = streamName,
-                addon = addonName,
-                url = url,
-                responseMs = elapsed,
-                statusCode = 0,
-                isChosen = false
-            )
-            Log.w(TAG, "Pre-flight timeout/erro (${elapsed}ms) para $url: ${e.message}")
-            false
+            })
         }
     }
 
@@ -521,17 +615,18 @@ object DubOrchestrator {
         videoChapters: List<com.nuvio.tv.ui.screens.player.PlayerChapter> = emptyList(),
         videoStreamTitle: String? = null
     ): Evaluated? = withContext(Dispatchers.IO) {
-        // Pre-Flight Check Ultra-Rápido (<800 ms): descarta candidatos inacessíveis ou com bloqueio antes do player
         if (!quickPreFlightCheck(resolved.url, resolved.headers, candidate.stream.name.orEmpty(), candidate.stream.addonName.orEmpty())) {
-            Log.w(TAG, "Candidato descartado pelo Pre-Flight Check (<800ms): ${candidate.stream.name}")
+            Log.w(TAG, "Candidato descartado pelo Pre-Flight Check: ${candidate.stream.name}")
             return@withContext null
         }
 
         val probeDeferred = async { ContainerProbe.probeMedia(resolved.url, resolved.headers, PROBE_TIMEOUT_MS) }
         val audioChaptersDeferred = async {
-            runCatching {
-                com.nuvio.tv.ui.screens.player.MatroskaChapterLoader.load(resolved.url, resolved.headers)
-            }.getOrDefault(emptyList())
+            withTimeoutOrNull(1_800L) {
+                runCatching {
+                    com.nuvio.tv.ui.screens.player.MatroskaChapterLoader.load(resolved.url, resolved.headers)
+                }.getOrDefault(emptyList())
+            } ?: emptyList()
         }
 
         val probe = probeDeferred.await()

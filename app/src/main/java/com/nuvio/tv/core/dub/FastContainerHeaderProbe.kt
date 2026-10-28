@@ -1,24 +1,34 @@
 package com.nuvio.tv.core.dub
 
 import android.util.Log
+import com.nuvio.tv.core.network.NoDelaySocketFactory
 import com.nuvio.tv.core.player.MatroskaAfrProbe
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Response
 import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
+import java.io.IOException
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
 
 internal object FastContainerHeaderProbe {
 
     private const val TAG = "FastContainerProbe"
-    private const val PROBE_RANGE_BYTES = 1024 * 1024 // 1 MB para capturar Segment Info e Tracks de grandes MKVs
-    private const val MP4_TAIL_BYTES = 512 * 1024 // 512 KB do final do arquivo para encontrar moov em MP4s sem faststart
+    private const val PROBE_RANGE_BYTES = 256 * 1024 // 256 KB é suficiente para Segment Info/Tracks de MKVs e cabeçalho MP4 sem saturar Wi-Fi da Android TV
+    private const val MP4_TAIL_BYTES = 256 * 1024 // 256 KB do final do arquivo para encontrar moov em MP4s sem faststart
 
     private val httpClient = OkHttpClient.Builder()
-        .connectTimeout(4, TimeUnit.SECONDS)
-        .readTimeout(5, TimeUnit.SECONDS)
+        .socketFactory(NoDelaySocketFactory)
+        .connectTimeout(2500, TimeUnit.MILLISECONDS)
+        .readTimeout(2500, TimeUnit.MILLISECONDS)
+        .callTimeout(3500, TimeUnit.MILLISECONDS)
         .followRedirects(true)
         .followSslRedirects(true)
         .build()
@@ -42,7 +52,7 @@ internal object FastContainerHeaderProbe {
             return@withContext mp4Result
         }
 
-        // 3. Se for MP4 e não tem moov no início, tenta buscar moov no final do arquivo (bytes=-524288)
+        // 3. Se for MP4 e não tem moov no início, tenta buscar moov no final do arquivo
         val tailBytes = fetchTail(url, headers, MP4_TAIL_BYTES)
         if (tailBytes != null && tailBytes.size > 16) {
             val tailResult = parseMp4Head(tailBytes)
@@ -54,7 +64,7 @@ internal object FastContainerHeaderProbe {
         mkvResult ?: mp4Result
     }
 
-    private fun fetchRange(url: String, headers: Map<String, String>, start: Long, length: Int): ByteArray? {
+    private suspend fun fetchRange(url: String, headers: Map<String, String>, start: Long, length: Int): ByteArray? {
         val request = Request.Builder()
             .url(url)
             .header("Range", "bytes=$start-${start + length - 1}")
@@ -68,16 +78,10 @@ internal object FastContainerHeaderProbe {
             }
             .build()
 
-        return runCatching {
-            httpClient.newCall(request).execute().use { response ->
-                if (response.isSuccessful || response.code == 206) {
-                    response.body?.bytes()
-                } else null
-            }
-        }.getOrNull()
+        return executeBoundedRead(request, maxBytes = length, requirePartialContent = start > 0L)
     }
 
-    private fun fetchTail(url: String, headers: Map<String, String>, length: Int): ByteArray? {
+    private suspend fun fetchTail(url: String, headers: Map<String, String>, length: Int): ByteArray? {
         val request = Request.Builder()
             .url(url)
             .header("Range", "bytes=-$length")
@@ -91,13 +95,58 @@ internal object FastContainerHeaderProbe {
             }
             .build()
 
-        return runCatching {
-            httpClient.newCall(request).execute().use { response ->
-                if (response.isSuccessful || response.code == 206) {
-                    response.body?.bytes()
-                } else null
+        return executeBoundedRead(request, maxBytes = length, requirePartialContent = true)
+    }
+
+    private suspend fun executeBoundedRead(
+        request: Request,
+        maxBytes: Int,
+        requirePartialContent: Boolean
+    ): ByteArray? = suspendCancellableCoroutine { cont ->
+        val call = httpClient.newCall(request)
+        cont.invokeOnCancellation { runCatching { call.cancel() } }
+        call.enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                if (cont.isActive) cont.resume(null)
             }
-        }.getOrNull()
+
+            override fun onResponse(call: Call, response: Response) {
+                try {
+                    response.use { resp ->
+                        val ok = if (requirePartialContent) {
+                            resp.code == 206
+                        } else {
+                            resp.isSuccessful || resp.code == 206
+                        }
+                        if (!ok) {
+                            if (cont.isActive) cont.resume(null)
+                            return
+                        }
+                        val stream = resp.body?.byteStream()
+                        if (stream == null) {
+                            if (cont.isActive) cont.resume(null)
+                            return
+                        }
+                        val out = ByteArrayOutputStream(minOf(maxBytes, 64 * 1024))
+                        val buf = ByteArray(16 * 1024)
+                        var total = 0
+                        while (total < maxBytes) {
+                            val toRead = minOf(buf.size, maxBytes - total)
+                            val r = stream.read(buf, 0, toRead)
+                            if (r <= 0) break
+                            out.write(buf, 0, r)
+                            total += r
+                        }
+                        if (resp.code == 200) {
+                            runCatching { call.cancel() }
+                        }
+                        if (cont.isActive) cont.resume(out.toByteArray())
+                    }
+                } catch (_: Throwable) {
+                    if (cont.isActive) cont.resume(null)
+                }
+            }
+        })
     }
 
     private fun parseMatroskaHead(bytes: ByteArray): MediaProbeResult? {

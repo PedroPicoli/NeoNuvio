@@ -395,21 +395,16 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
             if (headers.isNotEmpty()) {
                 applyHeaders(headers)
             }
-            // Força busca exata e sincronização estrita A/V
+            // Configura sincronização inicial de áudio sem degradar o buffer de vídeo (demuxer-readahead)
+            // nem ativar hr-seek/skiploopfilter que derrubam FPS no Fire TV / Android TV
             runCatching {
-                mpv.setPropertyString("hr-seek", "yes")
-                mpv.setPropertyString("framedrop", "vo")
-                mpv.setPropertyString("vd-lavc-fast", "yes")
-                mpv.setPropertyString("vd-lavc-skiploopfilter", "nonkey")
-                mpv.setPropertyDouble("mc", 2.0)
                 mpv.setPropertyString("initial-audio-sync", "yes")
             }
             mpv.command("audio-add", audioUrl, "select", "Dublado")
             // Ignora faixas de vídeo do arquivo secundário e mantém vid=1 fixo no primário
             runCatching { mpv.setPropertyString("vid", "1") }
-            // Demuxer readahead enxuto de 5 segundos para seek rápido e re-sincronização sem sobrecarga
-            runCatching { mpv.setPropertyString("demuxer-readahead-secs", "5") }
             applyTotalAudioDelay()
+            cachedTrackList = null
             Log.i(TAG, "MPV: faixa de áudio externa adicionada (baseOffset=${offsetMs}ms, userDelay=${userAudioDelayMs}ms)")
         }.onFailure {
             Log.e(TAG, "Falha ao adicionar áudio externo no MPV: ${it.message}")
@@ -433,7 +428,7 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
 
     /**
      * Atualiza dinamicamente o deslocamento inicial da faixa de dublagem externa sem recarregar o stream.
-     * Quando a mudança for < 0.5s, não dispara seek. Se for >= 0.5s, dispara relative+exact.
+     * O libmpv aplica `audio-delay` nativamente no clock de áudio sem precisar de `seek 0 relative+exact` no vídeo.
      */
     fun updateExternalAudioOffset(offsetMs: Long) {
         if (!isInitialized) return
@@ -441,12 +436,7 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
         externalAudioOffsetMs = offsetMs
         applyTotalAudioDelay()
         val deltaMs = kotlin.math.abs(offsetMs - prevOffset)
-        if (deltaMs >= 500L) {
-            runCatching { mpv.command("seek", "0", "relative+exact") }
-            Log.i(TAG, "MPV: offset base de dublagem atualizado para ${offsetMs}ms (delta=${deltaMs}ms >= 500ms, seek relative+exact aplicado)")
-        } else {
-            Log.i(TAG, "MPV: offset base de dublagem atualizado para ${offsetMs}ms (delta=${deltaMs}ms < 500ms, seek suprimido)")
-        }
+        Log.i(TAG, "MPV: offset base de dublagem atualizado para ${offsetMs}ms (delta=${deltaMs}ms, audio-delay nativo atualizado sem seek de vídeo)")
     }
 
     /**

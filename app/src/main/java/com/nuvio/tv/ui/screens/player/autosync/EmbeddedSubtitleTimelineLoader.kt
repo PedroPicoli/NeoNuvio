@@ -208,8 +208,12 @@ internal object EmbeddedSubtitleTimelineLoader {
             val loaded = try {
                 withTimeout(TOTAL_TIMEOUT_MS) {
                     withContext(Dispatchers.IO) {
-                        loadMatroskaCueIndex(sourceUrl, sourceHeaders)
-                            ?: loadSubtitlesViaMedia3Matroska(sourceUrl, sourceHeaders)
+                        val cueIndex = loadMatroskaCueIndex(sourceUrl, sourceHeaders)
+                        if (cueIndex != null && (cueIndex.tracks.isNotEmpty() || cueIndex.noSubtitleTracks)) {
+                            cueIndex
+                        } else {
+                            loadSubtitlesViaMedia3Matroska(sourceUrl, sourceHeaders) ?: cueIndex
+                        }
                     }
                 }
             } catch (_: TimeoutCancellationException) {
@@ -1849,7 +1853,7 @@ internal object EmbeddedSubtitleTimelineLoader {
             val uri = Uri.parse(sourceUrl)
             val dataSpec = DataSpec.Builder()
                 .setUri(uri)
-                .setLength(48L * 1024L * 1024L)
+                .setLength(16L * 1024L * 1024L)
                 .build()
 
             val openLen = dataSource.open(dataSpec)
@@ -1895,6 +1899,7 @@ internal object EmbeddedSubtitleTimelineLoader {
             val positionHolder = PositionHolder()
 
             while ((System.currentTimeMillis() - startTime) < timeoutMs) {
+                currentCoroutineContext().ensureActive()
                 val res = extractor.read(extractorInput, positionHolder)
                 if (res == Extractor.RESULT_END_OF_INPUT) break
 

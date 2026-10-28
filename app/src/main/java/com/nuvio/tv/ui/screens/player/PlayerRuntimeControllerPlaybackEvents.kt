@@ -1459,20 +1459,49 @@ fun PlayerRuntimeController.onEvent(event: PlayerEvent) {
         is PlayerEvent.OnSelectAudioTrack -> {
             logSwitchTrace(
                 stage = "event-select-audio",
-                message = "index=${event.index}"
+                message = "index=${event.index} forceDubActive=$currentForceDubActive"
             )
-            if (_uiState.value.serverAudioTracks.isNotEmpty()) {
-                selectServerAudio(event.index)
-            } else {
-                rememberAudioSelection(event.index)
-                selectAudioTrack(event.index)
-            }
             _uiState.update {
                 it.copy(
                     showAudioOverlay = false,
                     showSubtitleDelayOverlay = false,
                     showSubtitleTimingDialog = false
                 )
+            }
+            if (currentForceDubActive || _uiState.value.isForceDubLoading) {
+                val clickedTrack = _uiState.value.audioTracks.getOrNull(event.index)
+                val isClickingCurrentDubTrack = currentForceDubActive &&
+                    event.index == _uiState.value.selectedAudioTrackIndex &&
+                    (clickedTrack?.name?.contains("Dublado", ignoreCase = true) == true ||
+                        event.index == _uiState.value.audioTracks.lastIndex)
+                if (!isClickingCurrentDubTrack) {
+                    Log.i(
+                        PlayerRuntimeController.TAG,
+                        "FORCE_DUB: Usuário selecionou faixa de áudio nativa (index=${event.index}, name=${clickedTrack?.name}); desativando Forçar Dublagem e restaurando fonte original."
+                    )
+                    forceDubUserOverridden = false
+                    cancelForceDubWork()
+                    clearForceDubState(stopTorrent = true, keepPlan = true)
+                    rememberAudioSelection(event.index)
+                    scope.launch {
+                        if (isExoPlayerEngineActive) {
+                            rebuildMediaSourceToOriginal(preferredNativeAudioTrackIndex = event.index)
+                        } else {
+                            mpvView?.removeExternalAudioTrack()
+                            ensureNativeAudioRestored()
+                            markMpvTracksStale()
+                            updateMpvAvailableTracks()
+                            selectAudioTrack(event.index)
+                        }
+                    }
+                    return
+                }
+            }
+            if (_uiState.value.serverAudioTracks.isNotEmpty()) {
+                selectServerAudio(event.index)
+            } else {
+                rememberAudioSelection(event.index)
+                selectAudioTrack(event.index)
             }
         }
         is PlayerEvent.OnSetAudioDelayMs -> {

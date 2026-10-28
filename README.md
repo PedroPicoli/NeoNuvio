@@ -29,17 +29,11 @@
 
 ## 🆕 What's New (based on Nuvio 1.1.0 – beta 8)
 
-* Added an innovative new feature: Force Dubbing (experimental). Enable it in settings, select your target language, and foreign-language content will be automatically dubbed.
-* Fixed duplicated "change server" icon and audio/subtitles icon disappearing when switching to Libmpv.
-* Added a feature where long-pressing a content card replaces the "manage lists" button with a direct action: simply add to the list if the title isn't there yet, or remove it if it already is, keeping sync with Simkl.
-* Added an option to enable/disable chapters.
-* Resized logo and banner images for better scaling across different screens.
-* Added an option for auto-playing live TV content (skipping the details screen).
-* Fixed matching version number.
-* Fixed Trakt error.
-* Adjusted the name "NeoNuvio" across various files.
-* Updated README with better-detailed credits.
-* Updated to Nuvio beta 8, with corrected translations.
+* Fixed "Force Dub" log HUD appearing even when disabled.
+* Fixed update loop.
+* Fixed MDBList crash error.
+* Fixed series list display order.
+* Fixed project history.
 
 ---
 

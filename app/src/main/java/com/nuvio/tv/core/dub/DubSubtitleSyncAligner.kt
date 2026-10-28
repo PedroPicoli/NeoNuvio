@@ -103,15 +103,19 @@ object DubSubtitleSyncAligner {
     ): SubtitleMatch? = withContext(Dispatchers.IO) {
         withTimeoutOrNull(TIMEOUT_MS) {
             runCatching {
-                val videoTimelineDeferred = async {
-                    EmbeddedSubtitleTimelineLoader.load(videoUrl, videoHeaders)
+                val videoTimelineDeferred = if (externalVideoCues.size >= 5) {
+                    null
+                } else {
+                    async { EmbeddedSubtitleTimelineLoader.load(videoUrl, videoHeaders) }
                 }
-                val dubTimelineDeferred = async {
-                    EmbeddedSubtitleTimelineLoader.load(dubAudioUrl, dubAudioHeaders)
+                val dubTimelineDeferred = if (externalDubCues.size >= 5) {
+                    null
+                } else {
+                    async { EmbeddedSubtitleTimelineLoader.load(dubAudioUrl, dubAudioHeaders) }
                 }
 
-                val videoTimeline = videoTimelineDeferred.await()
-                val dubTimeline = dubTimelineDeferred.await()
+                val videoTimeline = videoTimelineDeferred?.await()
+                val dubTimeline = dubTimelineDeferred?.await()
 
                 val videoCueCandidateLists = mutableListOf<Pair<String?, List<SubtitleSyncCue>>>()
                 if (externalVideoCues.size >= 5) {
@@ -322,9 +326,9 @@ object DubSubtitleSyncAligner {
         val telemetry = "Dialogue Onset Anchor [Sub: $subOrigin | Dub: $dubMime | Offset: ${if (offsetMs >= 0) "+" else ""}${offsetMs}ms]"
         return AcousticSyncMatcher.AcousticMatch(
             offsetMs = offsetMs,
-            confidence = 0.60f,
-            maxZncc = 0.50f,
-            psr = 3.5f,
+            confidence = 0.85f,
+            maxZncc = 0.65f,
+            psr = 4.2f,
             isValid = true,
             telemetryDiag = telemetry
         )

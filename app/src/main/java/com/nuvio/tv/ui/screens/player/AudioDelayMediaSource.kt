@@ -32,11 +32,17 @@ internal class AudioDelayMediaSource(
         allocator: Allocator,
         startPositionUs: Long
     ): MediaPeriod {
+        val childStartUs = if (stripVideo) {
+            (startPositionUs - audioDelayUsProvider()).coerceAtLeast(0L)
+        } else {
+            startPositionUs
+        }
         return AudioDelayMediaPeriod(
-            mediaPeriod = mediaSource.createPeriod(id, allocator, startPositionUs),
+            mediaPeriod = mediaSource.createPeriod(id, allocator, childStartUs),
             audioDelayUsProvider = audioDelayUsProvider,
             audioDelayAtUs = audioDelayAtUs,
-            stripVideo = stripVideo
+            stripVideo = stripVideo,
+            initialMinOutputTimeUs = if (stripVideo) startPositionUs.coerceAtLeast(0L) else 0L
         )
     }
 
@@ -54,15 +60,24 @@ private class AudioDelayMediaPeriod(
     val mediaPeriod: MediaPeriod,
     private val audioDelayUsProvider: () -> Long,
     private val audioDelayAtUs: ((Long) -> Long)? = null,
-    private val stripVideo: Boolean = false
+    private val stripVideo: Boolean = false,
+    initialMinOutputTimeUs: Long = 0L
 ) : MediaPeriod, MediaPeriod.Callback {
 
     private var callback: MediaPeriod.Callback? = null
     private var filteredTrackGroups: TrackGroupArray? = null
+    @Volatile
+    private var minOutputTimeUs: Long = initialMinOutputTimeUs
 
     override fun prepare(callback: MediaPeriod.Callback, positionUs: Long) {
         this.callback = callback
-        mediaPeriod.prepare(this, positionUs)
+        if (stripVideo) {
+            minOutputTimeUs = positionUs.coerceAtLeast(0L)
+            val audioTargetUs = (positionUs - audioDelayUsProvider()).coerceAtLeast(0L)
+            mediaPeriod.prepare(this, audioTargetUs)
+        } else {
+            mediaPeriod.prepare(this, positionUs)
+        }
     }
 
     override fun maybeThrowPrepareError() {
@@ -106,12 +121,19 @@ private class AudioDelayMediaPeriod(
             childStreams[index] = (streams[index] as? AudioDelaySampleStream)?.childStream ?: streams[index]
         }
 
+        val childPositionUs = if (stripVideo) {
+            minOutputTimeUs = positionUs.coerceAtLeast(0L)
+            (positionUs - audioDelayUsProvider()).coerceAtLeast(0L)
+        } else {
+            positionUs
+        }
+
         val selectedPositionUs = mediaPeriod.selectTracks(
             selections,
             mayRetainStreamFlags,
             childStreams,
             streamResetFlags,
-            positionUs
+            childPositionUs
         )
 
         for (index in streams.indices) {
@@ -128,7 +150,13 @@ private class AudioDelayMediaPeriod(
                     if (currentWrapper?.childStream === childStream) {
                         currentWrapper
                     } else {
-                        AudioDelaySampleStream(childStream, isVideo = true, audioDelayUsProvider = audioDelayUsProvider, audioDelayAtUs = audioDelayAtUs)
+                        AudioDelaySampleStream(
+                            childStream = childStream,
+                            isVideo = true,
+                            audioDelayUsProvider = audioDelayUsProvider,
+                            audioDelayAtUs = audioDelayAtUs,
+                            minOutputTimeUsProvider = { 0L }
+                        )
                     }
                 }
                 trackType == C.TRACK_TYPE_AUDIO -> {
@@ -136,23 +164,37 @@ private class AudioDelayMediaPeriod(
                     if (currentWrapper?.childStream === childStream) {
                         currentWrapper
                     } else {
-                        AudioDelaySampleStream(childStream, isVideo = false, audioDelayUsProvider = audioDelayUsProvider, audioDelayAtUs = audioDelayAtUs)
+                        AudioDelaySampleStream(
+                            childStream = childStream,
+                            isVideo = false,
+                            audioDelayUsProvider = audioDelayUsProvider,
+                            audioDelayAtUs = audioDelayAtUs,
+                            minOutputTimeUsProvider = { minOutputTimeUs }
+                        )
                     }
                 }
                 else -> childStream
             }
         }
 
-        return selectedPositionUs
+        return if (stripVideo) positionUs else selectedPositionUs
     }
 
     override fun discardBuffer(positionUs: Long, toKeyframe: Boolean) {
-        mediaPeriod.discardBuffer(positionUs, toKeyframe)
+        if (stripVideo) {
+            val audioTargetUs = (positionUs - audioDelayUsProvider()).coerceAtLeast(0L)
+            mediaPeriod.discardBuffer(audioTargetUs, toKeyframe)
+        } else {
+            mediaPeriod.discardBuffer(positionUs, toKeyframe)
+        }
     }
 
     override fun readDiscontinuity(): Long = mediaPeriod.readDiscontinuity()
 
     override fun seekToUs(positionUs: Long): Long {
+        if (stripVideo) {
+            minOutputTimeUs = positionUs.coerceAtLeast(0L)
+        }
         val delayUs = audioDelayUsProvider()
         val audioTargetUs = (positionUs - delayUs).coerceAtLeast(0L)
         mediaPeriod.seekToUs(audioTargetUs)
@@ -201,7 +243,8 @@ private class AudioDelaySampleStream(
     val childStream: SampleStream,
     private val isVideo: Boolean,
     private val audioDelayUsProvider: () -> Long,
-    private val audioDelayAtUs: ((Long) -> Long)? = null
+    private val audioDelayAtUs: ((Long) -> Long)? = null,
+    private val minOutputTimeUsProvider: () -> Long = { 0L }
 ) : SampleStream {
 
     private fun delayFor(timeUs: Long): Long =
@@ -226,10 +269,12 @@ private class AudioDelaySampleStream(
                 }
                 val delayUs = delayFor(buffer.timeUs)
                 val adjustedTimeUs = if (isVideo) buffer.timeUs - delayUs else buffer.timeUs + delayUs
-                // Descarte de pacotes pré-início (corte de vinheta extra do áudio dublado):
-                // Ocorre EXCLUSIVAMENTE quando offsetMs < 0 (áudio tem vinheta maior e precisa ser adiantado).
-                // Quando offsetMs >= 0 (áudio atrasado para esperar o vídeo), NENHUM pacote é descartado!
-                if (!isVideo && delayUs < 0L && adjustedTimeUs < 0L) {
+                // Descarte rápido de pacotes comprimidos anteriores ao ponto de início/seek:
+                // Como o SeekMap de um container MKV dublado salta para o keyframe de vídeo anterior
+                // (que pode estar 2 a 6 segundos antes de audioTargetUs), descartamos pacotes de áudio
+                // anteriores a minOutputTimeUs antes de entrarem no MediaCodec, garantindo sincronia imediata!
+                val minAllowedUs = if (!isVideo) minOutputTimeUsProvider() else 0L
+                if (!isVideo && (adjustedTimeUs < 0L || adjustedTimeUs < minAllowedUs - 40_000L)) {
                     buffer.clear()
                     continue
                 }
