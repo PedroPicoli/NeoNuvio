@@ -3350,4 +3350,5 @@
     <string name="trakt_client_secret_label">Client Secret</string>
     <string name="trakt_save_and_connect">Αποθήκευση &amp; Σύνδεση</string>
     <string name="trakt_missing_credentials_friendly">Για σύνδεση στο Trakt, ρυθμίστε τα κλειδιά API ή ορίστε τα στο local.properties.</string>
+    <string name="update_error_apk_not_newer">Η ενημέρωση που λήφθηκε δεν είναι νεότερη από την εγκατεστημένη έκδοση. Δοκιμάστε ξανά αργότερα.</string>
 </resources>

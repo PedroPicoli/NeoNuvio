@@ -3187,4 +3187,5 @@
     <string name="trakt_client_secret_label">Client Secret</string>
     <string name="trakt_save_and_connect">সংরক্ষণ ও সংযোগ করুন</string>
     <string name="trakt_missing_credentials_friendly">Trakt-এ সংযোগ করতে API কী কনফিগার করুন অথবা local.properties-এ সেট করুন।</string>
+    <string name="update_error_apk_not_newer">ডাউনলোড করা আপডেটটি ইনস্টল করা সংস্করণের চেয়ে নতুন নয়। পরে আবার চেষ্টা করুন।</string>
 </resources>

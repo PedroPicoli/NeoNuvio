@@ -2243,4 +2243,5 @@
     <string name="trakt_client_secret_label">Client Secret</string>
     <string name="trakt_save_and_connect">Shrani in Poveži</string>
     <string name="trakt_missing_credentials_friendly">Za povezavo s Traktom nastavite API ključe ali jih določite v local.properties.</string>
+    <string name="update_error_apk_not_newer">Prenesena posodobitev ni novejša od nameščene različice. Poskusite znova pozneje.</string>
 </resources>

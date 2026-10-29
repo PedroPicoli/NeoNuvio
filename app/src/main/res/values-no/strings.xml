@@ -1190,4 +1190,5 @@
     <string name="trakt_client_secret_label">Client Secret</string>
     <string name="trakt_save_and_connect">Lagre og Koble til</string>
     <string name="trakt_missing_credentials_friendly">For å koble til Trakt må du konfigurere API-nøklene dine eller angi dem i local.properties.</string>
+    <string name="update_error_apk_not_newer">Den nedlastede oppdateringen er ikke nyere enn den installerte versjonen. Prøv igjen senere.</string>
 </resources>

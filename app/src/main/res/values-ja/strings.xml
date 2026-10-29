@@ -2770,4 +2770,5 @@
     <string name="trakt_client_secret_label">Client Secret</string>
     <string name="trakt_save_and_connect">保存して接続</string>
     <string name="trakt_missing_credentials_friendly">Traktに接続するには、APIキーを設定するか、local.propertiesに指定してください。</string>
+    <string name="update_error_apk_not_newer">ダウンロードした更新は、インストール済みのバージョンより新しくありません。後でもう一度お試しください。</string>
 </resources>

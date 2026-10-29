@@ -1069,4 +1069,5 @@ Klaida: Bandomoji simuliuojama klaida — tai nėra tikras gedimas. Šaltinis gr
     <string name="trakt_client_secret_label">Client Secret</string>
     <string name="trakt_save_and_connect">Išsaugoti ir prisijungti</string>
     <string name="trakt_missing_credentials_friendly">Norėdami prisijungti prie „Trakt“, sukonfigūruokite API raktus arba nurodykite juos „local.properties“.</string>
+    <string name="update_error_apk_not_newer">Atsisiųstas naujinimas nėra naujesnis už įdiegtą versiją. Bandykite dar kartą vėliau.</string>
 </resources>

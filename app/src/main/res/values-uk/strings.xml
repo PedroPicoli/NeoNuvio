@@ -2803,4 +2803,5 @@
     <string name="trakt_client_secret_label">Client Secret</string>
     <string name="trakt_save_and_connect">Зберегти та підключити</string>
     <string name="trakt_missing_credentials_friendly">Щоб підключитися до Trakt, налаштуйте API ключі (Client ID та Secret) або вкажіть їх у local.properties.</string>
+    <string name="update_error_apk_not_newer">Завантажене оновлення не новіше за встановлену версію. Спробуйте пізніше.</string>
 </resources>

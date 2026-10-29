@@ -1065,4 +1065,5 @@
     <string name="trakt_client_secret_label">Client Secret</string>
     <string name="trakt_save_and_connect">सहेजें और कनेक्ट करें</string>
     <string name="trakt_missing_credentials_friendly">Trakt से कनेक्ट करने के लिए, अपनी API कुंजियाँ सेट करें या local.properties में जोड़ें।</string>
+    <string name="update_error_apk_not_newer">डाउनलोड किया गया अपडेट इंस्टॉल किए गए संस्करण से नया नहीं है। कृपया बाद में पुनः प्रयास करें।</string>
 </resources>

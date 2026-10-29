@@ -30,6 +30,7 @@
 ## 🆕 O que há de novo (baseado no Nuvio 1.1.0 – beta 8)
 
 *	Melhorias no forçar dublagem
+* Resolvido problema do loop de atualização
 
 ---
 

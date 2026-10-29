@@ -3448,4 +3448,5 @@
     <string name="trakt_client_secret_label">Client Secret</string>
     <string name="trakt_save_and_connect">שמור והתחבר</string>
     <string name="trakt_missing_credentials_friendly">כדי להתחבר ל-Trakt, הגדר מפתחות API או ציין אותם ב-local.properties.</string>
+    <string name="update_error_apk_not_newer">העדכון שהורד אינו חדש יותר מהגרסה המותקנת. נסה שוב מאוחר יותר.</string>
 </resources>

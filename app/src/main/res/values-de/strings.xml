@@ -2341,4 +2341,5 @@
     <string name="trakt_client_secret_label">Client-Secret</string>
     <string name="trakt_save_and_connect">Speichern &amp; Verbinden</string>
     <string name="trakt_missing_credentials_friendly">Um eine Verbindung zu Trakt herzustellen, konfigurieren Sie Ihre API-Schlüssel oder tragen Sie sie in local.properties ein.</string>
+    <string name="update_error_apk_not_newer">Das heruntergeladene Update ist nicht neuer als die installierte Version. Bitte versuche es später erneut.</string>
 </resources>

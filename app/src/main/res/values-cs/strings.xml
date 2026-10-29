@@ -2905,4 +2905,5 @@
     <string name="trakt_client_secret_label">Client Secret</string>
     <string name="trakt_save_and_connect">Uložit a Připojit</string>
     <string name="trakt_missing_credentials_friendly">Pro připojení k Trakt nakonfigurujte klíče API nebo je zadejte do local.properties.</string>
+    <string name="update_error_apk_not_newer">Stažená aktualizace není novější než nainstalovaná verze. Zkuste to prosím později.</string>
 </resources>

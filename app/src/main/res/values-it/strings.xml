@@ -3437,4 +3437,5 @@
     <string name="trakt_client_secret_label">Client Secret</string>
     <string name="trakt_save_and_connect">Salva e Connetti</string>
     <string name="trakt_missing_credentials_friendly">Per connetterti a Trakt, configura le tue chiavi API (Client ID e Secret) o impostale in local.properties.</string>
+    <string name="update_error_apk_not_newer">L\'aggiornamento scaricato non è più recente della versione installata. Riprova più tardi.</string>
 </resources>

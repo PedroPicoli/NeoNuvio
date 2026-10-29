@@ -3102,4 +3102,5 @@
     <string name="trakt_client_secret_label">Client Secret</string>
     <string name="trakt_save_and_connect">حفظ واتصال</string>
     <string name="trakt_missing_credentials_friendly">للاتصال بـ Trakt، قم بتهيئة مفاتيح API الخاصة بك أو حددها في local.properties.</string>
+    <string name="update_error_apk_not_newer">التحديث الذي تم تنزيله ليس أحدث من الإصدار المثبت. حاول مرة أخرى لاحقًا.</string>
 </resources>

@@ -288,6 +288,18 @@ class UpdateViewModel @Inject constructor(
             return
         }
 
+        if (!ApkInstaller.isNewerThanInstalled(context, apkFile)) {
+            runCatching { apkFile.delete() }
+            _uiState.update {
+                it.copy(
+                    downloadedApkPath = null,
+                    errorMessage = context.getString(R.string.update_error_apk_not_newer),
+                    showBanner = true
+                )
+            }
+            return
+        }
+
         if (!ApkInstaller.canRequestPackageInstalls(context)) {
             _uiState.update { it.copy(showUnknownSourcesDialog = true, showBanner = true) }
             return

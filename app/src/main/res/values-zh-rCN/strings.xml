@@ -3301,4 +3301,5 @@
     <string name="trakt_client_secret_label">Client Secret</string>
     <string name="trakt_save_and_connect">保存并连接</string>
     <string name="trakt_missing_credentials_friendly">要连接 Trakt，请配置 API 密钥或在 local.properties 中设置。</string>
+    <string name="update_error_apk_not_newer">下载的更新并不比已安装的版本新。请稍后再试。</string>
 </resources>

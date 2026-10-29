@@ -2328,4 +2328,5 @@
     <string name="trakt_client_secret_label">Client Secret</string>
     <string name="trakt_save_and_connect">சேமித்து இணைக்கவும்</string>
     <string name="trakt_missing_credentials_friendly">Trakt உடன் இணைக்க API விசைகளை அமைக்கவும் அல்லது local.properties இல் குறிப்பிடவும்.</string>
+    <string name="update_error_apk_not_newer">பதிவிறக்கிய புதுப்பிப்பு நிறுவப்பட்ட பதிப்பை விட புதியது அல்ல. பின்னர் மீண்டும் முயற்சிக்கவும்.</string>
 </resources>

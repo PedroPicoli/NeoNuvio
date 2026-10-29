@@ -2756,4 +2756,5 @@
     <string name="trakt_client_secret_label">Client Secret</string>
     <string name="trakt_save_and_connect">Запази и Свържи</string>
     <string name="trakt_missing_credentials_friendly">За връзка с Trakt конфигурирайте API ключовете или ги задайте в local.properties.</string>
+    <string name="update_error_apk_not_newer">Изтеглената актуализация не е по-нова от инсталираната версия. Опитайте отново по-късно.</string>
 </resources>

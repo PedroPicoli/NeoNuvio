@@ -2963,4 +2963,5 @@
     <string name="trakt_client_secret_label">Client Secret</string>
     <string name="trakt_save_and_connect">Ruaj dhe Lidhu</string>
     <string name="trakt_missing_credentials_friendly">Për t\'u lidhur me Trakt, konfiguroni çelësat tuaj API ose vendosini në local.properties.</string>
+    <string name="update_error_apk_not_newer">Përditësimi i shkarkuar nuk është më i ri se versioni i instaluar. Provo përsëri më vonë.</string>
 </resources>

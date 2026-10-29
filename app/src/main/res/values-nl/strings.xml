@@ -3212,4 +3212,5 @@
     <string name="trakt_client_secret_label">Client Secret</string>
     <string name="trakt_save_and_connect">Opslaan en Verbinden</string>
     <string name="trakt_missing_credentials_friendly">Configureer uw API-sleutels of stel ze in local.properties in om met Trakt te verbinden.</string>
+    <string name="update_error_apk_not_newer">De gedownloade update is niet nieuwer dan de geïnstalleerde versie. Probeer het later opnieuw.</string>
 </resources>

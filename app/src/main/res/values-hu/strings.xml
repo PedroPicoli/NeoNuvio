@@ -3423,4 +3423,5 @@
     <string name="trakt_client_secret_label">Client Secret</string>
     <string name="trakt_save_and_connect">Mentés és Csatlakozás</string>
     <string name="trakt_missing_credentials_friendly">A Trakt csatlakozáshoz konfigurálja API kulcsait vagy adja meg a local.properties fájlban.</string>
+    <string name="update_error_apk_not_newer">A letöltött frissítés nem újabb a telepített verziónál. Próbáld újra később.</string>
 </resources>

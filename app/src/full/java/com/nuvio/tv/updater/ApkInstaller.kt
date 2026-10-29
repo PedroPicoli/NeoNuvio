@@ -20,6 +20,23 @@ object ApkInstaller {
         }
     }
 
+    /**
+     * True when [apkFile] is a newer build than the one currently installed. An APK carrying the same (or an older)
+     * version code installs "successfully" yet leaves the app unchanged, which made the update prompt loop forever.
+     * Returns true when the archive cannot be read so the system installer still gets a chance to report the problem.
+     */
+    fun isNewerThanInstalled(context: Context, apkFile: File): Boolean {
+        val archiveInfo = runCatching {
+            context.packageManager.getPackageArchiveInfo(apkFile.absolutePath, 0)
+        }.getOrNull() ?: return true
+        val installedInfo = runCatching {
+            context.packageManager.getPackageInfo(context.packageName, 0)
+        }.getOrNull() ?: return true
+        val archiveCode = androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(archiveInfo)
+        val installedCode = androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(installedInfo)
+        return archiveCode > installedCode
+    }
+
     fun buildUnknownSourcesSettingsIntent(context: Context): Intent? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Intent(

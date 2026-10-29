@@ -30,6 +30,7 @@
 ## 🆕 What's New (based on Nuvio 1.1.0 – beta 8)
 
 * Improvements in force dubbing
+* Fix update loop
 
 ---
 

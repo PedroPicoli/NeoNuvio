@@ -3265,4 +3265,5 @@
     <string name="trakt_client_secret_label">Client Secret</string>
     <string name="trakt_save_and_connect">Kaydet ve Bağlan</string>
     <string name="trakt_missing_credentials_friendly">Trakt\'a bağlanmak için API anahtarlarınızı yapılandırın veya local.properties dosyasına ekleyin.</string>
+    <string name="update_error_apk_not_newer">İndirilen güncelleme, yüklü sürümden daha yeni değil. Lütfen daha sonra tekrar deneyin.</string>
 </resources>
