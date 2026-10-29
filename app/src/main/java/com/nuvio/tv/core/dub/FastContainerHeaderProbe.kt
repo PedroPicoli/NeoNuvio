@@ -65,11 +65,15 @@ internal object FastContainerHeaderProbe {
     }
 
     private suspend fun fetchRange(url: String, headers: Map<String, String>, start: Long, length: Int): ByteArray? {
+        val hasUserAgent = headers.keys.any { it.equals("User-Agent", ignoreCase = true) }
         val request = Request.Builder()
             .url(url)
             .header("Range", "bytes=$start-${start + length - 1}")
             .header("Accept-Encoding", "identity")
             .apply {
+                if (!hasUserAgent) {
+                    header("User-Agent", "Mozilla/5.0 (Linux; Android 13; Android TV)")
+                }
                 headers.forEach { (k, v) ->
                     if (!k.equals("Range", ignoreCase = true) && !k.equals("Accept-Encoding", ignoreCase = true)) {
                         header(k, v)
@@ -82,11 +86,15 @@ internal object FastContainerHeaderProbe {
     }
 
     private suspend fun fetchTail(url: String, headers: Map<String, String>, length: Int): ByteArray? {
+        val hasUserAgent = headers.keys.any { it.equals("User-Agent", ignoreCase = true) }
         val request = Request.Builder()
             .url(url)
             .header("Range", "bytes=-$length")
             .header("Accept-Encoding", "identity")
             .apply {
+                if (!hasUserAgent) {
+                    header("User-Agent", "Mozilla/5.0 (Linux; Android 13; Android TV)")
+                }
                 headers.forEach { (k, v) ->
                     if (!k.equals("Range", ignoreCase = true) && !k.equals("Accept-Encoding", ignoreCase = true)) {
                         header(k, v)
@@ -170,7 +178,7 @@ internal object FastContainerHeaderProbe {
         var innerPos = segmentDataStart
         while (innerPos < bytes.size - 4) {
             val elem = MatroskaAfrProbe.readElement(bytes, innerPos) ?: break
-            val elemEnd = elem.endExclusiveOrNull() ?: break
+            val elemEnd = elem.endExclusiveOrNull()
             when (elem.id) {
                 MatroskaAfrProbe.ID_INFO -> {
                     durationMs = parseSegmentInfoDuration(bytes, elem)
@@ -180,6 +188,7 @@ internal object FastContainerHeaderProbe {
                 }
                 MatroskaAfrProbe.ID_CLUSTER -> break
             }
+            if (elemEnd == null || elemEnd <= innerPos || elemEnd > bytes.size) break
             innerPos = elemEnd
         }
 

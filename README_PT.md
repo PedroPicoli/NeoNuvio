@@ -29,12 +29,7 @@
 
 ## 🆕 O que há de novo (baseado no Nuvio 1.1.0 – beta 8)
 
-*	Corrigido HUD de logs do forçar dublagem aparecendo mesmo quando desligado.
-* Corrigido loop de atualização.
-*	Corrigido erro de falha do MDBList.
-*	Corrigida ordem de exibição da lista de séries.
-*	Corrigido histórico do projeto.
-
+*	Melhorias no forçar dublagem
 
 ---
 

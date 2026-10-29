@@ -563,6 +563,10 @@ class PlayerRuntimeController(
     internal var forceDubVerifiedForPlan: Boolean = false
     internal var forceDubTorrentStartedForAudio: Boolean = false
     internal var isRestoringOriginalAfterDub: Boolean = false
+    internal var suppressEngineFailover: Boolean = false
+    internal var hasEverRenderedFrameOnCurrentStream: Boolean = false
+    internal var lockToExoPlayerForCurrentSession: Boolean = false
+    internal var retryForceDubAttempts: Int = 0
     internal var pendingForceDubReadyAnnouncement: Boolean = false
     internal var pendingWarningResolution: ((Boolean) -> Unit)? = null
     internal var lastSubtitlePreferredLanguage: String? = null

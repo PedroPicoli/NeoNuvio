@@ -151,9 +151,9 @@ class DubFeatureTest {
         assertTrue("Alinhamento acústico deve ser válido", match!!.isValid)
         assertTrue("Confiança honesta deve ser alta para alinhamento válido (>=0.65, foi ${match.confidence})", match.confidence >= 0.65f)
 
-        // Validação da Regra 2: Zona Morta (Deadzone = +-650ms). Offset leve de 500ms vira 0ms cravado.
+        // Validação da Regra 2: Zona Morta (Deadzone = +-120ms). Offset leve de 80ms vira 0ms cravado.
         val dubEnvLeve = FloatArray(2000) { i ->
-            if (i in 1100..1200) 0.8f else 0.05f
+            if (i in 1058..1158) 0.8f else 0.05f
         }
         val matchDeadzone = AcousticSyncMatcher.findCrossCorrelationLag(
             origEnvelope = origEnv,
@@ -164,7 +164,7 @@ class DubFeatureTest {
             maxLagMs = 2_000L
         )
         assertNotNull("Deve encontrar pico para offset leve", matchDeadzone)
-        assertEquals("Offset de 500ms (< 650ms) deve ser cravado em 0ms pela Zona Morta", 0L, matchDeadzone?.offsetMs)
+        assertEquals("Offset de 80ms (< 120ms) deve ser cravado em 0ms pela Zona Morta", 0L, matchDeadzone?.offsetMs)
     }
 
     @Test
@@ -711,14 +711,15 @@ class DubFeatureTest {
         for (i in 300..400) dubEnvelope[i] = 0.8f
         for (i in 600..700) dubEnvelope[i] = 0.8f
 
-        // Rejeição estrita: addons externos como AIOStreams NÃO devem gerar offset cego
+        // Aceitação de addons externos como AIOStreams no Dialogue Onset Anchor por consenso
         val externalMatch = DubSubtitleSyncAligner.estimateDialogueOnsetOffset(
             videoCues = cues,
             dubSpeechEnvelope = dubEnvelope,
             subOrigin = "AIOStreams",
             dubMime = "mp4a-latm"
         )
-        assertNull("Legendas de addon externo como AIOStreams devem ser rejeitadas no Onset Anchor", externalMatch)
+        assertNotNull("Legendas de addon externo como AIOStreams devem ser aceitas no Onset Anchor", externalMatch)
+        assertEquals(2000L, externalMatch?.offsetMs)
 
         // Aceitação com legenda embutida
         val match = DubSubtitleSyncAligner.estimateDialogueOnsetOffset(
@@ -806,7 +807,38 @@ class DubFeatureTest {
 
         val deadzoneOffsetMs = AcousticSyncMatcher.estimateDialogueOnsetOffsetMs(cues, dubEnvelope, applyDeadzone = true)
         assertNotNull("Deve calcular delta com aplicação da Zona Morta", deadzoneOffsetMs)
-        assertEquals("Delta leve de -420ms (< 650ms) deve ser cravado em 0ms pela Zona Morta", 0L, deadzoneOffsetMs)
+        // Com a zona morta de +-120ms, -420ms NÃO vira 0ms! Permanece -420L.
+        assertEquals("Delta de -420ms (>= 120ms) não deve ser engolido pela Zona Morta", -420L, deadzoneOffsetMs)
+
+        // Delta leve de -80ms (< 120ms) vira 0ms pela Zona Morta
+        val cuesLeve = listOf(com.nuvio.tv.ui.screens.player.SubtitleSyncCue(6_820L, 8_000L, "Morty, look at this!"))
+        val deltaLeve = AcousticSyncMatcher.estimateDialogueOnsetOffsetMs(cuesLeve, dubEnvelope, applyDeadzone = true)
+        assertEquals("Delta leve de -80ms (< 120ms) deve ser cravado em 0ms pela Zona Morta", 0L, deltaLeve)
+    }
+
+    @Test
+    fun testIndexedMkvCuesWithEmptyTextPreservedInDialogueOnset() {
+        // Cues vindos da tabela ID_CUES do Matroska (EmbeddedSubtitleTimelineLoader) têm text = ""
+        val indexedCues = listOf(
+            com.nuvio.tv.ui.screens.player.SubtitleSyncCue(6_480L, 8_200L, ""),
+            com.nuvio.tv.ui.screens.player.SubtitleSyncCue(9_000L, 11_500L, "")
+        )
+        val sanitized = DubSubtitleSyncAligner.sanitizeCues(indexedCues)
+        assertEquals("Cues de índice Matroska ID_CUES (text == \"\") devem ser preservados por sanitizeCues", 2, sanitized.size)
+
+        val dubEnvelope = FloatArray(1500)
+        for (i in 100..450) dubEnvelope[i] = 0.85f // Vinheta
+        for (i in 451..680) dubEnvelope[i] = 0.01f // Silêncio
+        for (i in 690..1200) dubEnvelope[i] = 0.75f // Diálogo
+
+        val match = DubSubtitleSyncAligner.estimateDialogueOnsetOffset(
+            videoCues = indexedCues,
+            dubSpeechEnvelope = dubEnvelope,
+            subOrigin = "en(embutida)",
+            dubMime = "mp4a-latm"
+        )
+        assertNotNull("Deve calcular Dialogue Onset Anchor mesmo com cues indexados sem texto do MKV", match)
+        assertEquals(-420L, match?.offsetMs)
     }
 }
 

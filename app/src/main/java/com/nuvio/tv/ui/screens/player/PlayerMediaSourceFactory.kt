@@ -387,7 +387,8 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
         responseHeaders: Map<String, String> = emptyMap(),
         mimeTypeOverride: String? = null,
         mediaMetadata: androidx.media3.common.MediaMetadata? = null,
-        cacheKey: String? = null
+        cacheKey: String? = null,
+        targetLanguage: String? = null
     ): MediaSource {
         // O áudio é criado primeiro: o estado global do cache/redirect deve refletir o vídeo.
         val rawAudioSource = createMediaSource(
@@ -422,11 +423,10 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
         val dubbedAudioSource = wrapAudioDelay(
             mediaSource = rawAudioSource,
             audioDelayUsProvider = effectiveDelayProvider,
-            audioDelayAtUs = audioDelayAtUs,
-            stripVideo = true
+            audioDelayAtUs = audioDelayAtUs
         )
 
-        val videoSource = createMediaSource(
+        val rawVideoSource = createMediaSource(
             context = context,
             url = videoUrl,
             headers = videoHeaders,
@@ -439,6 +439,8 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
             mediaMetadata = mediaMetadata,
             cacheKey = cacheKey
         )
+
+        val videoSource = rawVideoSource
 
         return MergingMediaSource(
             /* adjustPeriodTimeOffsets = */ false,
@@ -1208,17 +1210,15 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
         private fun wrapAudioDelay(
             mediaSource: MediaSource,
             audioDelayUsProvider: (() -> Long)?,
-            audioDelayAtUs: ((Long) -> Long)? = null,
-            stripVideo: Boolean = false
+            audioDelayAtUs: ((Long) -> Long)? = null
         ): MediaSource {
-            return if (audioDelayUsProvider == null && audioDelayAtUs == null && !stripVideo) {
+            return if (audioDelayUsProvider == null && audioDelayAtUs == null) {
                 mediaSource
             } else {
                 AudioDelayMediaSource(
                     mediaSource = mediaSource,
                     audioDelayUsProvider = audioDelayUsProvider ?: { 0L },
-                    audioDelayAtUs = audioDelayAtUs,
-                    stripVideo = stripVideo
+                    audioDelayAtUs = audioDelayAtUs
                 )
             }
         }

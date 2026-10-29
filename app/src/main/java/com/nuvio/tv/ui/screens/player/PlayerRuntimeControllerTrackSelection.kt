@@ -45,7 +45,11 @@ internal fun PlayerRuntimeController.showSeekOverlayTemporarily() {
     }
 }
 
-internal fun PlayerRuntimeController.selectAudioTrack(trackIndex: Int, preferredTrack: TrackInfo? = null) {
+internal fun PlayerRuntimeController.selectAudioTrack(
+    trackIndex: Int,
+    preferredTrack: TrackInfo? = null,
+    seekAfterSelect: Boolean = true
+) {
     val targetTrack = preferredTrack ?: _uiState.value.audioTracks.getOrNull(trackIndex)
     logSwitchTrace(
         stage = "select-audio-track",
@@ -67,20 +71,23 @@ internal fun PlayerRuntimeController.selectAudioTrack(trackIndex: Int, preferred
 
     _exoPlayer?.let { player ->
         val tracks = player.currentTracks
+        val audioGroupCount = tracks.groups.count { it.type == C.TRACK_TYPE_AUDIO }
 
-        // 1. Tenta encontrar por trackId (essencial quando audioTracks foi filtrado, como no PicBR Mux)
-        if (targetTrack?.trackId != null) {
+        // 1. Tenta encontrar por trackId apenas quando há um único grupo de áudio
+        // (evita colisão de Format.id = "2" entre Group 0 e Group 1 num MergingMediaSource)
+        if (targetTrack?.trackId != null && audioGroupCount == 1) {
             tracks.groups.forEach { trackGroup ->
                 if (trackGroup.type == C.TRACK_TYPE_AUDIO) {
                     for (i in 0 until trackGroup.length) {
                         val format = trackGroup.getTrackFormat(i)
                         if (format.id == targetTrack.trackId) {
+                            val alreadySelected = trackGroup.isTrackSelected(i)
                             val override = TrackSelectionOverride(trackGroup.mediaTrackGroup, i)
                             player.trackSelectionParameters = player.trackSelectionParameters
                                 .buildUpon()
                                 .setOverrideForType(override)
                                 .build()
-                            if (hasRenderedFirstFrame) {
+                            if (seekAfterSelect && !alreadySelected && hasRenderedFirstFrame) {
                                 val pos = player.currentPosition
                                 if (pos > 0) player.seekTo((pos - 1).coerceAtLeast(0))
                             }
@@ -97,12 +104,13 @@ internal fun PlayerRuntimeController.selectAudioTrack(trackIndex: Int, preferred
             if (trackGroup.type == C.TRACK_TYPE_AUDIO) {
                 for (i in 0 until trackGroup.length) {
                     if (currentAudioIndex == trackIndex) {
+                        val alreadySelected = trackGroup.isTrackSelected(i)
                         val override = TrackSelectionOverride(trackGroup.mediaTrackGroup, i)
                         player.trackSelectionParameters = player.trackSelectionParameters
                             .buildUpon()
                             .setOverrideForType(override)
                             .build()
-                        if (hasRenderedFirstFrame) {
+                        if (seekAfterSelect && !alreadySelected && hasRenderedFirstFrame) {
                             val pos = player.currentPosition
                             if (pos > 0) player.seekTo((pos - 1).coerceAtLeast(0))
                         }

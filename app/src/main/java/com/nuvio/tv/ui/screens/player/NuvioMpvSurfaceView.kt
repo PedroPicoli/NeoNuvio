@@ -381,6 +381,28 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
         return runCatching { mpv.getPropertyDouble("avsync") }.getOrNull()
     }
 
+    private fun removeAllExternalAudioTracksInternal() {
+        runCatching {
+            val count = mpv.getPropertyInt("track-list/count") ?: 0
+            val idsToRemove = mutableListOf<Int>()
+            for (i in 0 until count) {
+                val type = mpv.getPropertyString("track-list/$i/type") ?: continue
+                if (!type.equals("audio", ignoreCase = true)) continue
+                val isExternal = mpv.getPropertyBoolean("track-list/$i/external") == true
+                val title = mpv.getPropertyString("track-list/$i/title").orEmpty()
+                if (isExternal || title.equals("Dublado", ignoreCase = true)) {
+                    val id = mpv.getPropertyInt("track-list/$i/id")
+                    if (id != null && id > 1) {
+                        idsToRemove.add(id)
+                    }
+                }
+            }
+            idsToRemove.forEach { id ->
+                runCatching { mpv.command("audio-remove", id.toString()) }
+            }
+        }
+    }
+
     /**
      * Adiciona uma faixa de áudio externa e a seleciona imediatamente com o offset especificado.
      */
@@ -392,6 +414,7 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
         ensureInitialized()
         externalAudioOffsetMs = offsetMs
         runCatching {
+            removeAllExternalAudioTracksInternal()
             if (headers.isNotEmpty()) {
                 applyHeaders(headers)
             }
@@ -403,6 +426,30 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
             mpv.command("audio-add", audioUrl, "select", "Dublado")
             // Ignora faixas de vídeo do arquivo secundário e mantém vid=1 fixo no primário
             runCatching { mpv.setPropertyString("vid", "1") }
+
+            // Se o arquivo externo for DUAL AUDIO, seleciona a faixa com idioma correspondente (pt/por) ou a última faixa externa
+            runCatching {
+                val trackCount = mpv.getPropertyInt("track-list/count") ?: 0
+                val extAudioTracks = mutableListOf<Pair<Int, String?>>()
+                for (i in 0 until trackCount) {
+                    val type = mpv.getPropertyString("track-list/$i/type")?.lowercase(Locale.US)
+                    val isExternal = mpv.getPropertyBoolean("track-list/$i/external") == true
+                    val id = mpv.getPropertyInt("track-list/$i/id")
+                    val lang = mpv.getPropertyString("track-list/$i/lang")
+                    if (type == "audio" && isExternal && id != null) {
+                        extAudioTracks.add(id to lang)
+                    }
+                }
+                if (extAudioTracks.size > 1) {
+                    val matchingTrack = extAudioTracks.firstOrNull { (_, lang) ->
+                        val norm = lang?.lowercase()?.trim().orEmpty()
+                        norm.startsWith("por") || norm.startsWith("pt") || norm == "pob"
+                    } ?: extAudioTracks.last() // Em releases DUAL, a última faixa é a dublagem
+                    mpv.setPropertyInt("aid", matchingTrack.first)
+                    Log.i(TAG, "MPV: Arquivo secundário DUAL possui ${extAudioTracks.size} faixas. Selecionada aid=${matchingTrack.first} (lang=${matchingTrack.second})")
+                }
+            }
+
             applyTotalAudioDelay()
             cachedTrackList = null
             Log.i(TAG, "MPV: faixa de áudio externa adicionada (baseOffset=${offsetMs}ms, userDelay=${userAudioDelayMs}ms)")
@@ -454,6 +501,7 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
             if (aid.isNullOrBlank() || aid.equals("no", ignoreCase = true) || aid.equals("false", ignoreCase = true)) {
                 mpv.setPropertyString("aid", "auto")
             }
+            removeAllExternalAudioTracksInternal()
             applyTotalAudioDelay()
             cachedTrackList = null
             Log.i(TAG, "MPV: faixa externa removida e áudio restaurado (aid=${mpv.getPropertyString("aid")})")

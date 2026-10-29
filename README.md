@@ -29,11 +29,7 @@
 
 ## 🆕 What's New (based on Nuvio 1.1.0 – beta 8)
 
-* Fixed "Force Dub" log HUD appearing even when disabled.
-* Fixed update loop.
-* Fixed MDBList crash error.
-* Fixed series list display order.
-* Fixed project history.
+* Improvements in force dubbing
 
 ---
 

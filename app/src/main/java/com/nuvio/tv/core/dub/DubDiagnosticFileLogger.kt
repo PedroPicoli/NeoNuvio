@@ -1,6 +1,9 @@
 package com.nuvio.tv.core.dub
 
+import android.content.ContentValues
 import android.content.Context
+import android.os.Build
+import android.provider.MediaStore
 import android.os.Environment
 import android.os.SystemClock
 import android.util.Log
@@ -33,6 +36,9 @@ object DubDiagnosticFileLogger {
 
     private const val TAG = "DubDiagnosticLogger"
     private const val MAX_HISTORY_ENTRIES = 5
+
+    val isDebugBuild: Boolean
+        get() = BuildConfig.IS_DEBUG_BUILD || BuildConfig.DEBUG
 
     private val timelineEvents = ConcurrentLinkedQueue<String>()
     private var sessionStartTimeMs: Long = 0L
@@ -89,7 +95,7 @@ object DubDiagnosticFileLogger {
         targetLang: String,
         engine: String
     ) {
-        if (!BuildConfig.DEBUG) return
+        if (!isDebugBuild) return
 
         timelineEvents.clear()
         sessionStartTimeMs = SystemClock.elapsedRealtime()
@@ -126,7 +132,7 @@ object DubDiagnosticFileLogger {
     }
 
     fun recordTimelineEvent(tag: String, message: String) {
-        if (!BuildConfig.DEBUG) return
+        if (!isDebugBuild) return
         val elapsed = if (sessionStartTimeMs > 0L) SystemClock.elapsedRealtime() - sessionStartTimeMs else 0L
         val entry = "+${elapsed}ms [$tag] $message"
         timelineEvents.add(entry)
@@ -134,7 +140,7 @@ object DubDiagnosticFileLogger {
     }
 
     fun recordEngineFailover(reason: String) {
-        if (!BuildConfig.DEBUG) return
+        if (!isDebugBuild) return
         engineFailoverOccurred = true
         engineFailoverReason = reason
         recordTimelineEvent("FAILOVER", "Engine failover acionado: $reason")
@@ -146,7 +152,7 @@ object DubDiagnosticFileLogger {
         mpvView: com.nuvio.tv.ui.screens.player.NuvioMpvSurfaceView?,
         activeAudioUrl: String?
     ) {
-        if (!BuildConfig.DEBUG) return
+        if (!isDebugBuild) return
         var androidVol = -1
         var androidMute = false
         runCatching {
@@ -208,7 +214,7 @@ object DubDiagnosticFileLogger {
         avSync: Double? = null,
         audioUrl: String?
     ) {
-        if (!BuildConfig.DEBUG) return
+        if (!isDebugBuild) return
         androidVolume = androidVol
         androidMuted = androidMute
         exoVolume = exoVol ?: 1.0f
@@ -224,7 +230,7 @@ object DubDiagnosticFileLogger {
     }
 
     fun setVideoSourceMetadata(name: String, addon: String, url: String, responseMs: Long, statusCode: Int) {
-        if (!BuildConfig.DEBUG) return
+        if (!isDebugBuild) return
         videoSourceJson = JSONObject().apply {
             put("name", name)
             put("addon", addon)
@@ -237,7 +243,7 @@ object DubDiagnosticFileLogger {
 
     @Synchronized
     fun addDubCandidate(name: String, addon: String, url: String, responseMs: Long, statusCode: Int, isChosen: Boolean) {
-        if (!BuildConfig.DEBUG) return
+        if (!isDebugBuild) return
         val obj = JSONObject().apply {
             put("name", name)
             put("addon", addon)
@@ -256,7 +262,7 @@ object DubDiagnosticFileLogger {
         audios: List<Map<String, Any?>>,
         subs: List<Map<String, Any?>>
     ) {
-        if (!BuildConfig.DEBUG) return
+        if (!isDebugBuild) return
         videoTracksList.clear()
         audioTracksList.clear()
         subtitleTracksList.clear()
@@ -289,7 +295,7 @@ object DubDiagnosticFileLogger {
         envelope: FloatArray?,
         speechEnvelope: FloatArray? = null
     ) {
-        if (!BuildConfig.DEBUG) return
+        if (!isDebugBuild) return
         val stats = calculateStats(envelope)
         val obj = JSONObject().apply {
             put("extractor", extractor)
@@ -327,7 +333,7 @@ object DubDiagnosticFileLogger {
         chosenLang: String,
         cues: List<SubtitleSyncCue>
     ) {
-        if (!BuildConfig.DEBUG) return
+        if (!isDebugBuild) return
         embeddedSubsCount = embeddedCount
         externalSubsCount = externalCount
         chosenSubOrigin = chosenOrigin
@@ -360,7 +366,7 @@ object DubDiagnosticFileLogger {
         passed: Boolean,
         decisionReason: String
     ) {
-        if (!BuildConfig.DEBUG) return
+        if (!isDebugBuild) return
         val lagsArray = JSONArray()
         topLags.take(10).forEach { lag ->
             lagsArray.put(JSONObject().apply {
@@ -389,10 +395,38 @@ object DubDiagnosticFileLogger {
         context: Context,
         winningLayer: String,
         appliedOffsetMs: Long,
+        confidence: Float,
+        isStatsEnabled: Boolean = true,
+        isDubEnabled: Boolean = true
+    ): String {
+        // 1. Builds RELEASE (!BuildConfig.DEBUG): NUNCA grava nenhum arquivo (100% no-op).
+        if (!isDebugBuild) return ""
+
+        recordTimelineEvent("FINAL_DECISION", "Vencedora: $winningLayer | Offset=${appliedOffsetMs}ms | Conf=${(confidence * 100).toInt()}%")
+        return writeDumpFiles(context, winningLayer, appliedOffsetMs, confidence)
+    }
+
+    /**
+     * Gravação imediata do arquivo neonuvio_dub_diagnostic.json sempre que o HUD estiver visível no Debug.
+     * Grava simultaneamente em 3 locais e retorna o caminho do arquivo com sucesso garantido.
+     */
+    @Synchronized
+    fun writeImmediateDump(
+        context: Context,
+        winningLayer: String,
+        appliedOffsetMs: Long,
         confidence: Float
     ): String {
-        if (!BuildConfig.DEBUG) return ""
-        recordTimelineEvent("FINAL_DECISION", "Vencedora: $winningLayer | Offset=${appliedOffsetMs}ms | Conf=${(confidence * 100).toInt()}%")
+        if (!isDebugBuild) return ""
+        return writeDumpFiles(context, winningLayer, appliedOffsetMs, confidence)
+    }
+
+    private fun writeDumpFiles(
+        context: Context,
+        winningLayer: String,
+        appliedOffsetMs: Long,
+        confidence: Float
+    ): String {
 
         val root = JSONObject()
 
@@ -469,34 +503,92 @@ object DubDiagnosticFileLogger {
         val jsonString = root.toString(2)
         var primarySavedPath = ""
 
-        // Grava no App External Files Dir: /Android/data/com.nuvio.tv/files/neonuvio_dub_diagnostic.json
-        runCatching {
-            val baseDir = context.getExternalFilesDir(null) ?: context.filesDir
-            val appFile = File(baseDir, "neonuvio_dub_diagnostic.json")
-            appFile.writeText(jsonString)
-            primarySavedPath = appFile.absolutePath
-            Log.i(TAG, "Dump gravado em: $primarySavedPath")
-        }.onFailure { Log.w(TAG, "Falha ao gravar dump no app external files dir: ${it.message}") }
+        // Gravação simultânea nos 3 locais para acesso infalível via adb pull:
+        var local1Path = ""
+        var local2Path = ""
+        var local3Path = ""
 
-        // Grava em Downloads público: /sdcard/Download/neonuvio_dub_diagnostic.json
+        // Local 1: File(context.getExternalFilesDir(null), "neonuvio_dub_diagnostic.json")
+        // (/sdcard/Android/data/${context.packageName}/files/neonuvio_dub_diagnostic.json)
+        runCatching {
+            val extDir = context.getExternalFilesDir(null)
+            if (extDir != null) {
+                if (!extDir.exists()) extDir.mkdirs()
+                val f1 = File(extDir, "neonuvio_dub_diagnostic.json")
+                f1.writeText(jsonString)
+                if (f1.exists() && f1.length() > 0) {
+                    local1Path = f1.absolutePath
+                    Log.i(TAG, "Dump Local 1 salvo com sucesso: $local1Path (${f1.length()} bytes)")
+                }
+            }
+        }.onFailure { Log.w(TAG, "Falha ao gravar Local 1: ${it.message}") }
+
+        // Local 2: /sdcard/Download/neonuvio_dub_diagnostic.json (File direto + MediaStore)
         runCatching {
             val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
             if (downloadsDir != null) {
                 if (!downloadsDir.exists()) downloadsDir.mkdirs()
-                val downloadFile = File(downloadsDir, "neonuvio_dub_diagnostic.json")
-                downloadFile.writeText(jsonString)
-                primarySavedPath = downloadFile.absolutePath
-                Log.i(TAG, "Dump gravado em Downloads: $primarySavedPath")
+                val f2 = File(downloadsDir, "neonuvio_dub_diagnostic.json")
+                if (f2.exists()) f2.delete()
+                f2.writeText(jsonString)
+                if (f2.exists() && f2.length() > 0) {
+                    local2Path = f2.absolutePath
+                    Log.i(TAG, "Dump Local 2 salvo via File: $local2Path")
+                }
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val resolver = context.contentResolver
+                val collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI
+                resolver.delete(
+                    collection,
+                    "${MediaStore.MediaColumns.DISPLAY_NAME} = ?",
+                    arrayOf("neonuvio_dub_diagnostic.json")
+                )
+                val values = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, "neonuvio_dub_diagnostic.json")
+                    put(MediaStore.MediaColumns.MIME_TYPE, "application/json")
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                }
+                val uri = resolver.insert(collection, values)
+                if (uri != null) {
+                    resolver.openOutputStream(uri)?.use { os ->
+                        os.write(jsonString.toByteArray(Charsets.UTF_8))
+                        os.flush()
+                    }
+                    if (local2Path.isBlank()) local2Path = "/sdcard/Download/neonuvio_dub_diagnostic.json"
+                }
+            }
+        }.onFailure { Log.w(TAG, "Falha ao gravar Local 2: ${it.message}") }
 
-                // Histórico dos últimos 5 testes
+        // Local 3: File(context.filesDir, "neonuvio_dub_diagnostic.json")
+        runCatching {
+            val f3 = File(context.filesDir, "neonuvio_dub_diagnostic.json")
+            f3.writeText(jsonString)
+            if (f3.exists() && f3.length() > 0) {
+                local3Path = f3.absolutePath
+                Log.i(TAG, "Dump Local 3 salvo: $local3Path")
+            }
+        }.onFailure { Log.w(TAG, "Falha ao gravar Local 3: ${it.message}") }
+
+        primarySavedPath = when {
+            local1Path.isNotBlank() -> local1Path
+            local2Path.isNotBlank() -> local2Path
+            local3Path.isNotBlank() -> local3Path
+            else -> ""
+        }
+
+        // Histórico dos últimos 5 testes gravado com segurança
+        runCatching {
+            val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
+            val summary = "[$timestamp] $contentTitle ($contentId) -> Offset: ${appliedOffsetMs}ms (Conf: ${(confidence * 100).toInt()}%) Layer: $winningLayer\n"
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            if (downloadsDir != null && downloadsDir.exists()) {
                 val historyFile = File(downloadsDir, "neonuvio_dub_diagnostic_history.log")
-                val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
-                val summary = "[$timestamp] $contentTitle ($contentId) -> Offset: ${appliedOffsetMs}ms (Conf: ${(confidence * 100).toInt()}%) Layer: $winningLayer\n"
                 val existingLines = if (historyFile.exists()) historyFile.readLines() else emptyList()
                 val newHistory = (existingLines + summary).takeLast(MAX_HISTORY_ENTRIES)
                 historyFile.writeText(newHistory.joinToString("\n") + "\n")
             }
-        }.onFailure { Log.w(TAG, "Falha ao gravar dump em Downloads: ${it.message}") }
+        }.onFailure { Log.w(TAG, "Falha ao gravar histórico: ${it.message}") }
 
         return primarySavedPath
     }

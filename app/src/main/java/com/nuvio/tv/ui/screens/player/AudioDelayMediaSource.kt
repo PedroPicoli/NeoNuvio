@@ -23,8 +23,7 @@ internal class AudioDelayMediaSource(
     mediaSource: MediaSource,
     private val audioDelayUsProvider: () -> Long,
     // Quando presente, o delay do audio varia com a posicao (microsegundos -> microsegundos).
-    private val audioDelayAtUs: ((Long) -> Long)? = null,
-    private val stripVideo: Boolean = false
+    private val audioDelayAtUs: ((Long) -> Long)? = null
 ) : WrappingMediaSource(mediaSource) {
 
     override fun createPeriod(
@@ -32,17 +31,12 @@ internal class AudioDelayMediaSource(
         allocator: Allocator,
         startPositionUs: Long
     ): MediaPeriod {
-        val childStartUs = if (stripVideo) {
-            (startPositionUs - audioDelayUsProvider()).coerceAtLeast(0L)
-        } else {
-            startPositionUs
-        }
+        val childStartUs = (startPositionUs - audioDelayUsProvider()).coerceAtLeast(0L)
         return AudioDelayMediaPeriod(
             mediaPeriod = mediaSource.createPeriod(id, allocator, childStartUs),
             audioDelayUsProvider = audioDelayUsProvider,
             audioDelayAtUs = audioDelayAtUs,
-            stripVideo = stripVideo,
-            initialMinOutputTimeUs = if (stripVideo) startPositionUs.coerceAtLeast(0L) else 0L
+            initialMinOutputTimeUs = startPositionUs.coerceAtLeast(0L)
         )
     }
 
@@ -60,24 +54,18 @@ private class AudioDelayMediaPeriod(
     val mediaPeriod: MediaPeriod,
     private val audioDelayUsProvider: () -> Long,
     private val audioDelayAtUs: ((Long) -> Long)? = null,
-    private val stripVideo: Boolean = false,
     initialMinOutputTimeUs: Long = 0L
 ) : MediaPeriod, MediaPeriod.Callback {
 
     private var callback: MediaPeriod.Callback? = null
-    private var filteredTrackGroups: TrackGroupArray? = null
     @Volatile
     private var minOutputTimeUs: Long = initialMinOutputTimeUs
 
     override fun prepare(callback: MediaPeriod.Callback, positionUs: Long) {
         this.callback = callback
-        if (stripVideo) {
-            minOutputTimeUs = positionUs.coerceAtLeast(0L)
-            val audioTargetUs = (positionUs - audioDelayUsProvider()).coerceAtLeast(0L)
-            mediaPeriod.prepare(this, audioTargetUs)
-        } else {
-            mediaPeriod.prepare(this, positionUs)
-        }
+        minOutputTimeUs = positionUs.coerceAtLeast(0L)
+        val audioTargetUs = (positionUs - audioDelayUsProvider()).coerceAtLeast(0L)
+        mediaPeriod.prepare(this, audioTargetUs)
     }
 
     override fun maybeThrowPrepareError() {
@@ -88,22 +76,7 @@ private class AudioDelayMediaPeriod(
         }
     }
 
-    override fun getTrackGroups(): TrackGroupArray {
-        if (!stripVideo) return mediaPeriod.getTrackGroups()
-        val cached = filteredTrackGroups
-        if (cached != null) return cached
-        val rawGroups = mediaPeriod.getTrackGroups()
-        val audioOnlyList = mutableListOf<androidx.media3.common.TrackGroup>()
-        for (i in 0 until rawGroups.length) {
-            val group = rawGroups.get(i)
-            if (group.type == C.TRACK_TYPE_AUDIO) {
-                audioOnlyList.add(group)
-            }
-        }
-        val result = TrackGroupArray(*audioOnlyList.toTypedArray())
-        filteredTrackGroups = result
-        return result
-    }
+    override fun getTrackGroups(): TrackGroupArray = mediaPeriod.getTrackGroups()
 
     override fun getStreamKeys(trackSelections: List<ExoTrackSelection>): List<StreamKey> {
         return mediaPeriod.getStreamKeys(trackSelections)
@@ -121,12 +94,8 @@ private class AudioDelayMediaPeriod(
             childStreams[index] = (streams[index] as? AudioDelaySampleStream)?.childStream ?: streams[index]
         }
 
-        val childPositionUs = if (stripVideo) {
-            minOutputTimeUs = positionUs.coerceAtLeast(0L)
-            (positionUs - audioDelayUsProvider()).coerceAtLeast(0L)
-        } else {
-            positionUs
-        }
+        minOutputTimeUs = positionUs.coerceAtLeast(0L)
+        val childPositionUs = (positionUs - audioDelayUsProvider()).coerceAtLeast(0L)
 
         val selectedPositionUs = mediaPeriod.selectTracks(
             selections,
@@ -177,24 +146,18 @@ private class AudioDelayMediaPeriod(
             }
         }
 
-        return if (stripVideo) positionUs else selectedPositionUs
+        return positionUs
     }
 
     override fun discardBuffer(positionUs: Long, toKeyframe: Boolean) {
-        if (stripVideo) {
-            val audioTargetUs = (positionUs - audioDelayUsProvider()).coerceAtLeast(0L)
-            mediaPeriod.discardBuffer(audioTargetUs, toKeyframe)
-        } else {
-            mediaPeriod.discardBuffer(positionUs, toKeyframe)
-        }
+        val audioTargetUs = (positionUs - audioDelayUsProvider()).coerceAtLeast(0L)
+        mediaPeriod.discardBuffer(audioTargetUs, toKeyframe)
     }
 
     override fun readDiscontinuity(): Long = mediaPeriod.readDiscontinuity()
 
     override fun seekToUs(positionUs: Long): Long {
-        if (stripVideo) {
-            minOutputTimeUs = positionUs.coerceAtLeast(0L)
-        }
+        minOutputTimeUs = positionUs.coerceAtLeast(0L)
         val delayUs = audioDelayUsProvider()
         val audioTargetUs = (positionUs - delayUs).coerceAtLeast(0L)
         mediaPeriod.seekToUs(audioTargetUs)
@@ -230,7 +193,6 @@ private class AudioDelayMediaPeriod(
     }
 
     override fun onPrepared(mediaPeriod: MediaPeriod) {
-        filteredTrackGroups = null
         callback?.onPrepared(this)
     }
 

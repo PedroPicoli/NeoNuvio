@@ -55,20 +55,14 @@ object ContainerProbe {
             return null
         }
         return withContext(Dispatchers.IO) {
-            // 1. Tenta leitura direta rápida de cabeçalho por HTTP Range (< 100 ms)
-            val fast = FastContainerHeaderProbe.probe(url, headers)
-            if (fast?.durationMs != null && fast.durationMs > 0L) {
-                return@withContext fast
+            // Leitura direta rápida e 100% cancelável de cabeçalho por HTTP Range via OkHttp.
+            // IMPORTANTE: Nunca chamar MediaExtractor.setDataSource() em URLs HTTP remotas,
+            // pois o NuCachedSource2 nativo (C++ Stagefright) faz 10 retentativas bloqueantes
+            // de 4s (40s totais) em JNI sem respeitar cancelamento de corrotina quando há erro HTTP!
+            val effectiveTimeoutMs = minOf(timeoutMs, 3_500L)
+            withTimeoutOrNull(effectiveTimeoutMs) {
+                FastContainerHeaderProbe.probe(url, headers)
             }
-
-            // 2. Fallback para MediaExtractor
-            val job = async(Dispatchers.IO) { runExtractor(url, headers) }
-            val result = withTimeoutOrNull(timeoutMs) { job.await() }
-            if (result == null) {
-                Log.w(TAG, "Probe expirou ou falhou para ${url.take(80)}")
-                job.cancel()
-            }
-            result ?: fast
         }
     }
 

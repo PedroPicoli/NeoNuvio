@@ -38,6 +38,11 @@ object DubSubtitleSyncAligner {
      */
     fun sanitizeCues(cues: List<SubtitleSyncCue>): List<SubtitleSyncCue> {
         return cues.mapNotNull { cue ->
+            // Cues extraídos da tabela de índice Matroska ID_CUES (EmbeddedSubtitleTimelineLoader)
+            // possuem timestamps exatos de início/fim com text == "". Devem ser preservados!
+            if (cue.text.isEmpty()) {
+                return@mapNotNull cue
+            }
             var text = cue.text
             text = SDH_BRACKETS_REGEX.replace(text, "")
             text = SDH_PARENS_REGEX.replace(text, "")
@@ -312,24 +317,24 @@ object DubSubtitleSyncAligner {
         videoCues: List<SubtitleSyncCue>,
         dubSpeechEnvelope: FloatArray,
         subOrigin: String = "subrip",
-        dubMime: String = "mp4a-latm"
+        dubMime: String = "mp4a-latm",
+        leadInCompensationMs: Long = 0L
     ): AcousticSyncMatcher.AcousticMatch? {
-        val isExternalAddon = subOrigin.contains("AIOStreams", ignoreCase = true) ||
-            subOrigin.contains("OpenSubtitles", ignoreCase = true) ||
-            subOrigin.contains("SubDL", ignoreCase = true)
-        if (isExternalAddon) {
-            // NUNCA confiar em início de diálogo vindo de addons de terceiros da web (como AIOStreams / OpenSubtitles)
-            return null
-        }
         val clean = sanitizeCues(videoCues)
-        val offsetMs = AcousticSyncMatcher.estimateDialogueOnsetOffsetMs(clean, dubSpeechEnvelope) ?: return null
-        val telemetry = "Dialogue Onset Anchor [Sub: $subOrigin | Dub: $dubMime | Offset: ${if (offsetMs >= 0) "+" else ""}${offsetMs}ms]"
+        val result = AcousticSyncMatcher.estimateDialogueOnsetWithTiming(
+            cleanSubtitleCues = clean,
+            dubSpeechEnvelope = dubSpeechEnvelope,
+            leadInCompensationMs = leadInCompensationMs
+        ) ?: return null
+        val telemetry = "Dialogue Onset Anchor [Sub: $subOrigin | Dub: $dubMime | T_vid=${result.tSubOnsetMs}ms | T_aud=${result.tSpeechDubMs}ms | Offset: ${if (result.offsetMs >= 0) "+" else ""}${result.offsetMs}ms]"
         return AcousticSyncMatcher.AcousticMatch(
-            offsetMs = offsetMs,
-            confidence = 0.85f,
-            maxZncc = 0.65f,
-            psr = 4.2f,
+            offsetMs = result.offsetMs,
+            confidence = result.confidence,
+            maxZncc = result.zncc,
+            psr = result.psr,
             isValid = true,
+            tVideoMs = result.tSubOnsetMs,
+            tAudioMs = result.tSpeechDubMs,
             telemetryDiag = telemetry
         )
     }

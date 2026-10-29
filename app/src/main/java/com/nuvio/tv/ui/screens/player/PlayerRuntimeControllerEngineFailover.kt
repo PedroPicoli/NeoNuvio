@@ -13,8 +13,29 @@ internal fun PlayerRuntimeController.maybeAutoSwitchInternalPlayerOnStartupError
     allowEngineFailover: Boolean
 ): Boolean {
     if (!allowEngineFailover) return false
+    if (lockToExoPlayerForCurrentSession) {
+        Log.w(PlayerRuntimeController.TAG, "Failover para MPV suprimido: lockToExoPlayerForCurrentSession=true")
+        return false
+    }
+    if (suppressEngineFailover) {
+        Log.w(PlayerRuntimeController.TAG, "Failover para MPV suprimido: suppressEngineFailover=true")
+        return false
+    }
     if (isRestoringOriginalAfterDub) return false
-    if (hasRenderedFirstFrame) return false
+    if (hasRenderedFirstFrame || hasEverRenderedFrameOnCurrentStream) {
+        Log.w(PlayerRuntimeController.TAG, "Failover para MPV suprimido: o vídeo já renderizou quadros com sucesso no ExoPlayer nesta sessão (hasRenderedFirstFrame=$hasRenderedFirstFrame, hasEverRenderedFrameOnCurrentStream=$hasEverRenderedFrameOnCurrentStream)")
+        return false
+    }
+
+    val isAudioFailure = detailedError.contains("audio", ignoreCase = true) ||
+        detailedError.contains("audiotrack", ignoreCase = true) ||
+        detailedError.contains("dts", ignoreCase = true) ||
+        detailedError.contains("truehd", ignoreCase = true) ||
+        detailedError.contains("eac3", ignoreCase = true)
+    if (isAudioFailure && (hasRenderedFirstFrame || hasEverRenderedFrameOnCurrentStream || isRestoringOriginalAfterDub || suppressEngineFailover)) {
+        Log.w(PlayerRuntimeController.TAG, "Failover para MPV suprimido: falha de áudio em vídeo já iniciado ou em transição ($detailedError)")
+        return false
+    }
 
     // Quando o MediaCodec de VÍDEO do dispositivo falha na abertura por exceder limites de hardware (ex: HEVC 4K L150 / AV1)
     // antes do primeiro quadro, o MPV Player assume automaticamente.
@@ -124,6 +145,10 @@ internal fun PlayerRuntimeController.switchToInternalPlayerEngine(
     reason: String = "manual-switch"
 ) {
     if (currentStreamUrl.isBlank()) return
+    if (lockToExoPlayerForCurrentSession && targetEngine == InternalPlayerEngine.MVP_PLAYER) {
+        Log.w(PlayerRuntimeController.TAG, "Transio para MPV bloqueada: sesso travada no ExoPlayer (lockToExoPlayerForCurrentSession=true)")
+        return
+    }
 
     beginSwitchTraceSession(reason = reason, targetEngine = targetEngine)
     val targetEngineLabel = targetEngineLabel(targetEngine)

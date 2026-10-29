@@ -32,12 +32,13 @@ object DubResultCache {
                     runCatching {
                         val map = deserialize(value)
                         // Invalida imediatamente entradas cacheadas geradas pela Camada 2.5: Bumper Boundary Detector
-                        // (incluindo os +4100 ms e -430 ms salvos, ou micro-offsets dentro da Zona Morta)
+                        // (incluindo 0ms falsos gerados por deadzone antiga com 85% de confiança)
                         val isInvalidBumper = map.initialAudioOffsetMs == 4100L ||
                             map.initialAudioOffsetMs == -430L ||
                             map.initialAudioOffsetMs == 4200L ||
-                            map.initialAudioOffsetMs == -420L
-                        val isInDeadzone = kotlin.math.abs(map.initialAudioOffsetMs) in 1L..649L
+                            map.initialAudioOffsetMs == -420L ||
+                            (map.initialAudioOffsetMs == 0L && map.confidence < 0.90f)
+                        val isInDeadzone = kotlin.math.abs(map.initialAudioOffsetMs) in 1L..119L
 
                         if (map.isBlind || map.confidence <= 0.55f || isInvalidBumper || isInDeadzone) {
                             keysToRemove.add(key)
@@ -67,7 +68,8 @@ object DubResultCache {
                 map.initialAudioOffsetMs == -430L ||
                 map.initialAudioOffsetMs == 4200L ||
                 map.initialAudioOffsetMs == -420L ||
-                kotlin.math.abs(map.initialAudioOffsetMs) in 1L..649L
+                (map.initialAudioOffsetMs == 0L && map.confidence < 0.90f) ||
+                kotlin.math.abs(map.initialAudioOffsetMs) in 1L..119L
             ) {
                 keysToRemove.add(key)
             }
@@ -88,7 +90,8 @@ object DubResultCache {
                         map.initialAudioOffsetMs == 4410L ||
                         map.initialAudioOffsetMs == -2700L ||
                         map.initialAudioOffsetMs == 4400L ||
-                        kotlin.math.abs(map.initialAudioOffsetMs) in 1L..649L
+                        (map.initialAudioOffsetMs == 0L && map.confidence < 0.90f) ||
+                        kotlin.math.abs(map.initialAudioOffsetMs) in 1L..119L
                     )) {
                         editor.remove(k)
                     }
@@ -122,7 +125,8 @@ object DubResultCache {
             entry.initialAudioOffsetMs == -2750L ||
             entry.initialAudioOffsetMs == 4410L ||
             entry.initialAudioOffsetMs == -2700L ||
-            entry.initialAudioOffsetMs == 4400L
+            entry.initialAudioOffsetMs == 4400L ||
+            (entry.initialAudioOffsetMs == 0L && entry.confidence < 0.90f)
         if (entry.isBlind || entry.confidence < 0.65f || isInvalidBumper) {
             remove(videoKey, audioKey, contentId)
             memoryCache.remove(legacyKey)
@@ -130,8 +134,8 @@ object DubResultCache {
             return null
         }
 
-        // Aplica Zona Morta de +-650ms: se for < 650ms, crava em 0ms
-        val finalEntry = if (kotlin.math.abs(entry.initialAudioOffsetMs) in 1L..649L) {
+        // Aplica Zona Morta de +-120ms: se for < 120ms, crava em 0ms
+        val finalEntry = if (kotlin.math.abs(entry.initialAudioOffsetMs) in 1L..119L) {
             entry.copy(initialAudioOffsetMs = 0L)
         } else {
             entry
@@ -142,8 +146,8 @@ object DubResultCache {
     }
 
     fun put(videoKey: String, audioKey: String, timelineMap: DubTimelineMap, contentId: String? = null) {
-        // Regra 1: Jamais salvar no cache resultados com falha ou confiança baixa (< 65%)
-        if (timelineMap.isBlind || timelineMap.confidence < 0.65f) {
+        // Regra 1: Jamais salvar no cache resultados com falha, confiança baixa (< 65%) ou 0ms não confirmado (< 90%)
+        if (timelineMap.isBlind || timelineMap.confidence < 0.65f || (timelineMap.initialAudioOffsetMs == 0L && timelineMap.confidence < 0.90f)) {
             return
         }
         val key = makeKey(videoKey, audioKey, contentId)

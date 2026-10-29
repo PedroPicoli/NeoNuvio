@@ -33,6 +33,7 @@ internal fun PlayerRuntimeController.updateAvailableTracks(tracks: Tracks) {
                 "uiSubtitleIndex=${_uiState.value.selectedSubtitleTrackIndex}"
     )
     val audioTracks = mutableListOf<TrackInfo>()
+    val supportedAudioIndices = mutableSetOf<Int>()
     val subtitleTracks = mutableListOf<TrackInfo>()
     var selectedAudioIndex = -1
     var selectedSubtitleIndex = -1
@@ -106,7 +107,11 @@ internal fun PlayerRuntimeController.updateAvailableTracks(tracks: Tracks) {
                 for (i in 0 until trackGroup.length) {
                     val format = trackGroup.getTrackFormat(i)
                     val isSelected = trackGroup.isTrackSelected(i)
-                    if (isSelected) selectedAudioIndex = audioTracks.size
+                    val trackIdx = audioTracks.size
+                    if (isSelected) selectedAudioIndex = trackIdx
+                    if (trackGroup.isTrackSupported(i)) {
+                        supportedAudioIndices.add(trackIdx)
+                    }
 
                     val codecName = CustomDefaultTrackNameProvider.formatNameFromMime(format.sampleMimeType)
                     val channelLayout = CustomDefaultTrackNameProvider.getChannelLayoutName(
@@ -172,35 +177,48 @@ internal fun PlayerRuntimeController.updateAvailableTracks(tracks: Tracks) {
     if (!currentForceDubActive) {
         if (audioTracks.isNotEmpty() && lastPicBrAutoSelectedStreamUrl != currentStreamUrl) {
             val targetIndex = if (!primaryPreferredAudioTarget.isNullOrBlank()) {
-                audioTracks.indexOfFirst { track ->
-                    audioTrackMatchesLanguage(track, primaryPreferredAudioTarget)
-                }
+                audioTracks.indices.firstOrNull { idx ->
+                    (supportedAudioIndices.isEmpty() || supportedAudioIndices.contains(idx)) &&
+                        audioTrackMatchesLanguage(audioTracks[idx], primaryPreferredAudioTarget)
+                } ?: -1
             } else if (isPicBr) {
-                audioTracks.indexOfFirst { track ->
+                audioTracks.indices.firstOrNull { idx ->
+                    val track = audioTracks[idx]
                     val lang = track.language?.lowercase().orEmpty()
                     val name = track.name.lowercase()
-                    lang.startsWith("por") || lang.startsWith("pt") || name.contains("portugu")
-                }
+                    (supportedAudioIndices.isEmpty() || supportedAudioIndices.contains(idx)) &&
+                        (lang.startsWith("por") || lang.startsWith("pt") || name.contains("portugu"))
+                } ?: -1
             } else -1
 
             if (targetIndex >= 0) {
                 lastPicBrAutoSelectedStreamUrl = currentStreamUrl
                 if (selectedAudioIndex != targetIndex) {
-                    selectAudioTrack(targetIndex, audioTracks[targetIndex])
+                    selectAudioTrack(targetIndex, audioTracks[targetIndex], seekAfterSelect = false)
                     selectedAudioIndex = targetIndex
                 }
             } else {
-                // Fallback: se o conteúdo não possui a língua alvo, garantir que reproduza normalmente
-                // o áudio nativo da fonte (faixa 0) em vez de permanecer sem áudio
+                // Fallback: respeita a faixa suportada já selecionada pelo DefaultTrackSelector do ExoPlayer.
+                // Só força seleção manual se o ExoPlayer não tiver selecionado nenhuma faixa!
                 lastPicBrAutoSelectedStreamUrl = currentStreamUrl
                 if (selectedAudioIndex < 0 || audioTracks.none { it.isSelected }) {
-                    selectAudioTrack(0, audioTracks[0])
-                    selectedAudioIndex = 0
+                    val fallbackIdx = supportedAudioIndices.firstOrNull() ?: 0
+                    selectAudioTrack(fallbackIdx, audioTracks[fallbackIdx], seekAfterSelect = false)
+                    selectedAudioIndex = fallbackIdx
                 }
             }
         } else if (audioTracks.isNotEmpty() && (selectedAudioIndex < 0 || audioTracks.none { it.isSelected })) {
-            selectAudioTrack(0, audioTracks[0])
-            selectedAudioIndex = 0
+            val fallbackIdx = supportedAudioIndices.firstOrNull() ?: 0
+            selectAudioTrack(fallbackIdx, audioTracks[fallbackIdx], seekAfterSelect = false)
+            selectedAudioIndex = fallbackIdx
+        }
+    } else if (audioTracks.isNotEmpty()) {
+        // Durante a dublagem forçada, a faixa de áudio dublada do MergingMediaSource é a última do array
+        val dubIdx = audioTracks.size - 1
+        selectedAudioIndex = dubIdx
+        for (i in audioTracks.indices) {
+            val track = audioTracks[i]
+            audioTracks[i] = track.copy(isSelected = (i == dubIdx))
         }
     }
 
@@ -355,7 +373,7 @@ internal fun PlayerRuntimeController.updateAvailableTracks(tracks: Tracks) {
         selectedSubtitleIndex = selectedSubtitleIndex
     )
     applyPersistedTrackPreference(
-        audioTracks = audioTracks,
+        audioTracks = if (currentForceDubActive) emptyList() else audioTracks,
         subtitleTracks = subtitleTracks
     )
     if (currentStreamHasVideoTrack) {
@@ -429,6 +447,7 @@ private fun PlayerRuntimeController.rememberEffectiveExoSubtitleSelectionForEngi
 
 internal fun PlayerRuntimeController.maybeAdjustLibassPipelineForTracks(tracks: Tracks) {
     if (libassPipelineSwitchInFlight) return
+    if (currentForceDubActive || _uiState.value.isForceDubLoading || isRestoringOriginalAfterDub) return
 
     val hasAssSsaTrack = tracks.hasAssSsaTextTrack()
     if (hasAssSsaTrack) {

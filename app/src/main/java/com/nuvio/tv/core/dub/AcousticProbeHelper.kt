@@ -49,13 +49,35 @@ object AcousticProbeHelper {
 
     private const val TAG = "AcousticProbeHelper"
     private const val TOTAL_BINS = 4500 // 45 segundos com resolução de 10ms (100 Hz = 4500 bins)
-    private const val SOURCE_READ_TIMEOUT_MS = 2_800L // Máximo 2.8s de leitura contínua por fonte (relógio real)
-    private const val SAMPLE_WINDOW_US = 20_000_000L // 20s de amostras contínuas desde 0.0s (suficiente e ultra-rápido)
+    private const val SOURCE_READ_TIMEOUT_MS = 5_500L // Até 5.5s de leitura contínua por fonte em segundo plano
+    private const val SAMPLE_WINDOW_US = 22_000_000L // 22s de amostras contínuas desde 0.0s (cobre vinhetas e primeiras falas)
 
     @Volatile
     private var cachedVideoUrl: String? = null
     @Volatile
     private var cachedVideoData: ExtractedAudioData? = null
+    @Volatile
+    private var cachedDubUrl: String? = null
+    @Volatile
+    private var cachedDubData: ExtractedAudioData? = null
+
+    @Volatile
+    private var isCancelledGlobal = false
+
+    @Volatile
+    private var activeMatroskaDataSource: DefaultHttpDataSource? = null
+
+    @Volatile
+    private var activeMediaExtractor: MediaExtractor? = null
+
+    fun cancelAll() {
+        isCancelledGlobal = true
+        runCatching { activeMatroskaDataSource?.close() }
+        runCatching { activeMediaExtractor?.release() }
+        activeMatroskaDataSource = null
+        activeMediaExtractor = null
+        Log.i(TAG, "AcousticProbeHelper: todas as sondas em andamento foram canceladas (Hard Kill)")
+    }
 
     @Volatile
     var lastExtractedVideoEmbeddedCues: List<SubtitleSyncCue> = emptyList()
@@ -65,6 +87,8 @@ object AcousticProbeHelper {
     fun clearCache() {
         cachedVideoUrl = null
         cachedVideoData = null
+        cachedDubUrl = null
+        cachedDubData = null
         lastExtractedVideoEmbeddedCues = emptyList()
         lastExtractedVideoEmbeddedLanguage = null
     }
@@ -115,7 +139,9 @@ object AcousticProbeHelper {
     }
 
     /**
-     * Retorna o decodificador apropriado com suporte a DTS Core fallback.
+     * Retorna exclusivamente decodificador de áudio por software (CPU).
+     * IMPORTANTE: Jamais instanciar MediaCodec de hardware/vendor (ex: c2.mtk.eac3.decoder no Fire TV Stick 4K),
+     * pois o hardware de TV Box possui limite estrito de instância única e rouba/trava o decoder do ExoPlayer!
      */
     private fun createDecoderWithFallback(mime: String): Pair<MediaCodec?, String> {
         val swName = findSoftwareAudioDecoder(mime)
@@ -124,20 +150,18 @@ object AcousticProbeHelper {
             if (swCodec != null) return Pair(swCodec, "Software ($swName)")
         }
 
-        val defaultCodec = runCatching { MediaCodec.createDecoderByType(mime) }.getOrNull()
-        if (defaultCodec != null) {
-            return Pair(defaultCodec, "Default (${defaultCodec.name})")
-        }
-
-        // Se for DTS-HD e não houver decoder direto, tenta instanciar decoder para DTS Core
+        // Se for DTS-HD e houver decoder de software para DTS Core
         if (mime.equals("audio/vnd.dts.hd", ignoreCase = true)) {
-            val dtsCoreCodec = runCatching { MediaCodec.createDecoderByType("audio/vnd.dts") }.getOrNull()
-            if (dtsCoreCodec != null) {
-                return Pair(dtsCoreCodec, "DTS-Core (${dtsCoreCodec.name})")
+            val dtsSwName = findSoftwareAudioDecoder("audio/vnd.dts")
+            if (!dtsSwName.isNullOrBlank()) {
+                val dtsCoreCodec = runCatching { MediaCodec.createByCodecName(dtsSwName) }.getOrNull()
+                if (dtsCoreCodec != null) {
+                    return Pair(dtsCoreCodec, "DTS-Core SW ($dtsSwName)")
+                }
             }
         }
 
-        return Pair(null, "Sem Decoder")
+        return Pair(null, "Sem Decoder SW")
     }
 
     /**
@@ -248,6 +272,7 @@ object AcousticProbeHelper {
         dubAudioHeaders: Map<String, String>,
         onStatusUpdate: ((String) -> Unit)? = null
     ): AcousticSyncMatcher.AcousticMatch? = withContext(Dispatchers.IO) {
+        isCancelledGlobal = false
         runCatching {
             onStatusUpdate?.invoke("Extraindo Envelopes de Áudio (Vídeo e Dublagem em Paralelo)...")
 
@@ -270,7 +295,19 @@ object AcousticProbeHelper {
                 }
 
                 val dubDeferred = async {
-                    extractAdaptiveAudioEnvelope(dubAudioUrl, dubAudioHeaders, isVideo = false, onStatusUpdate) { isActive }
+                    if (dubAudioUrl == cachedDubUrl && cachedDubData != null) {
+                        val cached = cachedDubData!!
+                        val diag = "${cached.mime.substringAfter('/')}/${if (cached.methodType == "PCM") "${cached.channels}ch" else "Bitstream"}/${cached.validBins}b"
+                        Log.d(TAG, "Usando envelope acústico de dublagem em cache: $diag")
+                        ProbeResult(cached, diag)
+                    } else {
+                        val res = extractAdaptiveAudioEnvelope(dubAudioUrl, dubAudioHeaders, isVideo = false, onStatusUpdate) { isActive }
+                        if (res.data != null) {
+                            cachedDubUrl = dubAudioUrl
+                            cachedDubData = res.data
+                        }
+                        res
+                    }
                 }
 
                 videoDeferred.await() to dubDeferred.await()
@@ -397,6 +434,44 @@ object AcousticProbeHelper {
     }
 
     /**
+     * Extrai apenas o envelope de fala/energia do áudio dublado (1080p), sem abrir ou ler a URL
+     * do vídeo 4K. Usado quando o vídeo 4K já possui legendas (embutidas ou externas) para
+     * sincronização por Sub-Bridge VAD / Dialogue Onset / Bumper Boundary, poupando Wi-Fi e RAM.
+     */
+    suspend fun extractDubOnly(
+        dubAudioUrl: String,
+        dubAudioHeaders: Map<String, String>,
+        onStatusUpdate: ((String) -> Unit)? = null,
+        isActiveProvider: () -> Boolean = { true }
+    ): ProbeResult = withContext(Dispatchers.IO) {
+        isCancelledGlobal = false
+        runCatching {
+            if (dubAudioUrl == cachedDubUrl && cachedDubData != null) {
+                val cached = cachedDubData!!
+                val diag = "${cached.mime.substringAfter('/')}/${if (cached.methodType == "PCM") "${cached.channels}ch" else "Bitstream"}/${cached.validBins}b"
+                Log.d(TAG, "Usando envelope de dublagem em cache em extractDubOnly: $diag")
+                return@runCatching ProbeResult(cached, diag)
+            }
+            onStatusUpdate?.invoke("Extraindo envelope de voz da dublagem...")
+            val res = extractAdaptiveAudioEnvelope(
+                url = dubAudioUrl,
+                headers = dubAudioHeaders,
+                isVideo = false,
+                onStatusUpdate = onStatusUpdate,
+                isActiveProvider = isActiveProvider
+            )
+            if (res.data != null) {
+                cachedDubUrl = dubAudioUrl
+                cachedDubData = res.data
+            }
+            res
+        }.getOrElse { e ->
+            Log.w(TAG, "Falha em extractDubOnly: ${e.message}")
+            ProbeResult(null, "Erro: ${e.message ?: e.javaClass.simpleName}")
+        }
+    }
+
+    /**
      * Extrai envelope com suporte Multi-Track MediaCodec (Camada A)
      * e fallback transparente para Bitstream Frame Energy Parser (Camada B).
      */
@@ -407,8 +482,9 @@ object AcousticProbeHelper {
         onStatusUpdate: ((String) -> Unit)?,
         isActiveProvider: () -> Boolean = { true }
     ): ProbeResult {
-        if (!isActiveProvider()) return ProbeResult(null, "Cancelado")
+        if (isCancelledGlobal || !isActiveProvider()) return ProbeResult(null, "Cancelado")
         val extractor = MediaExtractor()
+        activeMediaExtractor = extractor
         var matroskaTried = false
         try {
             val effectiveHeaders = LinkedHashMap<String, String>()
@@ -421,6 +497,31 @@ object AcousticProbeHelper {
                 effectiveHeaders["User-Agent"] = "Mozilla/5.0 (Linux; Android 13; Android TV)"
             }
             val startTime = android.os.SystemClock.elapsedRealtime()
+            // Em streams de vídeo (especialmente 4K Remux/MKV), evitamos o MediaExtractor nativo
+            // do Stagefright como primeira opção pois setDataSource(url) não tem timeout em JNI
+            // e pode ler dezenas de MBs sem controle de janela. Usamos primeiro o MatroskaExtractor
+            // com DataSpec estritamente limitado.
+            if (isVideo) {
+                matroskaTried = true
+                val media3First = extractAudioViaMedia3Matroska(url, effectiveHeaders, isVideo = true, isActiveProvider = isActiveProvider)
+                if (media3First != null && media3First.data != null) {
+                    DubDiagnosticFileLogger.setExtractionTelemetry(
+                        isVideo = true,
+                        extractor = "Media3 MatroskaExtractor",
+                        mode = "Software_Matroska_Primary",
+                        timeSpentMs = android.os.SystemClock.elapsedRealtime() - startTime,
+                        firstPtsMs = media3First.data.firstValidBin.toLong() * 10L,
+                        lastPtsMs = media3First.data.lastValidBin.toLong() * 10L,
+                        totalBins = TOTAL_BINS,
+                        filledBins = media3First.data.validBins,
+                        zeroBins = TOTAL_BINS - media3First.data.validBins,
+                        envelope = media3First.data.envelope,
+                        speechEnvelope = media3First.data.speechEnvelope
+                    )
+                    return media3First
+                }
+                if (!isActiveProvider()) return ProbeResult(null, "Cancelado")
+            }
             extractor.setDataSource(url, effectiveHeaders)
             if (!isActiveProvider()) return ProbeResult(null, "Cancelado")
 
@@ -569,6 +670,7 @@ object AcousticProbeHelper {
             }
             return ProbeResult(null, "HTTP/IO: $msg")
         } finally {
+            if (activeMediaExtractor == extractor) activeMediaExtractor = null
             runCatching { extractor.release() }
         }
     }
@@ -621,8 +723,10 @@ object AcousticProbeHelper {
             val bufferInfo = MediaCodec.BufferInfo()
             var isEos = false
             var maxPtsReachedUs = 0L
+            var totalBytesRead = 0L
+            val maxProbeBytes = 6L * 1024L * 1024L
 
-            while (!isEos && isActiveProvider() && maxPtsReachedUs < targetEndPtsUs && (System.currentTimeMillis() - startTimeWallMs) < SOURCE_READ_TIMEOUT_MS) {
+            while (!isEos && isActiveProvider() && maxPtsReachedUs < targetEndPtsUs && totalBytesRead < maxProbeBytes && (System.currentTimeMillis() - startTimeWallMs) < SOURCE_READ_TIMEOUT_MS) {
                 val inIndex = codec.dequeueInputBuffer(8_000L)
                 if (inIndex >= 0) {
                     val inBuffer = codec.getInputBuffer(inIndex)
@@ -633,6 +737,7 @@ object AcousticProbeHelper {
                             codec.queueInputBuffer(inIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
                             isEos = true
                         } else {
+                            totalBytesRead += sampleSize
                             codec.queueInputBuffer(inIndex, 0, sampleSize, sampleTime, 0)
                             extractor.advance()
                         }
@@ -822,9 +927,12 @@ object AcousticProbeHelper {
             val rawSamples = mutableListOf<Triple<Long, Int, Double>>()
             var sampleCount = 0
             var maxPtsReachedUs = 0L
-            while (isActiveProvider() && maxPtsReachedUs < targetEndPtsUs && (System.currentTimeMillis() - startTimeWallMs) < SOURCE_READ_TIMEOUT_MS) {
+            var totalBytesRead = 0L
+            val maxProbeBytes = 6L * 1024L * 1024L
+            while (isActiveProvider() && maxPtsReachedUs < targetEndPtsUs && totalBytesRead < maxProbeBytes && (System.currentTimeMillis() - startTimeWallMs) < SOURCE_READ_TIMEOUT_MS) {
                 val sampleSize = extractor.readSampleData(buffer, 0)
                 if (sampleSize < 0) break
+                totalBytesRead += sampleSize
 
                 val sampleTime = extractor.sampleTime
                 if (sampleTime > 0) {
@@ -939,7 +1047,7 @@ object AcousticProbeHelper {
         isVideo: Boolean,
         isActiveProvider: () -> Boolean = { true }
     ): ProbeResult? {
-        if (!isActiveProvider()) return null
+        if (isCancelledGlobal || !isActiveProvider()) return null
         var dataSource: DefaultHttpDataSource? = null
         try {
             val httpHeaders = LinkedHashMap<String, String>()
@@ -959,11 +1067,13 @@ object AcousticProbeHelper {
                 .setReadTimeoutMs(3500)
                 .setAllowCrossProtocolRedirects(true)
                 .createDataSource()
+            activeMatroskaDataSource = dataSource
 
             val uri = Uri.parse(url)
+            val maxMatroskaBytes = if (isVideo) 64L * 1024L * 1024L else 8L * 1024L * 1024L
             val dataSpec = DataSpec.Builder()
                 .setUri(uri)
-                .setLength(16L * 1024L * 1024L)
+                .setLength(maxMatroskaBytes)
                 .build()
 
             val openLen = dataSource.open(dataSpec)
@@ -1136,6 +1246,7 @@ object AcousticProbeHelper {
             Log.w(TAG, "Media3 MatroskaExtractor falhou para $url: ${e.message}", e)
             return null
         } finally {
+            if (activeMatroskaDataSource == dataSource) activeMatroskaDataSource = null
             runCatching { dataSource?.close() }
         }
     }

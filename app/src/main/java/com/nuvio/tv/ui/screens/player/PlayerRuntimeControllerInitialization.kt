@@ -258,9 +258,13 @@ internal fun PlayerRuntimeController.initializePlayer(
             // derrubando a Surface de renderização do sistema.
             // Força o motor MPV (dav1d em software/CPU) no milissegundo 0.
             val isAv1 = isAv1StreamCandidate(url, currentFilename, streamName, currentStreamDescription, title)
-            if (isAv1 && !hasAv1HardwareDecoder() && effectiveInternalPlayerEngine != InternalPlayerEngine.MVP_PLAYER) {
+            if (isAv1 && !hasAv1HardwareDecoder() && !lockToExoPlayerForCurrentSession && effectiveInternalPlayerEngine != InternalPlayerEngine.MVP_PLAYER) {
                 Log.w(PlayerRuntimeController.TAG, "Fast-Failover HW: Stream AV1 sem suporte de hardware para video/av01 detectado. Redirecionando para MPV no milissegundo 0.")
                 effectiveInternalPlayerEngine = InternalPlayerEngine.MVP_PLAYER
+            }
+            if (lockToExoPlayerForCurrentSession && effectiveInternalPlayerEngine == InternalPlayerEngine.MVP_PLAYER) {
+                Log.w(PlayerRuntimeController.TAG, "Retendo motor ExoPlayer para a sesso atual (lockToExoPlayerForCurrentSession=true)")
+                effectiveInternalPlayerEngine = InternalPlayerEngine.EXOPLAYER
             }
 
             runtimeInternalPlayerEngineOverride = overrideInternalPlayerEngine
@@ -357,6 +361,7 @@ internal fun PlayerRuntimeController.initializePlayer(
                         if (!afrPreflightGate.isCurrent(afrPreflightToken)) return@launch
                         if (startupDubPlan == null) {
                             _uiState.update { it.copy(isForceDubLoading = false, isForceDubActive = false) }
+                            ensureNativeAudioRestored()
                         }
                     }
 
@@ -718,7 +723,7 @@ internal fun PlayerRuntimeController.initializePlayer(
             val useLibass = when {
                 !requestedUseLibassByUser -> false
                 libassPipelineOverrideForCurrentStream != null -> libassPipelineOverrideForCurrentStream == true
-                else -> true
+                else -> !isExperimentalDv7ToDv81ActiveForCurrentPlayback
             }
             // The new libass module always uses the SurfaceView overlay pipeline.
             // The old AssRenderType conversion is no longer needed.
@@ -945,9 +950,10 @@ internal fun PlayerRuntimeController.initializePlayer(
             val effectiveDecoderPriority = if (
                 hasTriedAudioPcmFallback ||
                 isForcePassthroughActive ||
-                isBluetoothAudioOutput
+                isBluetoothAudioOutput ||
+                playerSettings.decoderPriority != 0
             ) {
-                DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
+                DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
             } else {
                 playerSettings.decoderPriority
             }
@@ -994,7 +1000,7 @@ internal fun PlayerRuntimeController.initializePlayer(
                 bluetoothForcePcm = isBluetoothAudioOutput,
                 playbackSpeedProvider = { _uiState.value.playbackSpeed },
                 initialForcePcm = hasTriedAudioPcmFallback || isBluetoothAudioOutput,
-                preferSoftwareAudioOnly = isBluetoothAudioOutput,
+                preferSoftwareAudioOnly = true,
                 mapDv7ToHevc = mapDv7ToHevcEnabled,
                 onPlaybackSpeedAwareAudioSinkCreated = { playbackSpeedAwareAudioSink = it },
                 onFfmpegAudioRendererChanged = { renderer ->
@@ -1183,6 +1189,7 @@ internal fun PlayerRuntimeController.initializePlayer(
                     if (!afrPreflightGate.isCurrent(afrPreflightToken)) return@launch
                     if (startupDubPlan == null) {
                         _uiState.update { it.copy(isForceDubLoading = false, isForceDubActive = false) }
+                        ensureNativeAudioRestored()
                     }
                 }
                 val dubPlanForStartup = startupDubPlan
@@ -1571,6 +1578,8 @@ internal fun PlayerRuntimeController.initializePlayer(
                     override fun onRenderedFirstFrame() {
                         val isFirstFrame = !hasRenderedFirstFrame  // capture BEFORE flipping
                         hasRenderedFirstFrame = true
+                        hasEverRenderedFrameOnCurrentStream = true
+                        lockToExoPlayerForCurrentSession = true
                         mediaSourceFactory.unlockStartupPrefetch()
                         if (isFirstFrame && _uiState.value.postPlayDismissedForCurrentEpisode) {
                             _uiState.update { it.copy(postPlayDismissedForCurrentEpisode = false) }
@@ -1630,12 +1639,23 @@ internal fun PlayerRuntimeController.initializePlayer(
                     }
 
                     override fun onPlayerError(error: PlaybackException) {
-                        if (isRestoringOriginalAfterDub) {
+                        if (isRestoringOriginalAfterDub || suppressEngineFailover) {
                             Log.w(PlayerRuntimeController.TAG, "Ignorando erro transitório durante restauração de áudio original pós-dublagem: ${error.message}")
                             return
                         }
                         if (handleForceDubPlaybackError(error = error, allowEngineFailover = allowEngineFailover)) return
                         if (isReleasingPlayer && error.errorCode == PlaybackException.ERROR_CODE_TIMEOUT) return
+
+                        val exoEx = error as? androidx.media3.exoplayer.ExoPlaybackException
+                        val isAudioRendererError = exoEx?.type == androidx.media3.exoplayer.ExoPlaybackException.TYPE_RENDERER &&
+                            (exoEx.rendererFormat?.sampleMimeType?.let { MimeTypes.isAudio(it) } == true ||
+                             _exoPlayer?.getRendererType(exoEx.rendererIndex) == C.TRACK_TYPE_AUDIO)
+                        if (isAudioRendererError && hasEverRenderedFrameOnCurrentStream) {
+                            Log.w(PlayerRuntimeController.TAG, "Erro de renderer de áudio detectado após início do vídeo (${error.message}); suprimindo failover para MPV para manter decodificação de vídeo por hardware.")
+                            if (tryAudioTrackPcmFallback(error)) return
+                            if (tryNextAudioFallbackStep(currentPosition)) return
+                            return
+                        }
                         cancelFirstFrameWatchdog()
                         val detailedError = error.toDisplayMessage(context)
                         cancelStableProgressReset()
@@ -1840,6 +1860,7 @@ internal fun PlayerRuntimeController.initializePlayer(
                         // armed by a short placeholder ENDED or residual post-play state.
                         cancelNextEpisodeAutoPlayOnFatalError()
                         val canSwitchToMpvOnFatal = currentInternalPlayerEngine != InternalPlayerEngine.MVP_PLAYER &&
+                            !lockToExoPlayerForCurrentSession &&
                             (error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
                              error.errorCode == PlaybackException.ERROR_CODE_DECODING_FAILED ||
                              error.errorCode == PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED ||
@@ -2299,6 +2320,8 @@ internal fun PlayerRuntimeController.resetLoadingOverlayForNewStream() {
         progress = null
     )
     hasRenderedFirstFrame = false
+    hasEverRenderedFrameOnCurrentStream = false
+    suppressEngineFailover = false
     endDetectionArmed = false
     mpvEofSeenClear = false
     hasMarkedCurrentEpisodeCompleted = false
@@ -2467,11 +2490,19 @@ private class SubtitleOffsetRenderersFactory(
         eventListener: AudioRendererEventListener,
         out: ArrayList<Renderer>
     ) {
+        // Garantia de áudio audível no Cold-Start para DTS-HD MA, TrueHD e AAC:
+        // Quando preferSoftwareAudioOnly == true, passa EXTENSION_RENDERER_MODE_PREFER para que o FfmpegAudioRenderer
+        // seja instanciado em software antes dos codecs do hardware da TV/Stick, eliminando áudio mudo desde o 1º segundo.
+        val audioExtensionMode = if (preferSoftwareAudioOnly) {
+            EXTENSION_RENDERER_MODE_PREFER
+        } else {
+            extensionRendererMode
+        }
         val playbackAwareSink = audioSink as? PlaybackSpeedAwareAudioSink
         val startIndex = out.size
         super.buildAudioRenderers(
             context,
-            extensionRendererMode,
+            audioExtensionMode,
             mediaCodecSelector,
             enableDecoderFallback,
             audioSink,
