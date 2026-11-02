@@ -484,6 +484,13 @@ private suspend fun PlayerRuntimeController.collectDubStreamPool(
 ): List<Stream> {
     val existing = _uiState.value.sourceAllStreams
     val normTarget = targetLanguage?.let { DubLanguageDetector.normalizeLanguageCode(it) }.orEmpty()
+    val priorityAddons = listOf("bestcine", "brazuca", "mico", "superflix", "redeneovox", "redecanais", "nuviostream", "ondebaixa")
+
+    fun hasPriorityDubbedCandidate(streams: List<Stream>): Boolean = streams.any { s ->
+        val addon = (s.addonName.orEmpty() + " " + s.name.orEmpty()).lowercase(java.util.Locale.ROOT)
+        val isFast = !s.getStreamUrl().isNullOrBlank() || s.isDirectDebrid() || s.debridCacheStatus?.state == StreamDebridCacheState.CACHED
+        isFast && priorityAddons.any { addon.contains(it) }
+    }
 
     fun hasFastHttpOrDebridCandidate(streams: List<Stream>): Boolean = streams.any {
         !DubOrchestrator.isUncachedStream(it) && (
@@ -493,11 +500,12 @@ private suspend fun PlayerRuntimeController.collectDubStreamPool(
         )
     }
 
-    // Se as fontes já existentes na memória tiverem candidatos dublados rápidos (HTTP/Debrid), reaproveita imediatamente
+    // Se as fontes já existentes na memória tiverem candidatos de addon dedicado prioritário, reaproveita imediatamente.
+    // Evita reaproveitar cegamente agregadores genéricos (ex: AIOStreams) com links VOD temporários/mortos sem buscar addons dedicados.
     if (existing.isNotEmpty() && normTarget.isNotBlank()) {
         val existingDub = existing.filter { DubLanguageDetector.streamMatchesTargetLanguage(it, normTarget) }
-        if (hasFastHttpOrDebridCandidate(existingDub)) {
-            Log.d(PlayerRuntimeController.TAG, "Dublagem forçada: reaproveitando ${existing.size} fontes existentes (${existingDub.size} dubladas com HTTP/Debrid)")
+        if (hasPriorityDubbedCandidate(existingDub)) {
+            Log.d(PlayerRuntimeController.TAG, "Dublagem forçada: reaproveitando ${existing.size} fontes existentes (candidato prioritário encontrado)")
             return existing
         }
     }
@@ -528,8 +536,8 @@ private suspend fun PlayerRuntimeController.collectDubStreamPool(
 
     if (normTarget.isNotBlank()) {
         val cachedDub = combinedInitial.filter { DubLanguageDetector.streamMatchesTargetLanguage(it, normTarget) }
-        if (hasFastHttpOrDebridCandidate(cachedDub)) {
-            Log.d(PlayerRuntimeController.TAG, "Dublagem forçada: reaproveitando ${combinedInitial.size} fontes já em cache (${cachedDub.size} dubladas com HTTP/Debrid)")
+        if (hasPriorityDubbedCandidate(cachedDub)) {
+            Log.d(PlayerRuntimeController.TAG, "Dublagem forçada: reaproveitando ${combinedInitial.size} fontes já em cache (candidato prioritário encontrado)")
             return combinedInitial
         }
     }
@@ -537,8 +545,8 @@ private suspend fun PlayerRuntimeController.collectDubStreamPool(
     val pool = combinedInitial.toMutableList()
     val fetchTimeout = if (fromMenu) FORCE_DUB_STREAM_FETCH_TIMEOUT_MENU_MS else FORCE_DUB_STREAM_FETCH_TIMEOUT_STARTUP_MS
     withTimeoutOrNull(fetchTimeout) {
-        val targetHttpCount = if (fromMenu) 2 else 1
-        val targetTotalCount = if (fromMenu) 4 else 3
+        val targetFastCount = if (fromMenu) 3 else 2
+        val targetTotalCount = if (fromMenu) 5 else 3
         try {
             streamRepository.getStreamsFromAllAddons(
                 type = type,
@@ -555,7 +563,6 @@ private suspend fun PlayerRuntimeController.collectDubStreamPool(
                             !DubOrchestrator.isUncachedStream(it) &&
                                 DubLanguageDetector.streamMatchesTargetLanguage(it, normTarget)
                         }
-                        val priorityAddons = listOf("bestcine", "brazuca", "mico", "superflix", "redeneovox", "redecanais", "nuviostream", "ondebaixa")
                         val hasPriorityDubbedStream = currentDub.any { s ->
                             val addon = s.addonName?.lowercase().orEmpty()
                             val name = s.name?.lowercase().orEmpty()
@@ -567,8 +574,9 @@ private suspend fun PlayerRuntimeController.collectDubStreamPool(
                                 it.isDirectDebrid() ||
                                 it.debridCacheStatus?.state == StreamDebridCacheState.CACHED
                         }
-                        // First-Valid-Candidate Race: interrompe o collect IMEDIATAMENTE (sem esperar o takeWhile na próxima emissão!)
-                        if (hasPriorityDubbedStream || fastCount >= targetHttpCount || currentDub.size >= targetTotalCount) {
+                        // First-Valid-Candidate Race: interrompe IMEDIATAMENTE ao encontrar addon prioritário,
+                        // ou quando acumular múltiplos candidatos rápidos para failover seguro.
+                        if (hasPriorityDubbedStream || (fastCount >= targetFastCount && currentDub.size >= targetTotalCount)) {
                             throw CancellationException("Fast dub candidate found")
                         }
                     }
@@ -649,6 +657,7 @@ internal fun PlayerRuntimeController.createDubbedSourceForCurrent(
 ): MediaSource {
     // Convenção padronizada: offsetMs = T_video - T_audio
     currentDubAudioOffsetUs.set(plan.timeline.initialAudioOffsetMs * 1000L)
+    val targetLang = plan.timeline.targetAudioLanguage?.takeIf { it.isNotBlank() } ?: resolveTargetLanguageSynchronous()
     return mediaSourceFactory.createDubbedMediaSource(
         context = context,
         videoUrl = currentStreamUrl,
@@ -665,7 +674,8 @@ internal fun PlayerRuntimeController.createDubbedSourceForCurrent(
         responseHeaders = currentStreamResponseHeaders,
         mimeTypeOverride = currentStreamMimeType,
         mediaMetadata = buildMediaSessionMetadata(),
-        cacheKey = currentStreamCacheKey
+        cacheKey = currentStreamCacheKey,
+        targetLanguage = targetLang
     )
 }
 
@@ -717,7 +727,8 @@ private suspend fun PlayerRuntimeController.applyDubPlanLive(plan: DubPlan) {
 internal fun PlayerRuntimeController.applyDubPlanLiveMpv(plan: DubPlan) {
     val view = mpvView ?: return
     markForceDubApplied(plan)
-    view.addExternalAudioTrack(plan.audio.url, plan.timeline.initialAudioOffsetMs, plan.audio.headers)
+    val targetLang = plan.timeline.targetAudioLanguage?.takeIf { it.isNotBlank() } ?: resolveTargetLanguageSynchronous()
+    view.addExternalAudioTrack(plan.audio.url, plan.timeline.initialAudioOffsetMs, plan.audio.headers, targetLang)
     view.updateExternalAudioOffset(plan.timeline.initialAudioOffsetMs)
     onForceDubVerified(plan)
     showToastOnUiThread(context.getString(R.string.player_loading_dubbed))
@@ -741,7 +752,8 @@ internal fun PlayerRuntimeController.handleMpvFileLoadedForDub() {
         try {
             markForceDubApplied(plan)
             // 1. Injeta a faixa externa e aplica o offset de áudio no Libmpv
-            view.addExternalAudioTrack(plan.audio.url, plan.timeline.initialAudioOffsetMs, plan.audio.headers)
+            val targetLang = plan.timeline.targetAudioLanguage?.takeIf { it.isNotBlank() } ?: resolveTargetLanguageSynchronous()
+            view.addExternalAudioTrack(plan.audio.url, plan.timeline.initialAudioOffsetMs, plan.audio.headers, targetLang)
 
             // 2. Aguarda estabilização para o MPV atualizar a track-list e registrar a faixa externa
             delay(250)
@@ -900,6 +912,9 @@ private fun PlayerRuntimeController.onForceDubVerified(plan: DubPlan) {
     }
     Log.i(PlayerRuntimeController.TAG, "FORCE_DUB: áudio dublado ativo (${plan.audio.stream.name})")
 
+    // Reavalia seleção automática de legendas com o novo áudio dublado (desativa legendas em inglês se configurado)
+    tryAutoSelectPreferredSubtitleFromAvailableTracks()
+
     // Dispara a afinação milimétrica da Orchestra em background sem travar a reprodução
     startBackgroundOrchestraSync(plan)
 }
@@ -1055,8 +1070,10 @@ internal suspend fun PlayerRuntimeController.collectAvailableVideoSubtitleCues()
     var externalCount = 0
 
     // 0. PRIORIDADE ABSOLUTA Nº 0: Legendas embutidas já extraídas pelo MatroskaExtractor (sem espera bloqueante!)
-    if (AcousticProbeHelper.lastExtractedVideoEmbeddedCues.isNotEmpty()) {
-        val cues = AcousticProbeHelper.lastExtractedVideoEmbeddedCues
+    val fastEmbeddedCues = AcousticProbeHelper.lastExtractedVideoEmbeddedCues
+    val fastLegibleCount = fastEmbeddedCues.count { it.text.any { c -> c.isLetterOrDigit() } }
+    if (fastEmbeddedCues.size >= 8 && fastLegibleCount >= 8) {
+        val cues = fastEmbeddedCues
         val langLabel = AcousticProbeHelper.lastExtractedVideoEmbeddedLanguage ?: "und"
         val origin = "$langLabel(embutida-matroska)"
         Log.i(PlayerRuntimeController.TAG, "FORCE_DUB: Prioridade 1 Absoluta: Legenda EMBUTIDA no container extraída via MatroskaExtractor ($origin com ${cues.size} falas)")
@@ -1109,8 +1126,8 @@ internal suspend fun PlayerRuntimeController.collectAvailableVideoSubtitleCues()
                 return origin to finalCues
             }
         }
-        if (AcousticProbeHelper.lastExtractedVideoEmbeddedCues.isNotEmpty()) {
-            val cues = AcousticProbeHelper.lastExtractedVideoEmbeddedCues
+        if (fastEmbeddedCues.size >= 8 && fastLegibleCount >= 8) {
+            val cues = fastEmbeddedCues
             val langLabel = AcousticProbeHelper.lastExtractedVideoEmbeddedLanguage ?: "und"
             val origin = "$langLabel(embutida-matroska)"
             return origin to cues
@@ -1388,11 +1405,20 @@ internal fun PlayerRuntimeController.startBackgroundOrchestraSync(plan: DubPlan)
             if (silenceOffset != null && abs(silenceOffset) < 650L) 0L else silenceOffset
         }
 
-        // Um bumper válido tem magnitude macroscópica (>= 750ms). Se for 0ms (deadzone), é sincronia nativa!
-        val bumperPassed = bumperDeltaMs != null && (bumperDeltaMs == 0L || abs(bumperDeltaMs) in 750L..15_000L)
+        // Um bumper válido tem magnitude macroscópica plausível (<= 4.5s) e só se a primeira fala iniciar colada na vinheta (<= 8s).
+        val bumperPassed = bumperDeltaMs != null && (
+            bumperDeltaMs == 0L ||
+            (abs(bumperDeltaMs) in 750L..4_500L && (firstSubOnsetMs == null || firstSubOnsetMs <= 8_000L))
+        )
         val bumperReason = if (firstSubOnsetMs != null && sustainedDubOnsetMs != null) {
             val raw = firstSubOnsetMs - sustainedDubOnsetMs
-            "T_sub_onset=${firstSubOnsetMs}ms, T_speech_dub=${sustainedDubOnsetMs}ms, Δ=${raw}ms${if (abs(raw) < 650L) " -> Deadzone 0ms" else ""}"
+            if (firstSubOnsetMs > 8_000L) {
+                "Rejeitado: primeira fala tardia (${firstSubOnsetMs}ms > 8s não é fronteira de vinheta)"
+            } else if (abs(raw) > 4_500L) {
+                "Rejeitado: delta implausível (${raw}ms > 4.5s)"
+            } else {
+                "T_sub_onset=${firstSubOnsetMs}ms, T_speech_dub=${sustainedDubOnsetMs}ms, Δ=${raw}ms${if (abs(raw) < 650L) " -> Deadzone 0ms" else ""}"
+            }
         } else if (bumperPassed) {
             "Δ=${bumperDeltaMs}ms"
         } else {
@@ -1410,15 +1436,9 @@ internal fun PlayerRuntimeController.startBackgroundOrchestraSync(plan: DubPlan)
             decisionReason = bumperReason
         )
 
-        // Decisão 1: Quando temos Dialogue Onset Anchor válido (legenda embutida do vídeo + onset vocal PCM da dublagem),
-        // ele ancora diretamente a primeira fala real. Só permitimos Acústica M&E sobrepor se tiver destaque PCM fortíssimo
-        // (PSR >= 4.5 e ZNCC >= 0.32) ou se concordar dentro de +-500ms.
-        val hasStrongPcmAcoustic = acousticMatch != null && acousticMatch.isValid &&
-            (onsetMatch == null || !onsetMatch.isValid ||
-                abs(acousticMatch.offsetMs - onsetMatch.offsetMs) <= 500L ||
-                (acousticMatch.psr >= 4.5f && acousticMatch.maxZncc >= 0.32f))
-
-        if (hasStrongPcmAcoustic && acousticMatch != null) {
+        // Decisão 1: Correlação Acústica M&E (Padrão Ouro de Ondas Físicas).
+        // Se a Acústica M&E atingir consenso e limiar estatístico (ZNCC e PSR), ela tem prioridade máxima.
+        if (acousticMatch != null && acousticMatch.isValid) {
             val nccScore = acousticMatch.maxZncc * 100f
             val winLayer = "Camada 4: Acústica M&E (ZNCC ${String.format(java.util.Locale.US, "%.2f", acousticMatch.maxZncc)} | PSR ${String.format(java.util.Locale.US, "%.1f", acousticMatch.psr)})"
             val logic = "Alinhamento M&E cravou offset=${acousticMatch.offsetMs}ms ${acousticMatch.telemetryDiag}"
@@ -1503,69 +1523,10 @@ internal fun PlayerRuntimeController.startBackgroundOrchestraSync(plan: DubPlan)
         // REMOVIDO: Heurística de Arquétipo de Release (BluRay vs Web/TV +2100ms)
         // Se nenhuma camada analítica atingir o limiar estatístico, o offset base é estritamente mantido.
 
-        // 4. Se todas as tentativas de refinamento falharem:
-        // O candidato atual é considerado Incompatível / Episódio Incorreto.
-        val remaining = plan.remainingCandidates
-        if (remaining.isNotEmpty()) {
-            val nextStream = remaining.first()
-            val nextRemaining = remaining.drop(1)
-            Log.w(PlayerRuntimeController.TAG, "FORCE_DUB: Candidato '${plan.audio.stream.name}' incompatível/episódio incorreto. Testando próximo candidato: '${nextStream.name}' (${nextRemaining.size} restantes)")
-
-            withContext(Dispatchers.Main) {
-                updateForceDubDebugInfo(
-                    plan = plan,
-                    isActive = currentForceDubActive,
-                    isLoading = true,
-                    logicOverride = "Candidato incompatível. Testando: ${nextStream.name.orEmpty()}..."
-                )
-            }
-
-            val currentVideo = _uiState.value.sourceAllStreams.firstOrNull { it.getStreamUrl() == videoUrl } ?: Stream(
-                name = currentFilename ?: _uiState.value.currentStreamName,
-                title = currentFilename,
-                description = currentStreamDescription,
-                url = videoUrl,
-                ytId = null,
-                infoHash = currentInfoHash,
-                fileIdx = currentFileIdx,
-                externalUrl = null,
-                behaviorHints = if (videoHeaders.isNotEmpty()) {
-                    StreamBehaviorHints(
-                        notWebReady = false,
-                        bingeGroup = null,
-                        countryWhitelist = null,
-                        proxyHeaders = ProxyHeaders(
-                            request = videoHeaders,
-                            response = currentStreamResponseHeaders.ifEmpty { null }
-                        )
-                    )
-                } else null,
-                addonName = currentAddonName ?: "Default",
-                addonLogo = currentAddonLogo
-            )
-            var nextTorrentStarted = false
-            val currentDurationMs = playbackTimeline.value.duration.takeIf { it > 0L }
-                ?: _exoPlayer?.duration?.takeIf { it != C.TIME_UNSET && it > 0L }
-            val nextPlan = DubOrchestrator.evaluateCandidateDirect(
-                candidateStream = nextStream,
-                videoStream = currentVideo,
-                videoUrl = videoUrl,
-                videoHeaders = videoHeaders,
-                videoDurationMs = currentDurationMs,
-                targetLanguage = plan.timeline.targetAudioLanguage?.ifBlank { resolveTargetLanguage() } ?: resolveTargetLanguage(),
-                videoStreamTitle = plan.videoStreamTitle,
-                remainingList = nextRemaining,
-                resolveAudio = { c -> resolveDubAudio(c) { nextTorrentStarted = true } }
-            )
-
-            if (nextPlan != null) {
-                withContext(Dispatchers.Main) {
-                    applyDubPlanLive(nextPlan)
-                    startBackgroundOrchestraSync(nextPlan)
-                }
-                return@launch
-            }
-        }
+        // 4. Se o refinamento em segundo plano for inconclusivo:
+        // A fonte dublada atual já foi aprovada e está tocando normalmente no ExoPlayer.
+        // NUNCA descartamos o stream tocando nem congelamos em 'Testando...',
+        // mantendo com máxima estabilidade a Camada 1: Alinhamento Base.
 
         // Se o refinamento acústico for inconclusivo, mas a fonte de áudio dublada estiver saudável e tocando:
         // NUNCA derrube a reprodução nem force fallback para áudio original!
@@ -1838,7 +1799,7 @@ internal fun PlayerRuntimeController.checkAndSelectNativeTargetLanguageTrack(tra
     }
 }
 
-private fun PlayerRuntimeController.resolveTargetLanguageSynchronous(): String {
+internal fun PlayerRuntimeController.resolveTargetLanguageSynchronous(): String {
     return _uiState.value.forceDubDebugInfo.targetLanguage.takeIf { it.isNotBlank() } ?: "pt"
 }
 

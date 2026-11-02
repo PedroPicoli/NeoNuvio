@@ -318,23 +318,29 @@ object AcousticSyncMatcher {
             }
 
         // Regra de Consenso Estrito (Anti-Alucinação):
-        // abs(tau1 - tau2) <= 250ms OU abs(bestLagMs - subBridgeVadLagMs) <= 300ms
+        // 1. Split-Window: abs(tau1 - tau2) <= 250ms
+        // 2. VAD Consensus: abs(bestLagMs - subBridgeVadLagMs) <= 300ms
+        // 3. Half-Global Match: quando uma das metades crava exatamente no pico global (diff <= 150ms) e o PSR global é fortíssimo (>= 4.0 e ZNCC >= 0.25)
         val splitConsensus = if (tau1 != null && tau2 != null) {
             abs(tau1 - tau2) <= 250L
         } else true
 
+        val half1Consensus = tau1 != null && abs(tau1 - bestLagMs) <= 150L && psr >= 4.0f && maxZncc >= 0.25f
+        val half2Consensus = tau2 != null && abs(tau2 - bestLagMs) <= 150L && psr >= 4.0f && maxZncc >= 0.25f
         val vadConsensus = subBridgeVadLagMs != null && abs(bestLagMs - subBridgeVadLagMs) <= 300L
-        val consensusPassed = splitConsensus || vadConsensus
+        val consensusPassed = splitConsensus || vadConsensus || half1Consensus || half2Consensus
 
         val minPsr = 3.5f
         val minZncc = 0.20f
         val isValid = consensusPassed && psr >= minPsr && maxZncc >= minZncc
 
-        val consensusDiag = if (!splitConsensus && !vadConsensus) {
-            " [Split-Window REJEITADO: tau1=${tau1}ms vs tau2=${tau2}ms]"
-        } else if (tau1 != null && tau2 != null) {
-            " [Split-Window OK: diff=${abs(tau1 - tau2)}ms]"
-        } else ""
+        val consensusDiag = when {
+            splitConsensus && tau1 != null && tau2 != null -> " [Split-Window OK: diff=${abs(tau1 - tau2)}ms]"
+            half1Consensus -> " [Half1-Global Match: tau1=${tau1}ms ≈ bestLag=${bestLagMs}ms (PSR ${String.format(java.util.Locale.US, "%.1f", psr)})]"
+            half2Consensus -> " [Half2-Global Match: tau2=${tau2}ms ≈ bestLag=${bestLagMs}ms (PSR ${String.format(java.util.Locale.US, "%.1f", psr)})]"
+            vadConsensus -> " [VAD Consensus OK: diff=${abs(bestLagMs - subBridgeVadLagMs!!)}ms]"
+            else -> " [Split-Window REJEITADO: tau1=${tau1}ms vs tau2=${tau2}ms]"
+        }
 
         val telemetry = "[Vid: $videoDiag | Dub: $dubDiag | ZNCC: ${String.format(java.util.Locale.US, "%.2f", maxZncc)} | PSR: ${String.format(java.util.Locale.US, "%.1f", psr)} | BestLag: ${if (bestLagMs >= 0) "+" else ""}${bestLagMs}ms$consensusDiag]"
 

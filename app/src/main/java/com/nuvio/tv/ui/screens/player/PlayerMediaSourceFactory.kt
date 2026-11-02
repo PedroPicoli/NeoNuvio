@@ -391,6 +391,12 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
         targetLanguage: String? = null
     ): MediaSource {
         // O áudio é criado primeiro: o estado global do cache/redirect deve refletir o vídeo.
+        val audioMetadata = targetLanguage?.takeIf { it.isNotBlank() }?.let { lang ->
+            val langName = com.nuvio.tv.ui.util.languageCodeToName(lang)
+            androidx.media3.common.MediaMetadata.Builder()
+                .setTitle(langName)
+                .build()
+        }
         val rawAudioSource = createMediaSource(
             context = context,
             url = audioUrl,
@@ -401,7 +407,7 @@ internal class PlayerMediaSourceFactory(private val context: Context) {
             responseHeaders = emptyMap(),
             mimeTypeOverride = null,
             audioDelayUsProvider = null,
-            mediaMetadata = null,
+            mediaMetadata = audioMetadata,
             cacheKey = null,
             auxiliary = true
         )

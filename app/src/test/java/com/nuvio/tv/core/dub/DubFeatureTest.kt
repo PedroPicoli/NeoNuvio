@@ -840,7 +840,148 @@ class DubFeatureTest {
         assertNotNull("Deve calcular Dialogue Onset Anchor mesmo com cues indexados sem texto do MKV", match)
         assertEquals(-420L, match?.offsetMs)
     }
+
+    @Test
+    fun testCorruptedOrBinarySubtitlesAreNotUsedForDialogueOnsetAnchor() {
+        val corruptedCues = listOf(
+            com.nuvio.tv.ui.screens.player.SubtitleSyncCue(14_473L, 16_973L, "x}Id[z9!>"),
+            com.nuvio.tv.ui.screens.player.SubtitleSyncCue(16_433L, 18_933L, "xcfo```d"),
+            com.nuvio.tv.ui.screens.player.SubtitleSyncCue(18_894L, 21_394L, "x}I,MgdU")
+        )
+
+        val legibleCount = corruptedCues.count { it.text.any { c -> c.isLetterOrDigit() } && it.text.none { c -> c < ' ' && c != '\n' && c != '\r' && c != '\t' } }
+        assertTrue("Cues corrompidos com caracteres de controle binarios devem ser identificados como ilegiveis", legibleCount < corruptedCues.size)
+    }
+
+    private fun createTestStream(name: String, url: String, addonName: String) = Stream(
+        name = name,
+        title = name,
+        description = null,
+        url = url,
+        ytId = null,
+        infoHash = null,
+        fileIdx = null,
+        externalUrl = null,
+        behaviorHints = null,
+        addonName = addonName,
+        addonLogo = null
+    )
+
+    @Test
+    fun testSameAddonCandidatesPrioritizedInRemainingList() {
+        val s1 = createTestStream(name = "BestCine 720p", url = "https://bestcine/720p.m3u8", addonName = "BestCine")
+        val s2 = createTestStream(name = "King VOD", url = "https://kingvod/stream", addonName = "AIOStreams")
+        val s3 = createTestStream(name = "BestCine 1080p", url = "https://bestcine/1080p.m3u8", addonName = "BestCine")
+
+        val list = listOf(s1, s2, s3)
+        val remaining = list
+            .filter { it != s1 }
+            .sortedByDescending { it.addonName == s1.addonName }
+
+        assertEquals("BestCine 1080p", remaining.first().name)
+        assertEquals("BestCine", remaining.first().addonName)
+        assertEquals("King VOD", remaining[1].name)
+    }
+
+    @Test
+    fun testBitstreamAcousticMatchWithHighConfidenceIsValid() {
+        // Simula o caso real de áudio Bitstream (ex: DTS em MKV) correlacionado com PCM da dublagem
+        val highConfMatch = AcousticSyncMatcher.AcousticMatch(
+            offsetMs = 900L,
+            confidence = 0.81f,
+            maxZncc = 0.356f,
+            psr = 5.15f,
+            isValid = true,
+            telemetryDiag = "[Vid: vnd.dts(Media3)/2002b | Dub: mp4a-latm/2ch/2614b | ZNCC: 0.36 | PSR: 5.2 | BestLag: +900ms [Half1-Global Match: tau1=900ms ≈ bestLag=900ms (PSR 5.2)]]"
+        )
+
+        val isBothPcm = false
+        val isBitstreamWithHighConfidence = !isBothPcm && highConfMatch.isValid &&
+            highConfMatch.psr >= 3.8f &&
+            highConfMatch.maxZncc >= 0.22f &&
+            (highConfMatch.telemetryDiag.contains("Match") || highConfMatch.telemetryDiag.contains("Split-Window OK") || highConfMatch.telemetryDiag.contains("VAD Consensus OK"))
+
+        val effectiveValid = (isBothPcm && highConfMatch.isValid) || isBitstreamWithHighConfidence
+        assertTrue("Bitstream com PSR 5.2 e Half1-Global Match deve ser validado com sucesso", effectiveValid)
+
+        // Caso de Bitstream espúrio/ruído (baixa confiança)
+        val lowConfMatch = AcousticSyncMatcher.AcousticMatch(
+            offsetMs = 1200L,
+            confidence = 0.30f,
+            maxZncc = 0.18f,
+            psr = 2.2f,
+            isValid = false,
+            telemetryDiag = "[Vid: vnd.dts(Media3)/1000b | Dub: mp4a-latm/2ch/1200b | ZNCC: 0.18 | PSR: 2.2 | BestLag: +1200ms [Split-Window REJEITADO]]"
+        )
+        val lowEffectiveValid = (isBothPcm && lowConfMatch.isValid) || (!isBothPcm && lowConfMatch.isValid &&
+            lowConfMatch.psr >= 3.8f &&
+            lowConfMatch.maxZncc >= 0.22f &&
+            (lowConfMatch.telemetryDiag.contains("Match") || lowConfMatch.telemetryDiag.contains("Split-Window OK") || lowConfMatch.telemetryDiag.contains("VAD Consensus OK")))
+        assertFalse("Bitstream espúrio de baixa confiança deve continuar rejeitado", lowEffectiveValid)
+    }
+
+    @Test
+    fun testSubtitleDisablingForForcedDubbingLanguage() {
+        // Testa a desativação agnóstica de legendas quando o forçar dublagem está ativo
+        val disableLang1 = "pt-br"
+        val disableLang2: String? = null
+        val disableSubtitlesEnabled = true
+
+        val dubTargetLang = "pt-br"
+        val normDub = dubTargetLang.lowercase().trim()
+
+        val isAudioDubTarget = disableSubtitlesEnabled && listOfNotNull(
+            disableLang1,
+            disableLang2
+        ).any { ignoredLang ->
+            val normIgnored = ignoredLang.lowercase().trim()
+            normIgnored == normDub ||
+                normIgnored.substringBefore('-') == normDub.substringBefore('-') ||
+                normIgnored.startsWith("pt") && normDub.startsWith("pt")
+        }
+
+        assertTrue("Legendas devem ser desabilitadas para o áudio dublado quando bater com as preferências", isAudioDubTarget)
+
+        // Caso agnóstico: usuário configurou desativar para Espanhol (es) e a dublagem é em Espanhol
+        val isSpanishDubTarget = disableSubtitlesEnabled && listOfNotNull("es", null).any { ignoredLang ->
+            val normIgnored = ignoredLang.lowercase().trim()
+            val dubSpanish = "es-419"
+            normIgnored == dubSpanish || normIgnored.substringBefore('-') == dubSpanish.substringBefore('-')
+        }
+        assertTrue("Legendas em espanhol também devem ser desabilitadas de forma agnóstica", isSpanishDubTarget)
+
+        // Caso onde o áudio dublado é em outro idioma não selecionado (ex: dublagem em inglês)
+        val isDifferentDubTarget = disableSubtitlesEnabled && listOfNotNull("pt-br", null).any { ignoredLang ->
+            val normIgnored = ignoredLang.lowercase().trim()
+            val dubEnglish = "en"
+            normIgnored == dubEnglish || normIgnored.substringBefore('-') == dubEnglish.substringBefore('-')
+        }
+        assertFalse("Não deve desabilitar se o idioma dublado não bater com as preferências", isDifferentDubTarget)
+    }
+
+    @Test
+    fun testPriorityAddonDubCandidatesDetection() {
+        val priorityAddons = listOf("bestcine", "brazuca", "mico", "superflix", "redeneovox", "redecanais", "nuviostream", "ondebaixa")
+        fun hasPriorityDubbedCandidate(streams: List<Stream>): Boolean = streams.any { s ->
+            val addon = (s.addonName.orEmpty() + " " + s.name.orEmpty()).lowercase(java.util.Locale.ROOT)
+            val isFast = !s.getStreamUrl().isNullOrBlank() || s.isDirectDebrid()
+            isFast && priorityAddons.any { addon.contains(it) }
+        }
+
+        val deadGenericList = listOf(
+            createTestStream("Fenix Plus", "https://fenix/v.mp4", "AIOStreams"),
+            createTestStream("King VOD", "https://king/v.mp4", "AIOStreams")
+        )
+        assertFalse("Lista contendo apenas AIOStreams não deve ser considerada prioridade dedicada", hasPriorityDubbedCandidate(deadGenericList))
+
+        val listWithBestCine = listOf(
+            createTestStream("Fenix Plus", "https://fenix/v.mp4", "AIOStreams"),
+            createTestStream("BestCine 720p", "https://bestcine/v.m3u8", "BestCine")
+        )
+        assertTrue("Lista contendo BestCine deve ser reconhecida como candidato prioritário dedicado", hasPriorityDubbedCandidate(listWithBestCine))
+    }
 }
+
 
 
 

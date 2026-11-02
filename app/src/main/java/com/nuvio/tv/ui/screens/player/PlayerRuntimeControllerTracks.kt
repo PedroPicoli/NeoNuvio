@@ -43,6 +43,12 @@ internal fun PlayerRuntimeController.updateAvailableTracks(tracks: Tracks) {
     var selectedVideoFormat: Format? = null
     var bestVideoTrackSupport = C.FORMAT_UNSUPPORTED_TYPE
     var selectedVideoTrackSupport = C.FORMAT_UNSUPPORTED_TYPE
+    val totalAudioGroups = tracks.groups.count { it.type == C.TRACK_TYPE_AUDIO }
+    var currentAudioGroupIdx = 0
+    val isDubActiveOrPlanned = currentForceDubActive || currentForceDubPlan != null
+    val dubTargetLang = if (isDubActiveOrPlanned) {
+        (currentForceDubPlan?.timeline?.targetAudioLanguage ?: resolveTargetLanguageSynchronous()).takeIf { it.isNotBlank() }
+    } else null
 
     tracks.groups.forEachIndexed { groupIndex, trackGroup ->
         val trackType = trackGroup.type
@@ -104,6 +110,10 @@ internal fun PlayerRuntimeController.updateAvailableTracks(tracks: Tracks) {
                 }
             }
             C.TRACK_TYPE_AUDIO -> {
+                val isDubGroup = isDubActiveOrPlanned && (
+                    (totalAudioGroups > 1 && currentAudioGroupIdx == totalAudioGroups - 1) ||
+                    (totalAudioGroups == 1 && currentForceDubActive)
+                )
                 for (i in 0 until trackGroup.length) {
                     val format = trackGroup.getTrackFormat(i)
                     val isSelected = trackGroup.isTrackSelected(i)
@@ -113,11 +123,18 @@ internal fun PlayerRuntimeController.updateAvailableTracks(tracks: Tracks) {
                         supportedAudioIndices.add(trackIdx)
                     }
 
+                    val isTrackDubbed = isDubGroup || (isSelected && isDubActiveOrPlanned)
+                    val effectiveLang = if (isTrackDubbed && dubTargetLang != null && (format.language.isNullOrBlank() || format.language == "und")) {
+                        dubTargetLang
+                    } else {
+                        format.language
+                    }
+
                     val codecName = CustomDefaultTrackNameProvider.formatNameFromMime(format.sampleMimeType)
                     val channelLayout = CustomDefaultTrackNameProvider.getChannelLayoutName(
                         format.channelCount
                     )
-                    val langDisplay = format.language?.takeIf { it != "und" }?.let {
+                    val langDisplay = effectiveLang?.takeIf { it != "und" }?.let {
                         com.nuvio.tv.ui.util.languageCodeToName(it)
                     }
                     val baseName = format.label ?: langDisplay ?: context.getString(com.nuvio.tv.R.string.player_track_audio_fallback, audioTracks.size + 1)
@@ -128,7 +145,7 @@ internal fun PlayerRuntimeController.updateAvailableTracks(tracks: Tracks) {
                         TrackInfo(
                             index = audioTracks.size,
                             name = displayName,
-                            language = format.language,
+                            language = effectiveLang,
                             trackId = format.id,
                             codec = codecName,
                             channelCount = format.channelCount.takeIf { it > 0 },
@@ -137,6 +154,7 @@ internal fun PlayerRuntimeController.updateAvailableTracks(tracks: Tracks) {
                         )
                     )
                 }
+                currentAudioGroupIdx++
             }
             C.TRACK_TYPE_TEXT -> {
                 for (i in 0 until trackGroup.length) {
@@ -1889,39 +1907,62 @@ internal fun PlayerRuntimeController.tryAutoSelectPreferredSubtitleFromAvailable
     val preferredTargets = subtitleLanguageTargets()
     val primaryTarget = preferredTargets.firstOrNull()
 
-    val isAudioPt = selectedAudioTrack != null && isAudioPortuguese(selectedAudioTrack)
+    val isDubActive = currentForceDubActive || currentForceDubPlan != null
+    val dubLang = if (isDubActive) {
+        (currentForceDubPlan?.timeline?.targetAudioLanguage ?: resolveTargetLanguageSynchronous()).lowercase().trim()
+    } else null
+    val normDub = dubLang?.let { PlayerSubtitleUtils.normalizeLanguageCode(it) }
+
+    val isAudioDubTarget = isDubActive && normDub != null && listOfNotNull(
+        subtitleStyle.disableForAudioLanguage1?.takeIf { it.isNotBlank() && it != "none" },
+        subtitleStyle.disableForAudioLanguage2?.takeIf { it.isNotBlank() && it != "none" }
+    ).any { ignoredLang ->
+        val normIgnored = PlayerSubtitleUtils.normalizeLanguageCode(ignoredLang)
+        normIgnored == normDub ||
+            normIgnored.substringBefore('-') == normDub.substringBefore('-') ||
+            PlayerSubtitleUtils.matchesLanguageCode(normIgnored, normDub) ||
+            (isPortugueseTarget(normIgnored) && isPortugueseTarget(normDub))
+    }
+
+    val isAudioPt = (selectedAudioTrack != null && isAudioPortuguese(selectedAudioTrack)) ||
+        (isDubActive && normDub != null && isPortugueseTarget(normDub))
     val seriesAudioLang = seriesPreferredAudioLanguageSetting?.takeIf { it.isNotBlank() }
     val isAudioSeriesPreferred = seriesAudioLang != null && selectedAudioTrack != null &&
         audioMatchesSubtitleTargetForForced(selectedAudioTrack, seriesAudioLang)
 
-    val shouldDisableForCurrentAudio = subtitleStyle.disableForAudioLanguages &&
-        selectedAudioTrack != null && (
-            (isAudioPt && listOfNotNull(
-                subtitleStyle.disableForAudioLanguage1,
-                subtitleStyle.disableForAudioLanguage2
-            ).any { isPortugueseTarget(it) }) ||
-            listOfNotNull(
-                subtitleStyle.disableForAudioLanguage1?.takeIf { it.isNotBlank() && it != "none" },
-                subtitleStyle.disableForAudioLanguage2?.takeIf { it.isNotBlank() && it != "none" }
-            ).any { ignoredLang ->
-                audioMatchesSubtitleTargetForForced(selectedAudioTrack, ignoredLang)
-            } ||
-            (isAudioSeriesPreferred && listOfNotNull(
-                subtitleStyle.disableForAudioLanguage1?.takeIf { it.isNotBlank() && it != "none" },
-                subtitleStyle.disableForAudioLanguage2?.takeIf { it.isNotBlank() && it != "none" }
-            ).any { ignoredLang ->
-                audioMatchesSubtitleTargetForForced(selectedAudioTrack, ignoredLang) ||
-                    PlayerSubtitleUtils.matchesLanguageCode(ignoredLang, seriesAudioLang)
-            })
+    val shouldDisableForCurrentAudio = subtitleStyle.disableForAudioLanguages && (
+        isAudioDubTarget || (
+            selectedAudioTrack != null && (
+                (isAudioPt && listOfNotNull(
+                    subtitleStyle.disableForAudioLanguage1,
+                    subtitleStyle.disableForAudioLanguage2
+                ).any { isPortugueseTarget(it) }) ||
+                listOfNotNull(
+                    subtitleStyle.disableForAudioLanguage1?.takeIf { it.isNotBlank() && it != "none" },
+                    subtitleStyle.disableForAudioLanguage2?.takeIf { it.isNotBlank() && it != "none" }
+                ).any { ignoredLang ->
+                    audioMatchesSubtitleTargetForForced(selectedAudioTrack, ignoredLang)
+                } ||
+                (isAudioSeriesPreferred && listOfNotNull(
+                    subtitleStyle.disableForAudioLanguage1?.takeIf { it.isNotBlank() && it != "none" },
+                    subtitleStyle.disableForAudioLanguage2?.takeIf { it.isNotBlank() && it != "none" }
+                ).any { ignoredLang ->
+                    audioMatchesSubtitleTargetForForced(selectedAudioTrack, ignoredLang) ||
+                        PlayerSubtitleUtils.matchesLanguageCode(ignoredLang, seriesAudioLang)
+                })
+            )
         )
+    )
 
-    if (shouldDisableForCurrentAudio && selectedAudioTrack != null) {
+    if (shouldDisableForCurrentAudio && (selectedAudioTrack != null || isAudioDubTarget)) {
         val forcedTargetsForAudio = if (isAudioPt) {
             listOf("pt-br", "pt")
+        } else if (isAudioDubTarget && normDub != null) {
+            listOfNotNull(normDub, normDub.substringBefore('-'), primaryTarget).distinct()
         } else {
             listOfNotNull(
-                selectedAudioLanguageTarget(selectedAudioTrack),
-                selectedAudioTrack.language,
+                selectedAudioTrack?.let { selectedAudioLanguageTarget(it) },
+                selectedAudioTrack?.language,
                 primaryTarget
             ).distinct()
         }
@@ -1985,7 +2026,7 @@ internal fun PlayerRuntimeController.tryAutoSelectPreferredSubtitleFromAvailable
         autoSubtitleSelected = true
         Log.d(
             PlayerRuntimeController.TAG,
-            "AUTO_SUB stop: disabled for audio language (${selectedAudioTrack.language}/${selectedAudioTrack.name}) and no forced subtitle found"
+            "AUTO_SUB stop: disabled for audio language (${selectedAudioTrack?.language ?: normDub}/${selectedAudioTrack?.name ?: "Dublado"}) and no forced subtitle found"
         )
         if (state.selectedSubtitleTrackIndex >= 0 || state.selectedAddonSubtitle != null) {
             disableSubtitles()

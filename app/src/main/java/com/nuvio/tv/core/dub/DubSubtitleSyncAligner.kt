@@ -326,13 +326,16 @@ object DubSubtitleSyncAligner {
             dubSpeechEnvelope = dubSpeechEnvelope,
             leadInCompensationMs = leadInCompensationMs
         ) ?: return null
-        val telemetry = "Dialogue Onset Anchor [Sub: $subOrigin | Dub: $dubMime | T_vid=${result.tSubOnsetMs}ms | T_aud=${result.tSpeechDubMs}ms | Offset: ${if (result.offsetMs >= 0) "+" else ""}${result.offsetMs}ms]"
+        val isValid = result.psr >= 1.5f && result.topLags.isNotEmpty() && kotlin.math.abs(result.offsetMs) <= 6_000L
+        val conf = if (isValid) result.confidence else 0.35f
+        val diagSuffix = if (!isValid) " (REJEITADO: PSR ${String.format(java.util.Locale.US, "%.1f", result.psr)} < 1.5 ou offset > 6s)" else ""
+        val telemetry = "Dialogue Onset Anchor [Sub: $subOrigin | Dub: $dubMime | T_vid=${result.tSubOnsetMs}ms | T_aud=${result.tSpeechDubMs}ms | Offset: ${if (result.offsetMs >= 0) "+" else ""}${result.offsetMs}ms]$diagSuffix"
         return AcousticSyncMatcher.AcousticMatch(
             offsetMs = result.offsetMs,
-            confidence = result.confidence,
+            confidence = conf,
             maxZncc = result.zncc,
             psr = result.psr,
-            isValid = true,
+            isValid = isValid,
             tVideoMs = result.tSubOnsetMs,
             tAudioMs = result.tSpeechDubMs,
             telemetryDiag = telemetry

@@ -28,8 +28,14 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URI
+import java.net.URL
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.zip.Inflater
 import kotlin.math.abs
 import kotlin.math.log10
 import kotlin.math.sqrt
@@ -394,8 +400,18 @@ object AcousticProbeHelper {
             }
 
             if (match != null) {
-                val effectiveValid = match.isValid && isBothPcm
-                Log.i(TAG, "Resultado Acústico: offset=${match.offsetMs}ms zncc=${match.maxZncc} psr=${match.psr} valid=$effectiveValid (bothPcm=$isBothPcm)")
+                // Validação de Correlação Acústica:
+                // 1. PCM + PCM: Aceita se match.isValid for true (PSR >= 3.5, ZNCC >= 0.20 e Consenso).
+                // 2. Bitstream + PCM: Quando um dos lados for Bitstream (ex: DTS em MKV lido via pacotes/Media3),
+                //    aceita se atingir alta proeminência estatística (PSR >= 3.8, ZNCC >= 0.22) e consenso temporal
+                //    (Half-Global Match ou Split-Window OK ou VAD Consensus OK).
+                val isBitstreamWithHighConfidence = !isBothPcm && match.isValid &&
+                    match.psr >= 3.8f &&
+                    match.maxZncc >= 0.22f &&
+                    (match.telemetryDiag.contains("Match") || match.telemetryDiag.contains("Split-Window OK") || match.telemetryDiag.contains("VAD Consensus OK"))
+
+                val effectiveValid = (isBothPcm && match.isValid) || isBitstreamWithHighConfidence
+                Log.i(TAG, "Resultado Acústico: offset=${match.offsetMs}ms zncc=${match.maxZncc} psr=${match.psr} valid=$effectiveValid (bothPcm=$isBothPcm, bitstreamHighConf=$isBitstreamWithHighConfidence)")
                 match.copy(
                     isValid = effectiveValid,
                     confidence = if (effectiveValid) match.confidence else minOf(match.confidence, 0.50f),
@@ -471,6 +487,137 @@ object AcousticProbeHelper {
         }
     }
 
+    private fun isHlsUrl(url: String): Boolean {
+        val clean = url.substringBefore('?').lowercase()
+        return clean.endsWith(".m3u8") || clean.endsWith(".m3u") || url.contains(".m3u8?", ignoreCase = true)
+    }
+
+    private fun resolveHlsSegmentUrls(
+        m3u8Url: String,
+        headers: Map<String, String>,
+        maxSegments: Int = 5,
+        isActiveProvider: () -> Boolean = { true }
+    ): List<String> {
+        fun fetch(targetUrl: String): String? {
+            return try {
+                val conn = URL(targetUrl).openConnection() as HttpURLConnection
+                conn.connectTimeout = 3000
+                conn.readTimeout = 3000
+                conn.instanceFollowRedirects = true
+                headers.forEach { (k, v) ->
+                    if (!k.equals("Range", ignoreCase = true) && k.isNotBlank() && v.isNotBlank()) {
+                        conn.setRequestProperty(k, v)
+                    }
+                }
+                if (conn.getRequestProperty("User-Agent").isNullOrBlank()) {
+                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 13; Android TV)")
+                }
+                conn.connect()
+                if (conn.responseCode in 200..299) {
+                    conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+                } else null
+            } catch (_: Exception) {
+                null
+            }
+        }
+
+        if (!isActiveProvider()) return emptyList()
+        val content = fetch(m3u8Url) ?: return emptyList()
+        val baseUri = try { URI(m3u8Url) } catch (_: Exception) { return emptyList() }
+        val lines = content.lines().map { it.trim() }.filter { it.isNotBlank() }
+
+        val isMaster = lines.any { it.startsWith("#EXT-X-STREAM-INF") }
+        val mediaPlaylistUrl = if (isMaster) {
+            var variantUrl: String? = null
+            for (i in lines.indices) {
+                if (lines[i].startsWith("#EXT-X-STREAM-INF")) {
+                    for (j in (i + 1) until lines.size) {
+                        val line = lines[j]
+                        if (!line.startsWith("#")) {
+                            variantUrl = try { baseUri.resolve(line).toString() } catch (_: Exception) { line }
+                            break
+                        }
+                    }
+                    if (variantUrl != null) break
+                }
+            }
+            variantUrl ?: return emptyList()
+        } else {
+            m3u8Url
+        }
+
+        if (!isActiveProvider()) return emptyList()
+        val mediaContent = if (isMaster) {
+            fetch(mediaPlaylistUrl) ?: return emptyList()
+        } else {
+            content
+        }
+
+        val mediaBaseUri = try { URI(mediaPlaylistUrl) } catch (_: Exception) { baseUri }
+        val segmentUrls = mutableListOf<String>()
+        for (line in mediaContent.lines().map { it.trim() }.filter { it.isNotBlank() }) {
+            if (!line.startsWith("#")) {
+                val resolved = try { mediaBaseUri.resolve(line).toString() } catch (_: Exception) { line }
+                segmentUrls.add(resolved)
+                if (segmentUrls.size >= maxSegments) break
+            }
+        }
+        return segmentUrls
+    }
+
+    private fun downloadHlsSegmentsToTempFile(
+        segmentUrls: List<String>,
+        headers: Map<String, String>,
+        maxTotalBytes: Long = 6L * 1024L * 1024L,
+        isActiveProvider: () -> Boolean = { true }
+    ): File? {
+        if (segmentUrls.isEmpty() || !isActiveProvider()) return null
+        return try {
+            val tempFile = File.createTempFile("hls_dub_probe_", ".ts")
+            tempFile.deleteOnExit()
+            FileOutputStream(tempFile).use { out ->
+                var totalWritten = 0L
+                val buffer = ByteArray(32768)
+                for (segUrl in segmentUrls) {
+                    if (!isActiveProvider() || totalWritten >= maxTotalBytes) break
+                    try {
+                        val conn = URL(segUrl).openConnection() as HttpURLConnection
+                        conn.connectTimeout = 3000
+                        conn.readTimeout = 3000
+                        conn.instanceFollowRedirects = true
+                        headers.forEach { (k, v) ->
+                            if (!k.equals("Range", ignoreCase = true) && k.isNotBlank() && v.isNotBlank()) {
+                                conn.setRequestProperty(k, v)
+                            }
+                        }
+                        if (conn.getRequestProperty("User-Agent").isNullOrBlank()) {
+                            conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 13; Android TV)")
+                        }
+                        conn.connect()
+                        if (conn.responseCode in 200..299) {
+                            conn.inputStream.use { input ->
+                                while (isActiveProvider() && totalWritten < maxTotalBytes) {
+                                    val read = input.read(buffer)
+                                    if (read <= 0) break
+                                    out.write(buffer, 0, read)
+                                    totalWritten += read
+                                }
+                            }
+                        }
+                    } catch (_: Exception) {
+                        // Continua com outros segmentos já baixados
+                    }
+                }
+            }
+            if (tempFile.length() > 64 * 1024) tempFile else {
+                tempFile.delete()
+                null
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     /**
      * Extrai envelope com suporte Multi-Track MediaCodec (Camada A)
      * e fallback transparente para Bitstream Frame Energy Parser (Camada B).
@@ -486,6 +633,7 @@ object AcousticProbeHelper {
         val extractor = MediaExtractor()
         activeMediaExtractor = extractor
         var matroskaTried = false
+        var tempHlsFile: File? = null
         try {
             val effectiveHeaders = LinkedHashMap<String, String>()
             headers.forEach { (k, v) ->
@@ -497,6 +645,24 @@ object AcousticProbeHelper {
                 effectiveHeaders["User-Agent"] = "Mozilla/5.0 (Linux; Android 13; Android TV)"
             }
             val startTime = android.os.SystemClock.elapsedRealtime()
+
+            // Suporte universal a streams HLS (.m3u8): baixa os primeiros segmentos para um TS temporário local
+            // evitando que o MediaExtractor nativo falhe com "Failed to instantiate extractor".
+            val isHls = isHlsUrl(url)
+            val effectiveUrl = if (isHls) {
+                Log.i(TAG, "Detectada URL HLS ($url). Resolvendo segmentos iniciais para extração acústica segura...")
+                val segs = resolveHlsSegmentUrls(url, effectiveHeaders, maxSegments = 5, isActiveProvider = isActiveProvider)
+                tempHlsFile = downloadHlsSegmentsToTempFile(segs, effectiveHeaders, isActiveProvider = isActiveProvider)
+                if (tempHlsFile != null) {
+                    Log.i(TAG, "HLS probe: baixados ${tempHlsFile.length()} bytes em arquivo temporário TS local")
+                    tempHlsFile.absolutePath
+                } else {
+                    url
+                }
+            } else {
+                url
+            }
+
             // Em streams de vídeo (especialmente 4K Remux/MKV), evitamos o MediaExtractor nativo
             // do Stagefright como primeira opção pois setDataSource(url) não tem timeout em JNI
             // e pode ler dezenas de MBs sem controle de janela. Usamos primeiro o MatroskaExtractor
@@ -522,7 +688,12 @@ object AcousticProbeHelper {
                 }
                 if (!isActiveProvider()) return ProbeResult(null, "Cancelado")
             }
-            extractor.setDataSource(url, effectiveHeaders)
+
+            if (tempHlsFile != null) {
+                extractor.setDataSource(effectiveUrl)
+            } else {
+                extractor.setDataSource(effectiveUrl, effectiveHeaders)
+            }
             if (!isActiveProvider()) return ProbeResult(null, "Cancelado")
 
             if (isVideo) {
@@ -672,6 +843,7 @@ object AcousticProbeHelper {
         } finally {
             if (activeMediaExtractor == extractor) activeMediaExtractor = null
             runCatching { extractor.release() }
+            tempHlsFile?.let { runCatching { it.delete() } }
         }
     }
 
@@ -1140,17 +1312,26 @@ object AcousticProbeHelper {
             if (isVideo) {
                 val textTracks = tracks.values.filter { it.trackType == C.TRACK_TYPE_TEXT && it.textCues.isNotEmpty() }
                 if (textTracks.isNotEmpty()) {
-                    val chosenTextTrack = textTracks.firstOrNull {
+                    val candidateTracks = textTracks.filter { trk ->
+                        val validCount = trk.textCues.count { cue -> cue.text.any { it.isLetterOrDigit() } }
+                        validCount >= 8
+                    }
+                    val chosenTextTrack = candidateTracks.firstOrNull {
                         val l = it.format?.language?.lowercase().orEmpty()
                         l.startsWith("pt") || l.startsWith("por")
-                    } ?: textTracks.firstOrNull {
+                    } ?: candidateTracks.firstOrNull {
                         val l = it.format?.language?.lowercase().orEmpty()
                         l.startsWith("en") || l.startsWith("eng")
-                    } ?: textTracks.maxByOrNull { it.textCues.size } ?: textTracks.first()
+                    } ?: candidateTracks.maxByOrNull { it.textCues.size }
 
-                    lastExtractedVideoEmbeddedCues = chosenTextTrack.textCues.sortedBy { it.startTimeMs }
-                    lastExtractedVideoEmbeddedLanguage = chosenTextTrack.format?.language ?: "und"
-                    Log.i(TAG, "Media3 MatroskaExtractor extraiu simultaneamente ${lastExtractedVideoEmbeddedCues.size} falas de legenda embutida (${lastExtractedVideoEmbeddedLanguage}) no mesmo passe!")
+                    if (chosenTextTrack != null) {
+                        lastExtractedVideoEmbeddedCues = chosenTextTrack.textCues.sortedBy { it.startTimeMs }
+                        lastExtractedVideoEmbeddedLanguage = chosenTextTrack.format?.language ?: "und"
+                        Log.i(TAG, "Media3 MatroskaExtractor extraiu simultaneamente ${lastExtractedVideoEmbeddedCues.size} falas de legenda embutida (${lastExtractedVideoEmbeddedLanguage}) no mesmo passe!")
+                    } else {
+                        lastExtractedVideoEmbeddedCues = emptyList()
+                        lastExtractedVideoEmbeddedLanguage = null
+                    }
                 }
             }
 
@@ -1432,12 +1613,35 @@ object AcousticProbeHelper {
 
     private fun parseMatroskaSubtitlePayload(timeUs: Long, rawBytes: ByteArray, mimeType: String?): SubtitleSyncCue? {
         if (rawBytes.isEmpty()) return null
+        val mime = mimeType?.lowercase().orEmpty()
+        // Rejeita trilhas gráficas/bitmaps (PGS, VobSub, DVB)
+        if (mime.contains("pgs") || mime.contains("vobsub") || mime.contains("dvb") || mime.contains("bitmap") || mime.contains("dvd")) {
+            return null
+        }
+
+        var bytesToDecode = rawBytes
+        // Descompressão ZLIB para trilhas compactadas pelo mkvtoolnix (cabeçalho 0x78)
+        if (rawBytes.size >= 2 && rawBytes[0] == 0x78.toByte() && ((rawBytes[0].toInt() and 0xFF) * 256 + (rawBytes[1].toInt() and 0xFF)) % 31 == 0) {
+            try {
+                val inflater = Inflater()
+                inflater.setInput(rawBytes)
+                val decompressedBuf = ByteArray(maxOf(8192, rawBytes.size * 6))
+                val count = inflater.inflate(decompressedBuf)
+                inflater.end()
+                if (count > 0) {
+                    bytesToDecode = decompressedBuf.copyOf(count)
+                }
+            } catch (_: Exception) {
+                // Mantém rawBytes original em caso de falha de descompressão
+            }
+        }
+
         val text = try {
-            String(rawBytes, Charsets.UTF_8).trim()
+            String(bytesToDecode, Charsets.UTF_8).trim()
         } catch (_: Exception) { return null }
         if (text.isBlank()) return null
 
-        val cleanText = if (mimeType?.contains("ssa", ignoreCase = true) == true) {
+        val cleanText = if (mime.contains("ssa")) {
             val parts = text.split(",", limit = 9)
             val dialogueText = if (parts.size >= 9) parts.last() else text
             dialogueText.replace(Regex("\\{[^}]*\\}"), "").replace("\\N", " ").trim()
@@ -1445,6 +1649,14 @@ object AcousticProbeHelper {
             text.replace(Regex("<[^>]*>"), "").trim()
         }
         if (cleanText.isBlank()) return null
+
+        // Validação estrita de legibilidade humana (rejeita ruídos e binários desestruturados)
+        val controlChars = cleanText.count { it < ' ' && it != '\n' && it != '\r' && it != '\t' }
+        val invalidChars = cleanText.count { it == '\uFFFD' }
+        if (controlChars > 0 || invalidChars > 0 || !cleanText.any { it.isLetterOrDigit() }) {
+            return null
+        }
+
         val startMs = timeUs / 1000L
         return SubtitleSyncCue(
             startTimeMs = startMs,

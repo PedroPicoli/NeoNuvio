@@ -406,13 +406,18 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
     /**
      * Adiciona uma faixa de áudio externa e a seleciona imediatamente com o offset especificado.
      */
+    @Volatile
+    private var lastExternalAudioTargetLanguage: String? = null
+
     fun addExternalAudioTrack(
         audioUrl: String,
         offsetMs: Long,
-        headers: Map<String, String> = emptyMap()
+        headers: Map<String, String> = emptyMap(),
+        targetLanguage: String? = null
     ) {
         ensureInitialized()
         externalAudioOffsetMs = offsetMs
+        lastExternalAudioTargetLanguage = targetLanguage
         runCatching {
             removeAllExternalAudioTracksInternal()
             if (headers.isNotEmpty()) {
@@ -423,7 +428,8 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
             runCatching {
                 mpv.setPropertyString("initial-audio-sync", "yes")
             }
-            mpv.command("audio-add", audioUrl, "select", "Dublado")
+            val trackTitle = targetLanguage?.let { com.nuvio.tv.ui.util.languageCodeToName(it) }?.takeIf { it.isNotBlank() } ?: "Dublado"
+            mpv.command("audio-add", audioUrl, "select", trackTitle)
             // Ignora faixas de vídeo do arquivo secundário e mantém vid=1 fixo no primário
             runCatching { mpv.setPropertyString("vid", "1") }
 
@@ -884,11 +890,15 @@ class NuvioMpvSurfaceView @JvmOverloads constructor(
             val external = mpv.getPropertyBoolean("track-list/$i/external") == true
 
             tracks += if (type == "audio") {
+                val effectiveLanguage = if (external && language.isNullOrBlank()) lastExternalAudioTargetLanguage else language
+                val effectiveTitle = if (external && (title.isNullOrBlank() || title == "Dublado")) {
+                    effectiveLanguage?.let { com.nuvio.tv.ui.util.languageCodeToName(it) }?.takeIf { it.isNotBlank() } ?: title
+                } else title
                 MpvTrack(
                     id = id,
                     type = type,
-                    name = title ?: language ?: context.getString(com.nuvio.tv.R.string.player_track_audio_fallback, id),
-                    language = language,
+                    name = effectiveTitle ?: effectiveLanguage ?: context.getString(com.nuvio.tv.R.string.player_track_audio_fallback, id),
+                    language = effectiveLanguage,
                     codec = codec,
                     channelCount = mpv.getPropertyInt("track-list/$i/demux-channel-count")
                         ?: mpv.getPropertyInt("track-list/$i/audio-channels")

@@ -75,9 +75,9 @@ object DubOrchestrator {
 
     private val preFlightHttpClient = OkHttpClient.Builder()
         .socketFactory(NoDelaySocketFactory)
-        .connectTimeout(4000, TimeUnit.MILLISECONDS)
-        .readTimeout(4500, TimeUnit.MILLISECONDS)
-        .callTimeout(5500, TimeUnit.MILLISECONDS)
+        .connectTimeout(2500, TimeUnit.MILLISECONDS)
+        .readTimeout(2500, TimeUnit.MILLISECONDS)
+        .callTimeout(3000, TimeUnit.MILLISECONDS)
         .followRedirects(true)
         .followSslRedirects(true)
         .build()
@@ -214,7 +214,7 @@ object DubOrchestrator {
                     val warnings = buildList {
                         if (cachedEval.is4k) add(ForceDubWarningType.WARNING_4K_AUDIO)
                     }
-                    val remaining = ranked.map { it.stream }.filter { it != cachedEval.resolved.stream }
+                    val remaining = ranked.map { it.stream }.filter { it != cachedEval.resolved.stream }.sortedByDescending { it.addonName == cachedEval.resolved.stream.addonName }
                     return@coroutineScope DubOutcome.Ready(
                         DubPlan(
                             audio = cachedEval.resolved,
@@ -282,7 +282,7 @@ object DubOrchestrator {
                 val warnings = buildList {
                     if (best.is4k) add(ForceDubWarningType.WARNING_4K_AUDIO)
                 }
-                val remaining = ranked.map { it.stream }.filter { it != best.resolved.stream }
+                val remaining = ranked.map { it.stream }.filter { it != best.resolved.stream }.sortedByDescending { it.addonName == best.resolved.stream.addonName }
                 DubOutcome.Ready(
                     DubPlan(
                         audio = best.resolved,
@@ -527,8 +527,15 @@ object DubOrchestrator {
             return it
         }
 
-        // 2) Fontes HTTP diretas com Fast-Start (tanto no startup quanto no menu de áudio)
-        val httpCandidates = ranked.filter { it.tier == Tier.HTTP }.take(MAX_HTTP_PROBES)
+        // 2) Fontes HTTP diretas com Fast-Start (priorizando addons dedicados rápidos primeiro)
+        val httpCandidates = ranked.filter { it.tier == Tier.HTTP }
+            .sortedWith(
+                compareBy<RankedCandidate> { if (isDedicatedDubAddon(it.stream)) 0 else 1 }
+                    .thenBy { if (isDualAudioStream(it.stream)) 1 else 0 }
+                    .thenBy { if (it.is4k) 1 else 0 }
+                    .thenBy { streamBandwidthRank(it.stream) }
+            )
+            .take(MAX_HTTP_PROBES)
         val evaluatedHttp = mutableListOf<Evaluated>()
         for (candidate in httpCandidates) {
             val url = candidate.stream.getStreamUrl() ?: continue
@@ -539,7 +546,7 @@ object DubOrchestrator {
                 headers = resolved.headers,
                 streamName = candidate.stream.name.orEmpty(),
                 addonName = candidate.stream.addonName.orEmpty(),
-                timeoutMs = 5000L
+                timeoutMs = 2500L
             )
             if (preflightOk) {
                 val decision = DubSyncEstimator.estimate(
@@ -590,7 +597,7 @@ object DubOrchestrator {
                 headers = resolved.headers,
                 streamName = candidate.stream.name.orEmpty(),
                 addonName = candidate.stream.addonName.orEmpty(),
-                timeoutMs = 5000L
+                timeoutMs = 2500L
             )
             if (preflightOk) {
                 val decision = DubSyncEstimator.estimate(
@@ -644,7 +651,7 @@ object DubOrchestrator {
         headers: Map<String, String>,
         streamName: String = "",
         addonName: String = "",
-        timeoutMs: Long = 5000L
+        timeoutMs: Long = 2500L
     ): Boolean = withContext(Dispatchers.IO) {
         if (!url.startsWith("http://", ignoreCase = true) && !url.startsWith("https://", ignoreCase = true)) {
             return@withContext true
