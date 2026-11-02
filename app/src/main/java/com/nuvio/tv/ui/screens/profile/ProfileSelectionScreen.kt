@@ -21,6 +21,12 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -33,6 +39,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -1437,11 +1445,9 @@ private fun CreateProfileOverlay(
                     false
                 }
             }
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onDismiss
-            ),
+            .pointerInput(Unit) {
+                detectTapGestures { onDismiss() }
+            },
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -1451,11 +1457,7 @@ private fun CreateProfileOverlay(
                 .clip(RoundedCornerShape(20.dp))
                 .background(NuvioTheme.colors.BackgroundElevated)
                 .border(NuvioTheme.spacing.hairline, NuvioTheme.colors.Border, RoundedCornerShape(20.dp))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = {} // prevent dismiss when clicking the panel
-                )
+                .pointerInput(Unit) { detectTapGestures { } }
                 .padding(NuvioTheme.spacing.xxl),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -1785,11 +1787,9 @@ private fun EditProfileOverlay(
                     false
                 }
             }
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onDismiss
-            ),
+            .pointerInput(Unit) {
+                detectTapGestures { onDismiss() }
+            },
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -1799,11 +1799,7 @@ private fun EditProfileOverlay(
                 .clip(RoundedCornerShape(20.dp))
                 .background(NuvioTheme.colors.BackgroundElevated)
                 .border(NuvioTheme.spacing.hairline, NuvioTheme.colors.Border, RoundedCornerShape(20.dp))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = {}
-                )
+                .pointerInput(Unit) { detectTapGestures { } }
                 .padding(NuvioTheme.spacing.xxl),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -2195,11 +2191,9 @@ private fun ProfilePinOverlay(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = { runCatching { focusRequester.requestFocus() } }
-            )
+            .pointerInput(Unit) {
+                detectTapGestures { runCatching { focusRequester.requestFocus() } }
+            }
             .onPreviewKeyEvent { event ->
                 val native = event.nativeKeyEvent
                 if (native.action != AndroidKeyEvent.ACTION_DOWN) {
@@ -2304,7 +2298,9 @@ private fun ProfilePinOverlay(
 
             Text(
                 text = supportText,
-                modifier = Modifier.widthIn(max = ProfileSelectionSpacing.PinSupportMaxWidth),
+                modifier = Modifier
+                    .widthIn(max = ProfileSelectionSpacing.PinSupportMaxWidth)
+                    .semantics { liveRegion = LiveRegionMode.Polite },
                 color = supportTextColor,
                 fontSize = supportFontSize.sp,
                 fontWeight = FontWeight.Medium,
@@ -2341,6 +2337,8 @@ private fun ProfilePinOverlay(
             Spacer(modifier = Modifier.height(contentBottomPadding))
         }
 
+        val pinFieldLabel = stringResource(R.string.profile_pin_enter)
+
         BasicTextField(
             value = pin,
             onValueChange = { value ->
@@ -2353,6 +2351,7 @@ private fun ProfilePinOverlay(
             modifier = Modifier
                 .size(NuvioTheme.spacing.hairline)
                 .graphicsLayer { alpha = 0f }
+                .semantics { contentDescription = pinFieldLabel }
                 .focusRequester(focusRequester)
                 .onFocusChanged { state ->
                     isInputFocused = state.isFocused

@@ -498,3 +498,10 @@ class SkipIntroRepository @Inject constructor(
         private const val NO_ID = "__none__"
     }
 }
+
+internal fun segmentCategory(type: String): String? = when (type.lowercase()) {
+    "intro", "op", "mixed-op" -> "opening"
+    "outro", "ed", "mixed-ed", "credits", "ending" -> "ending"
+    "recap" -> "recap"
+    else -> null
+}

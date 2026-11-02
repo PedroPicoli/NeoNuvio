@@ -28,32 +28,29 @@ internal object SubtitleSdhFilter {
     private val asterisks = Regex("\\*[^*\\r\\n]+\\*[ \\t]*")
 
     // Square brackets: [screaming], [door closes], [man 1], etc.
-    private val squareBrackets = Regex("\\[[^\\]]*\\][ \\t]*")
+    private val squareBrackets = Regex("\\[[^]]*][ \\t]*")
 
     // Curly brackets: {screaming}, {door closes}, etc.
     private val curlyBrackets = Regex("\\{[^}]*\\}[ \\t]*")
 
     // Parentheses: (GASPS!), (GUNSHOT!), (doorbell rings?), (JOHN), (sighs), etc.
-    // Excludes pure numeric parentheses like (1999) or (1)
     private val parentheses = Regex(
-        "(?:\\((?!\\s*\\d+\\s*\\))[^)]*\\)|\uFF08(?!\\s*\\d+\\s*\uFF09)[^\uFF09]*\uFF09)[ \\t]*"
+        "(?:\\((?=[A-Za-z0-9 '#.,\\\"\\\\\\-\\r\\n]*\\))(?![0-9]*\\))[^)]*\\)|" +
+            "\uFF08(?=[A-Za-z0-9 '#.,\\\"\\\\\\-\\r\\n]*\uFF09)(?![0-9]*\uFF09)[^\uFF09]*\uFF09)[ \\t]*"
     )
 
-    // Speaker labels before a colon or dash:
-    // E.g.: "JOHN: Hello", "- SARAH (whispering): Hi", "<i>MAN:</i> What?", "DETECTIVE #1:", "SAMANTHA - Hello"
     private val speakerLabel = Regex(
-        "(?m)^([ \\t]*-[ \\t]*)?(?:<[^>]+>\\s*)*(?:([ \\t]*-[ \\t]*))?([A-Za-z\u00C0-\u024F0-9 ()'#.,_ -]+|\\[[^\\]]*\\])(?:\\s*<[^>]+>)*(?::|--|[-–—])[ \\t]*"
+        "(?m)^([ \\t]*-[ \\t]*)?([A-Za-z0-9 ()'#.,]+|\\[[^]\\r\\n]*]):(?=\\s|$)[ \\t]*"
     )
+    private val labelWords = Regex("[ \\t]+")
 
     // Basic HTML/WebVTT tags commonly found in subtitles: <i>, </i>, <b>, </b>, <u>, </u>, <font...>, </font>, <v...>, </v>, <c...>, </c>
     private val htmlTags = Regex("</?[a-zA-Z0-9]+[^>]*>")
 
-    fun filterCues(cues: List<Cue>): List<Cue> {
-        return cues.mapNotNull { cue ->
-            val text = cue.text?.toString() ?: return@mapNotNull cue
-            val filtered = filterPlainText(text) ?: return@mapNotNull null
-            if (filtered == text) cue else cue.buildUpon().setText(filtered).build()
-        }
+    fun filterCues(cues: List<Cue>): List<Cue> = cues.mapNotNull { cue ->
+        val text = cue.text?.toString() ?: return@mapNotNull cue
+        val filtered = filterPlainText(text) ?: return@mapNotNull null
+        if (filtered == text) cue else cue.buildUpon().setText(filtered).build()
     }
 
     internal fun filterPlainText(text: String): String? {
@@ -71,9 +68,13 @@ internal object SubtitleSdhFilter {
         filtered = musicSymbols.replace(filtered, "")
         filtered = musicHash.replace(filtered, "")
         filtered = speakerChevrons.replace(filtered, "")
-        filtered = speakerLabel.replace(filtered) { match ->
-            match.groups[1]?.value?.takeIf { it.isNotEmpty() } ?: match.groups[2]?.value.orEmpty()
+
+        val unlabelled = filtered
+        filtered = speakerLabel.replace(unlabelled) { match ->
+            val textFollows = unlabelled.substring(match.range.last + 1).substringBefore('\n').isNotBlank()
+            if (isSpeakerLabel(match.groupValues[2], textFollows)) match.groups[1]?.value.orEmpty() else match.value
         }
+
         filtered = squareBrackets.replace(filtered, "")
         filtered = curlyBrackets.replace(filtered, "")
         filtered = parentheses.replace(filtered, "")
@@ -104,10 +105,22 @@ internal object SubtitleSdhFilter {
         }
 
         return cleanedLines
-            .map { it.trim() }
-            .filter { line -> line.any { it.isLetterOrDigit() } }
+            .filter { line -> line.any { !it.isWhitespace() && it != '-' } }
             .joinToString("\n")
             .takeIf(String::isNotBlank)
+    }
+
+    /**
+     * "JOHN:" and "[John]:" are always labels. A label in normal case only counts when it reads like a name and the
+     * line goes on after it ("John: Hello"), so a sentence that ends in a colon ("He said:") stays.
+     */
+    internal fun isSpeakerLabel(label: String, textFollows: Boolean): Boolean {
+        if (label.startsWith("[")) return true
+        if (label.none(Char::isLetter)) return false
+        if (label.none(Char::isLowerCase)) return true
+        if (!textFollows) return false
+        val words = label.trim().split(labelWords)
+        return words.size <= 3 && words.none { it.first().isLowerCase() }
     }
 
     internal fun filterRawSubtitleFile(text: String): String {

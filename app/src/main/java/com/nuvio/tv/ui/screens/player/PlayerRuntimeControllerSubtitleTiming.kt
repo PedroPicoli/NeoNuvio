@@ -99,7 +99,10 @@ internal fun PlayerRuntimeController.applySubtitleAutoSyncCue(cueStartTimeMs: Lo
         val markResult = subtitleFpsDriftTracker.mark(videoSec, cueSec)
         if (markResult.type == 2) {
             finalDelayMs = markResult.delayMs.coerceIn(SUBTITLE_DELAY_MIN_MS, SUBTITLE_DELAY_MAX_MS)
-            if (isUsingMpvEngine()) {
+            _exoPlayer?.getAssHandlerCompat()?.let {
+        it.subtitleDelayUs = finalDelayMs.toLong() * 1000L + streamSubtitleDelayUs.get()
+    }
+    if (isUsingMpvEngine()) {
                 mpvView?.setSubtitleSpeed(markResult.speedRate)
             }
             statusText = context.getString(R.string.subtitle_timing_drift_corrected)
@@ -120,6 +123,9 @@ internal fun PlayerRuntimeController.applySubtitleAutoSyncCue(cueStartTimeMs: Lo
     }
 
     subtitleDelayUs.set(finalDelayMs.toLong() * 1000L)
+    _exoPlayer?.getAssHandlerCompat()?.let {
+        it.subtitleDelayUs = finalDelayMs.toLong() * 1000L + streamSubtitleDelayUs.get()
+    }
     if (isUsingMpvEngine()) {
         mpvView?.setSubtitleDelayMs(finalDelayMs)
     }

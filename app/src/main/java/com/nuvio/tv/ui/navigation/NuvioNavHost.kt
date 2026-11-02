@@ -713,7 +713,8 @@ private fun PlaybackNavHost(
                                 sources = playbackInfo.sources,
                                 contentLanguage = playbackInfo.contentLanguage,
                                 profileId = playbackInfo.profileId,
-                                audioDelayMs = playbackInfo.audioDelayMs
+                                audioDelayMs = playbackInfo.audioDelayMs,
+                                audioDelayLanguage = playbackInfo.audioDelayLanguage
                             )
                         )
                     }
@@ -755,7 +756,8 @@ private fun PlaybackNavHost(
                                 sources = playbackInfo.sources,
                                 contentLanguage = playbackInfo.contentLanguage,
                                 profileId = playbackInfo.profileId,
-                                audioDelayMs = playbackInfo.audioDelayMs
+                                audioDelayMs = playbackInfo.audioDelayMs,
+                                audioDelayLanguage = playbackInfo.audioDelayLanguage
                             )
                         ) {
                             popUpTo(Screen.Stream.route) { inclusive = true }
@@ -911,6 +913,11 @@ private fun PlaybackNavHost(
                     defaultValue = null
                 },
                 navArgument("audioDelayMs") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("audioDelayLanguage") {
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null

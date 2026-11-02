@@ -66,8 +66,13 @@ class SimklLibraryService @Inject constructor(
 
     override suspend fun getMembershipSnapshot(item: LibraryEntryInput): ListMembershipSnapshot {
         syncRepository.ensureLoaded()
-        val entry = syncRepository.state.value.snapshot.entries
-            .firstOrNull { candidate -> candidate.matchesSimklContentId(item.itemId) }
+        val entries = syncRepository.state.value.snapshot.entries
+        val entryIndex = syncRepository.currentEntryIndex()
+        val entry = if (entryIndex != null) {
+            entryIndex.firstMatchingContentId(entries, item.itemId)
+        } else {
+            entries.firstOrNull { candidate -> candidate.matchesSimklContentId(item.itemId) }
+        }
         val selectedKey = entry?.status?.let { status ->
             simklLibraryStatusDefinitions.firstOrNull { it.status == status }?.key
         }
@@ -86,8 +91,13 @@ class SimklLibraryService @Inject constructor(
         require(authStorage.state.value.isAuthenticated) { "Simkl authentication is required" }
         syncRepository.ensureLoaded()
         val snapshot = syncRepository.state.value.snapshot
-        val currentEntry = snapshot.entries.firstOrNull { candidate ->
-            candidate.matchesSimklContentId(item.itemId)
+        val entryIndex = syncRepository.currentEntryIndex()
+        val currentEntry = if (entryIndex != null) {
+            entryIndex.firstMatchingContentId(snapshot.entries, item.itemId)
+        } else {
+            snapshot.entries.firstOrNull { candidate ->
+                candidate.matchesSimklContentId(item.itemId)
+            }
         }
         val currentDefinition = currentEntry?.status?.let { status ->
             simklLibraryStatusDefinitions.firstOrNull { it.status == status }
@@ -112,7 +122,8 @@ class SimklLibraryService @Inject constructor(
             contentType = item.itemType,
             title = item.title,
             releaseInfo = item.releaseInfo ?: item.year?.toString(),
-            posterUrl = item.poster
+            posterUrl = item.poster,
+            entryIndex = entryIndex
         ).let { reference ->
             reference.copy(
                 ids = reference.ids.mergeMissing(
@@ -148,8 +159,14 @@ class SimklLibraryService @Inject constructor(
             changes.desiredMembership[definition.key] == true
         }
         if (desired.isNotEmpty()) return null
-        val currentEntry = syncRepository.state.value.snapshot.entries.firstOrNull { candidate ->
-            candidate.matchesSimklContentId(item.itemId)
+        val entries = syncRepository.state.value.snapshot.entries
+        val entryIndex = syncRepository.currentEntryIndex()
+        val currentEntry = if (entryIndex != null) {
+            entryIndex.firstMatchingContentId(entries, item.itemId)
+        } else {
+            entries.firstOrNull { candidate ->
+                candidate.matchesSimklContentId(item.itemId)
+            }
         } ?: return null
         val impacts = currentEntry.destructiveRemovalImpacts()
         return impacts.takeIf { values -> values.isNotEmpty() }?.let {

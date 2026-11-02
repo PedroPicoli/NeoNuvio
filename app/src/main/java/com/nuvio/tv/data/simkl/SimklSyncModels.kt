@@ -239,7 +239,8 @@ data class SimklSyncSnapshot(
     val entries: List<SimklLibraryEntry> = emptyList(),
     val playback: List<SimklPlaybackSession> = emptyList(),
     val lastSyncedAtEpochMs: Long? = null,
-    val lastCheckedAtEpochMs: Long? = null
+    val lastCheckedAtEpochMs: Long? = null,
+    val storageRevision: String? = null
 )
 
 data class SimklSyncState(
