@@ -165,8 +165,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         minSdk = 24
         targetSdk = 36
-        versionCode = 10103
-        versionName = "1.1.3"
+        versionCode = 10104
+        versionName = "1.1.4"
 
         val resolvedVersionName = providers.gradleProperty("appVersion").orNull
             ?: env("APP_VERSION")

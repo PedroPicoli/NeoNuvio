@@ -21,16 +21,16 @@
     <a href="https://ko-fi.com/pedropicoli"><img src="https://img.shields.io/badge/SUPPORT-KO--FI-ff5f5f?style=flat-square&logo=kofi&logoColor=white" alt="Support on Ko-fi" /></a>
   </p>
 
-  <p><b>Downloader code: 9707828</b></p>
+  <p><b>Downloader code: 8423605</b></p>
 
 </div>
 
 ---
 
-## 🆕 O que há de novo (baseado no Nuvio 1.1.0 – beta 8)
+## 🆕 O que há de novo (baseado no Nuvio 1.1.0 – beta 9)
 
+* Atualizado para beta 9 do Nuvio
 *	Melhorias no forçar dublagem
-* Resolvido problema do loop de atualização
 
 ---
 
